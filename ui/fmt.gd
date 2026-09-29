@@ -13,6 +13,13 @@ static func num(x: float) -> String:
 	return "%.1f%s" % [floor(v * 10.0) / 10.0, SUFFIXES[e]]
 
 
+static func whole(x: float) -> String:
+	if x < 1000.0:
+		return str(roundi(x))
+	var e := mini(int(floor(log(x) / log(1000.0))), SUFFIXES.size() - 1)
+	return "%d%s" % [int(floor(x / pow(1000.0, e))), SUFFIXES[e]]
+
+
 static func rate(x: float) -> String:
 	var sign := "-" if x <= -0.1 else "+"
 	x = absf(x)

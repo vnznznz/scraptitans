@@ -124,11 +124,7 @@ func apply_tier(line_index: int, seg_index: int) -> bool:
 
 
 func starved() -> bool:
-	for line in lines:
-		for s in line.segments:
-			if s.stall == SegmentState.Stall.NO_SCRAP:
-				return true
-	return false
+	return lines.any(func(l: LineState) -> bool: return l.starved())
 
 
 func revealed() -> bool:
@@ -430,18 +426,19 @@ func _step_line(line: LineState, dt: float) -> void:
 			continue
 		if i == 0:
 			if s.mech == null and line.is_complete():
-				_try_assemble(s, true)
+				_try_assemble(line, s, true)
 		elif s.mech and s.mech.arrive_t <= 0.0 and not s.mech.has_part(s.type_id):
-			_try_assemble(s, false)
+			_try_assemble(line, s, false)
 
 
-func _try_assemble(s: SegmentState, spawn: bool) -> void:
+func _try_assemble(line: LineState, s: SegmentState, spawn: bool) -> void:
 	var cost := float(s.tier_data().scrap_per_mech)
 	if scrap < cost:
 		s.stall = SegmentState.Stall.NO_SCRAP
 		return
 	scrap -= cost
 	_scrap_bucket -= cost
+	line.use_scrap(cost)
 	if spawn:
 		s.mech = MechState.new()
 		s.mech.id = next_mech_id
@@ -568,6 +565,8 @@ func _step_rates(dt: float) -> void:
 	if _rate_t < 1.0:
 		return
 	_rate_t -= 1.0
+	for line in lines:
+		line.sample_rate()
 	_credits_history.append(_credits_bucket)
 	_scrap_history.append(_scrap_bucket)
 	_scrap_gain_history.append(_scrap_gain_bucket)

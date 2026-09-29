@@ -227,12 +227,11 @@ func _on_tap(at: Vector2) -> void:
 	for e in _enemies:
 		if e.visible and (target == null or _enemy_center(e).distance_to(at) < _enemy_center(target).distance_to(at)):
 			target = e
-	var pos := _enemy_center(target) if target else at
 	if target:
 		target.modulate = Color(3, 3, 3)
 		target.create_tween().tween_property(target, "modulate", Color.WHITE, 0.12)
-	_puff(pos + Vector2(randf_range(-4, 4), randf_range(-4, 4)), 0.4, Color(1, 0.9, 0.6))
-	Flyers.spawn(Flyers.Kind.CREDITS, global_position + pos, pay)
+		_puff(_enemy_center(target) + Vector2(randf_range(-4, 4), randf_range(-4, 4)), 0.4, Color(1, 0.9, 0.6))
+	Flyers.spawn(Flyers.Kind.CREDITS, global_position + at, pay, 2)
 
 
 func _pop_enemy(i: int) -> void:

@@ -4,6 +4,8 @@ extends Control
 const SEG_Y := 0.0
 const SEG_STEP := 84.0
 const PAUSE_W := 24.0
+const USAGE_LEN := 50.0
+const USAGE_COLOR := Color(0.86, 0.86, 0.82)
 const BELT_TEX := preload("res://art/line/belt.png")
 const PAUSE_TEX := preload("res://art/ui/pause.png")
 const PLAY_TEX := preload("res://art/ui/play.png")
@@ -11,6 +13,8 @@ const PLAY_TEX := preload("res://art/ui/play.png")
 var line_index := 0
 
 var _pause: Button
+var _pause_icon: TextureRect
+var _usage: Label
 var _segments: Array[SegmentView] = []
 var _mechs: Node2D
 var _fx: Node2D
@@ -25,15 +29,30 @@ func _ready() -> void:
 
 	_pause = Button.new()
 	_pause.name = "Pause"
-	_pause.text = str(line_index + 1)
-	_pause.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_pause.vertical_icon_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	_pause.add_theme_constant_override("h_separation", 6)
-	_pause.position = Vector2(0, SEG_Y + SegmentView.MACHINE_Y)
-	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0 - SegmentView.MACHINE_Y)
+	_pause.position = Vector2(0, SEG_Y)
+	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
 	_pause.mouse_filter = MOUSE_FILTER_PASS
 	_pause.pressed.connect(GameState.toggle_pause.bind(line_index))
 	add_child(_pause)
+	var scrap_icon := TextureRect.new()
+	scrap_icon.texture = preload("res://art/ui/scrap.png")
+	scrap_icon.position = Vector2(4, 6)
+	scrap_icon.mouse_filter = MOUSE_FILTER_IGNORE
+	_pause.add_child(scrap_icon)
+	_usage = Label.new()
+	_usage.name = "Usage"
+	_usage.position = Vector2(0, 24)
+	_usage.size = Vector2(PAUSE_W, USAGE_LEN)
+	_usage.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_usage.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_usage.add_theme_constant_override("line_spacing", -9)
+	_usage.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	_usage.mouse_filter = MOUSE_FILTER_IGNORE
+	_pause.add_child(_usage)
+	_pause_icon = TextureRect.new()
+	_pause_icon.position = Vector2(4, _pause.size.y - 22)
+	_pause_icon.mouse_filter = MOUSE_FILTER_IGNORE
+	_pause.add_child(_pause_icon)
 
 	_mechs = Node2D.new()
 	add_child(_mechs)
@@ -133,8 +152,10 @@ func _process(delta: float) -> void:
 	if _segments.size() != _line().segments.size():
 		_sync_segments()
 	var paused := _line().paused
-	_pause.icon = PLAY_TEX if paused else PAUSE_TEX
-	_pause.add_theme_color_override("font_color", Color(1, 0.6, 0.4) if paused else Color.WHITE)
+	_pause_icon.texture = PLAY_TEX if paused else PAUSE_TEX
+	var rate := _line().scrap_used_rate
+	_usage.text = "\n".join(Fmt.whole(rate).split(""))
+	_usage.modulate = Hud.STARVED if _line().starved() else (USAGE_COLOR * Color(1, 1, 1, 0.5) if paused else USAGE_COLOR)
 	var belt_y := SEG_Y + SegmentView.BELT_Y
 	var belt_time := Data.econ("belt_time")
 	var moving := false

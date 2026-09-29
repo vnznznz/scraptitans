@@ -130,19 +130,27 @@ func _dig(i: int) -> void:
 	tw.tween_property(w, "position:x", hit_x, (0.1 + absf(hit_x - home.x) / 300.0) / speed) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void:
-		_squash(0.97)
+		_squash(0.97, 1.0)
 		Flyers.spawn(Flyers.Kind.SCRAP, w.global_position + Vector2(WORKER_TEX.get_width() / 2.0, -4), GameState.yard_chunk()))
 	tw.tween_property(w, "position", Vector2((hit_x + home.x) / 2.0, home.y - 4.0), 0.1 / speed) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(w, "position", home, 0.12 / speed).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 
-func _squash(y_scale: float) -> void:
+func _squash(y_scale: float, shake: float) -> void:
 	_pile.scale = Vector2(2.0 - y_scale, y_scale)
-	_pile.create_tween().tween_property(_pile, "scale", Vector2.ONE, 0.12)
+	if _pile.has_meta("tween"):
+		(_pile.get_meta("tween") as Tween).kill()
+	_pile.position = PILE_POS
+	var tw := _pile.create_tween()
+	_pile.set_meta("tween", tw)
+	tw.tween_property(_pile, "scale", Vector2.ONE, 0.12)
+	for k in 4:
+		tw.parallel().tween_property(_pile, "position:x", PILE_POS.x + shake * (1.0 if k % 2 == 0 else -1.0) * (1.0 - k * 0.25), 0.03).set_delay(k * 0.03)
+	tw.chain().tween_property(_pile, "position:x", PILE_POS.x, 0.03)
 
 
 func _on_tap(at: Vector2) -> void:
 	GameState.tap_pile()
 	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), GameState.stat("scrap_per_tap"))
-	_squash(0.92)
+	_squash(0.92, 2.0)

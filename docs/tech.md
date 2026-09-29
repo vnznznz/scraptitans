@@ -19,7 +19,7 @@
 - Progressive reveal: UPGRADES, UNLOCK LINE, YARD WORKER (+ yard slots) hidden until `GameState.revealed()` (`mechs_built > 0`)
 - HUD: scrap left, credits right
 - Upgrade menu: one list, re-sorted every frame (unmaxed by cost, maxed last); each row: title / effect, info button toggles the `desc` label
-- Line: no header row; pause strip (24 px: line number + ⏸/▶) left of the machine row; segments centered by count in the rest (step 84, 4 columns fit), re-laid out when a segment is appended; 136 px tall; paused → orange number, machines dimmed
+- Line: no header row; pause strip (24 px, one button from name row to belt: scrap icon, line scrap use/s as upright stacked digits `Fmt.whole`, ⏸/▶) left of the stations; segments centered by count in the rest (step 84, 4 columns fit), re-laid out when a segment is appended; 136 px tall; paused → usage dimmed, machines dimmed; usage red while a station of the line is out of scrap
 - Segment rows: name / machine (tap; work bar overlays its top beam, hired workers stand inside behind the mech, empty slots not drawn) / belt / one fixed button row, never hidden or resized on built stations: hire (56 px, worker icon + cost; MAX + disabled when full) + ⬆ apply-tier (24 px, icon only; enabled when a higher tier is unlocked and affordable, dim green while short on scrap, faint when none); row spans 82 px (2 px gap at step 84); fit cost shown in the tier row desc
 - DBG toggle bottom-left just above the bottom bar, panel opens upward: time scale, +scrap/credits, kill wave, +50 mechs
 - Positions hardcoded in base pixels
@@ -45,6 +45,7 @@
 - Deploy sums part tier stats (`lifetime`, `credits_per_sec`, `deploy_fee`, `dps`)
 - Field mech: payout `base·step^min(floor(age/interval), cap)` by `age`; death by `wear`, which grows `1 + wave_damage·wave` per s; income batched to `mech_income` once per second, salvage on death
 - Payout `cap` starts 0 (flat), Pay raises add steps
+- Per-line scrap use: assembly costs → `LineState.use_scrap`, sampled each second with the global rates → `scrap_used_rate` (5 s window, unsaved); `LineState.starved()`
 - Rates over 5 s: `credits_rate`; `scrap_rate` net (assembly spend subtracts; HUD); `scrap_gain_rate` gross (disc tiers)
 - Stall icon: NO_SCRAP at once, BLOCKED only after 3 s of game time in that state (view-side timer)
 - `starved()`: any segment stalled NO_SCRAP → HUD scrap +/s red
@@ -81,12 +82,12 @@
 - Disc color tier by `amount` / current gross rate (`Flyers.tier`): <2 s of income tier 1, <10 s tier 2, else tier 3; `disc_<kind>_<1..3>.png`
 - Spending: `Flyers.spend(kind, to, amount)`: disc leaves the HUD counter (icon `pulse_out`) and flies into the target; ≤6/s, dropped at the in-flight cap
 - Segment assembly start (`SegmentState.assemblies`, unsaved counter): 1 scrap disc HUD → tool head (only if the head is inside the scroll pane) + scrap bits and sparks falling onto the mech (`LineView.scrap_bits`, fx layer above belt mechs)
-- Pile tap: 1 scrap disc; yard chunk: the worker runs into the pile, pile squashes, 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap; bounty 8–20 credits
+- Pile tap: 1 scrap disc, pile squashes + vibrates (±2 px); yard chunk: the worker runs into the pile, pile vibrates (±1 px), 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap; bounty 8–20 credits
 
 ## Input
 - Hand cursor on every button (via `Main` `node_added` hook → `Hover.button`; arrow while disabled) and tap area (`Hover.add`)
 - Hover: theme `hover` style (`button_hover.png`), flat buttons and tap areas tint (`self_modulate`, tap area lights its `highlight`: machine, pile); all hover off on touchscreens (emulated mouse would leave it stuck)
-- Battlefield: full-rect `TapArea` `FieldTap` → `tap_wave()`, nearest visible enemy flashes, puff, 1 credit disc
+- Battlefield: full-rect `TapArea` `FieldTap` → `tap_wave()`, nearest visible enemy flashes + puff, 2 credit discs burst from the tap point
 - Taps: `TapArea` (`ui/tap_area.gd`): fires on `ScreenTouch` press (multi-touch) or real mouse press; ignores touch-emulated mouse; `MOUSE_FILTER_PASS` so drags reach `ScrollContainer`
 - Buttons in the scroll pane use `MOUSE_FILTER_PASS`; scroll deadzone 8
 

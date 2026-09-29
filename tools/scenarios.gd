@@ -341,7 +341,7 @@ func m5() -> void:
 	t.check(line.get_node("Pause").position.x < 20, "pause sits at the left of the line")
 	t.check(_centered(line, 3), "3 segments centered right of the pause strip (x %d)" % line.segment_view(0).position.x)
 	var pause_rect: Rect2 = line.get_node("Pause").get_rect()
-	t.check(is_equal_approx(pause_rect.position.y, SegmentView.MACHINE_Y) and pause_rect.end.x <= line.segment_view(0).position.x, "pause sits in the machine row, left of the segments")
+	t.check(is_zero_approx(pause_rect.position.y) and pause_rect.end.y >= SegmentView.BELT_Y and pause_rect.end.x <= line.segment_view(0).position.x, "pause strip spans names to belt, left of the stations")
 
 	GameState.mechs_built = 1
 	await t.frames(1)
@@ -712,6 +712,10 @@ func m8() -> void:
 	await _fill_bar(line, 0)
 	GameState.advance(1.0)
 	await t.frames(1)
+	var usage: Label = line.find_child("Usage", true, false)
+	GameState.advance(1.0)
+	await t.frames(2)
+	t.check(GameState.lines[0].scrap_used_rate > 0.0 and usage.text.replace("\n", "") == Fmt.whole(GameState.lines[0].scrap_used_rate), "line scrap usage shows %s/s" % usage.text.replace("\n", ""))
 	var stall: Control = line.segment_view(0).get_node("Stall")
 	t.check(GameState.lines[0].segments[0].stall == SegmentState.Stall.BLOCKED and not stall.visible, "blocked: no icon yet")
 	GameState.time_scale = 10.0
@@ -750,7 +754,8 @@ func m8() -> void:
 	await t.click(field_tap)
 	t.check(is_equal_approx(GameState.wave_hp, GameState.wave_max_hp() * 0.99), "a battlefield tap deals 1% of the wave HP")
 	t.check(is_equal_approx(GameState.credits, GameState.wave_bounty() * 0.01), "and pays 1%% of the bounty (%.2f)" % GameState.credits)
-	t.check(flyers.get_child_count() == 1, "one credit disc flies from the hit")
+	var tap_at := field_tap.get_global_rect().get_center()
+	t.check(flyers.get_child_count() == 2 and flyers.get_children().all(func(d: Control) -> bool: return (d.position + d.size / 2.0).distance_to(tap_at) < 30.0), "two credit discs burst from the tap point")
 	GameState.credits = 1e6
 	for i in 4:
 		GameState.buy_upgrade("tap_damage")
@@ -763,6 +768,13 @@ func m8() -> void:
 	t.check(GameState.wave == wave + 1, "taps can finish a wave")
 
 	var pile: Control = main.find_child("Pile", true, false)
+	var pile_sprite: Control = yard.get_node("PileSprite")
+	var rest_x := pile_sprite.position.x
+	await t.click(pile)
+	t.check(not is_equal_approx(pile_sprite.position.x, rest_x), "pile vibrates on tap")
+	await t.wait(0.3)
+	t.check(is_equal_approx(pile_sprite.position.x, rest_x), "and settles back")
+
 	var motion := InputEventMouseMotion.new()
 	motion.position = pile.get_global_rect().get_center()
 	motion.global_position = motion.position
