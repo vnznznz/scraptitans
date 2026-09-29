@@ -2,7 +2,7 @@
 
 ## Stack
 - Godot 4.7.2, GL Compatibility, GDScript (static types)
-- Web export, no threads (`web_nothreads_*` templates)
+- Web export, no threads; custom export templates (see Web templates)
 
 ## Display
 - Viewport 360×640, stretch `canvas_items`, aspect `keep_width`
@@ -108,9 +108,21 @@
 - Tuning: `godot --headless --path . -- --scenario tune`: bot plays a run (3 taps/s, builds, buys cheapest, applies tiers, pauses lines to save for applies); prints per-minute economy + purchase timeline; checks first worker < 4 min, nuke 30–60 min. Now: first worker 1.4 min, nuke ~33 min (1.5 taps/s: 2.5 / 36 min); the bot never taps the battlefield
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
 - Placeholders: `uv run --with pillow python3 tools/gen_placeholders.py`
+- Templates: `tools/build_templates.sh [web|smoke]` → `build/templates/`; scons in `~/work/source/godot` (`GODOT_SRC`, at `4.7.2-stable`); web via emsdk 4.0.11 in `~/work/source/emsdk` (`EMSDK_DIR`), ~25 min for both; smoke = Linux `template_debug` in a `fedora:43` podman container (no host g++), `x11=no wayland=no vulkan=no accesskit=no` (vulkan=no: link error without x11/wayland)
+- Template smoke: `tools/smoke_templates.sh [binary]` (default `build/templates/linux_smoke.x86_64`): "Linux smoke" preset (includes `tools/`) → `build/smoke/smoke.pck` next to the binary, runs m0–m8 + intro headless (templates refuse `--main-pack`)
 - Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel; `build/.gdignore` keeps the editor from importing the exported PNGs
 - Deploy: `tools/deploy_web.sh` → release build, `lftp` FTPS mirror (`--delete`, temp file + rename per file, `index.html` put last) via `www161.your-server.de` to `https://distco.de/games/scraptitans/`; credentials in gitignored `tools/deploy.env` (`FTP_HOST/USER/PASS/DIR`, FTP user chrooted to the game folder, so `FTP_DIR=/`); `FTP_VERIFY_CERT=false` if the host cert doesn't match
 - Serve: `tools/serve_web.sh` → Caddy, `tls internal` (cert generated on the fly, untrusted: accept the browser warning), `https://localhost:8443`, `https://<lan-ip>:8443`, `Cache-Control: no-cache`; `LAN_IP` overrides detection
+
+## Web templates
+- Web preset uses `build/templates/web_{debug,release}.zip` (not in git: run `tools/build_templates.sh` first); release wasm 12.9 MB (brotli 2.6 MB) vs official 39.5 MB (7.1 MB)
+- Profile `tools/web.gdbuild`: editor "Detect from Project" output minus `Script`, `ScrollBar` (kept to be safe) + fallback text server, advanced off, no brotli/graphite
+- Flags: `threads=no production=yes lto=full optimize=size_extra deprecated=no disable_advanced_gui=yes modules_enabled_by_default=no` + gdscript, freetype, text_server_fb
+- Textures: `lossless_compression/force_png` (default stores WebP, which would need the webp module)
+- No svg module: default theme icons blank (game theme covers all used)
+- `javascript_eval` on (default): `JavaScriptBridge` for Poki
+- Disabled classes are still created lazily from C++ (`initialize_class`); only script/name access and unreferenced code go
+- Game starts using a new engine class/format → re-detect profile, rebuild templates, smoke
 
 ## Web gotchas
 - Secure context required (HTTPS or localhost)
