@@ -122,7 +122,7 @@ func _process(delta: float) -> void:
 	for i in _enemies.size():
 		var e := _enemies[i]
 		if e.get_meta("flying"):
-			e.offset.y = -e.texture.get_height() + roundf(sin(t * 3.0 + i) * 2.0)
+			e.offset.y = -e.texture.get_height() / 2.0 + roundf(sin(t * 3.0 + i) * 2.0)
 		if e.visible:
 			(e.get_node("Damage") as DamageFx).set_remaining(remaining)
 		if e.visible and not _views.is_empty():
@@ -159,7 +159,7 @@ func _random_enemy() -> Sprite2D:
 
 
 func _enemy_center(e: Sprite2D) -> Vector2:
-	return e.position + Vector2(0, e.offset.y + e.texture.get_height() / 2.0)
+	return e.position + e.offset
 
 
 func _enemy_fire(e: Sprite2D) -> void:
@@ -193,7 +193,7 @@ func _show_wave(walk_in: bool) -> void:
 	for en in list:
 		var e := Sprite2D.new()
 		e.texture = load("res://art/battlefield/enemy_%s_%d.png" % [en.sprite, en.variant + 1])
-		e.offset = Vector2(0, -e.texture.get_height())
+		e.offset = Vector2(0, -e.texture.get_height() / 2.0)
 		e.set_meta("flying", en.flying)
 		var i: int = layer_i[en.flying]
 		var count: int = layer_sizes[en.flying]

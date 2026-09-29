@@ -452,6 +452,11 @@ func m6() -> void:
 		fired = maxi(fired, field.find_children("*", "Sprite2D", true, false).filter(func(n: Node) -> bool:
 			return n.texture == preload("res://art/fx/bullet.png")).size())
 	t.check(fired > 0 or bullets.size() > 0, "mechs fire at the wave")
+	var drone: Sprite2D = field.find_children("*", "Sprite2D", true, false).filter(func(n: Sprite2D) -> bool:
+		return n.texture and n.texture.resource_path.contains("enemy_")).front()
+	var drawn := drone.get_rect()
+	drawn.position += drone.position
+	t.check(drawn.has_point(field.call("_enemy_center", drone)) and absf(field.call("_enemy_center", drone).y - drawn.get_center().y) < 1.0, "bullets aim at the enemy's drawn center")
 
 	var m: MechState = GameState.field[0]
 	for pair: Array in [[0.9, 0], [0.6, 1], [0.4, 2], [0.2, 3], [0.1, 4]]:
