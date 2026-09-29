@@ -106,7 +106,7 @@ func m1() -> void:
 	var earned := GameState.credits
 	t.check(GameState.field.is_empty(), "mech died after its 20 s lifetime")
 	t.check(absf(earned - 45.625) < 0.6, "payout rises in steps: 5 fee + 40.6 over life (got %.2f)" % earned)
-	t.check(absf(GameState.scrap - 9.0) < 1.01, "kills (~5) + 40%% salvage (4) return scrap (got %.2f)" % GameState.scrap)
+	t.check(is_equal_approx(GameState.scrap, 2.0), "no scrap while alive, 20%% salvage of 10 on death (got %.2f)" % GameState.scrap)
 	t.check(main.get_node("%Battlefield").mech_count() == 0, "battlefield view removed the mech")
 
 	GameState.scrap = 0.0

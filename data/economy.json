@@ -8,5 +8,5 @@
 	"payout_step": 1.5,
 	"payout_interval": 5.0,
 	"payout_cap": 6,
-	"salvage": 0.4
+	"salvage": 0.2
 }

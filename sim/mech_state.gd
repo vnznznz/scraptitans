@@ -3,7 +3,7 @@ extends RefCounted
 
 const FLOAT_FIELDS := [
 	"scrap_cost", "arrive_t", "age", "lifetime", "base_rate", "deploy_fee",
-	"kill_rate", "scrap_per_kill", "kill_acc", "pend_t", "pend_credits", "pend_scrap",
+	"dps", "pend_t", "pend_credits",
 ]
 
 var id := 0
@@ -14,12 +14,9 @@ var age := 0.0
 var lifetime := 0.0
 var base_rate := 0.0
 var deploy_fee := 0.0
-var kill_rate := 0.0
-var scrap_per_kill := 0.0
-var kill_acc := 0.0
+var dps := 0.0
 var pend_t := 0.0
 var pend_credits := 0.0
-var pend_scrap := 0.0
 
 
 func has_part(type_id: String) -> bool:

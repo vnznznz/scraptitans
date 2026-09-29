@@ -22,7 +22,7 @@
 			"build_cost": 20,
 			"bar_size": 5,
 			"tiers": [
-				{"part": "Pipe Gun", "scrap_per_mech": 3, "kills_per_sec": 0.25, "scrap_per_kill": 1}
+				{"part": "Pipe Gun", "scrap_per_mech": 3, "dps": 1}
 			]
 		}
 	}

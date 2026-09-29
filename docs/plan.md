@@ -6,7 +6,7 @@ Prototype milestones for [pitch.md](pitch.md). Each ends with a web build playab
 
 - Claude checks the Test list as far as it can by instrumenting Godot directly: headless scenario runs for logic, windowed screenshots for visuals. Claude never runs browser tests.
 - The user runs the Test list in the local browser and iOS Safari, with the build served by Caddy over HTTPS (self-signed cert).
-- Sprites are PNG files from the start, placeholders included, so M8 replaces files, not code.
+- Sprites are PNG files from the start, placeholders included, so M9 replaces files, not code.
 - Tunables live in JSON files in `data/` (not Resource files as the pitch says); tune by playing, with the debug panel from M1 on.
 - Update [tech.md](tech.md) and tick the boxes below.
 
@@ -36,7 +36,7 @@ Build: build line 1, tap mechs through it, watch them earn on the battlefield.
 - [x] `data/segments.json`: Frame (lifetime), Core (payout), Arms (kill rate) with build cost, bar size, scrap per mech, tiers (tier 1 only for now)
 - [x] `data/economy.json` with the pitch defaults
 - [x] Sim: bars bank work with no mech present; full bar + mech + scrap → pay, assemble 0.5 s, move on. One mech per segment; a mech waits while the next segment is busy, blocking upstream. Frame spawns mechs.
-- [x] Sim: deploy fee on arrival, stepped credits/s, scrap per kill, 40% salvage on death
+- [x] Sim: deploy fee on arrival, stepped credits/s, salvage on death (now 20%; per-kill scrap removed)
 - [x] Line view: empty pads → build (scrap), tapping a segment fills its bar, belt moves mechs, stall icons (no scrap, blocked)
 - [x] Battlefield stub: mechs slide in, stand, pop at end of life
 - [x] Income discs instead of the pitch's floating numbers: credit/scrap discs burst from the source (mech, pile) and fly to the HUD counter, which pulses
@@ -52,7 +52,24 @@ Test:
 - Out of scrap: stall icon, line waits. Next segment busy: blocked icon.
 - Reload mid-production restores the same state.
 
-## M2 · Workers
+## M2 · Enemy waves
+
+Build: mechs grind down enemy waves for big credit bounties.
+
+- [ ] `data/enemies.json`: 3 types (Scrap Drones, Crawler Tanks, Junk Brute: count per wave, sprite); wave HP and bounty curves
+- [ ] Arms stat is `dps`; the sim drains the wave by the summed DPS of mechs on the field; wave state saved
+- [ ] Healthbar across the full width at the top of the battlefield: HP left / total, DPS
+- [ ] Enemies pop one by one as HP passes their share
+- [ ] Drained: credit bounty as a big disc burst, explosion and particles, next wave (next type, more HP) walks in from the right
+- [ ] Debug: kill wave
+
+Test:
+- The bar drains while mechs are alive and stops when the field is empty; DPS matches the mech count.
+- Enemies thin out as the bar drains.
+- A drained wave pays a bounty burst, explodes, and the next type walks in with more HP.
+- Reload keeps the wave and its HP.
+
+## M3 · Workers
 
 Build: hire workers; the factory runs hands-off.
 
@@ -67,7 +84,7 @@ Test:
 - Pause stops the scrap drain.
 - Workers on the bottleneck move the highlight.
 
-## M3 · Upgrades and lines
+## M4 · Upgrades and lines
 
 Build: spend credits in the upgrade menu, run several lines.
 
@@ -81,7 +98,7 @@ Test:
 - Line 2 runs beside line 1, both feed the battlefield.
 - Salvage stops at 90%.
 
-## M4 · Tiers
+## M5 · Tiers
 
 Build: unlock better parts, apply them per segment, see mechs change.
 
@@ -96,11 +113,11 @@ Test:
 - ⬆ opens the menu on the right row.
 - Unlock Plating, build it on line 1 → mechs live longer.
 
-## M5 · Battlefield
+## M6 · Battlefield
 
 Build: the battlefield reads without UI.
 
-- [ ] Mechs walk in (4 frames), hold a slot, fire with muzzle flash; 2–3 enemy types fire back and pop at the mech's kill rate
+- [ ] Mechs walk in (4 frames), hold a slot, fire with muzzle flash at the wave; enemies fire back
 - [ ] Damage by remaining lifetime: smoke ×3 → sparks → explosion + debris
 - [ ] Income discs scale with amount (more or bigger discs for bigger payouts), readable at 50 mechs
 - [ ] Draw at most N mechs (the pitch doesn't cap it); the rest are simulated only
@@ -110,7 +127,7 @@ Test:
 - 2 min of play shows who fires, who's hurt and what each mech earns.
 - 50 mechs: discs stay readable, 60 fps on the iPhone.
 
-## M6 · Nuke
+## M7 · Nuke
 
 Build: a run can be finished and restarted.
 
@@ -125,7 +142,7 @@ Test:
 - Reload after launch shows the card, not the old run.
 - Start again gives a fresh game.
 
-## M7 · Poki and tuning
+## M8 · Poki and tuning
 
 Build: Poki integration, tuned run.
 
@@ -140,7 +157,7 @@ Test:
 - Game still runs with the SDK blocked (ad blocker).
 - 3 fresh players reach the nuke in 30–60 min.
 
-## M8 · Art
+## M9 · Art
 
 Build: release candidate. Claude refines the placeholder art.
 

@@ -2,8 +2,7 @@ extends Node
 
 signal purchased
 signal mech_deployed(mech: MechState)
-signal mech_income(mech: MechState, credits: float, scrap: float)
-signal enemy_killed(mech: MechState)
+signal mech_income(mech: MechState, credits: float)
 signal mech_died(mech: MechState, salvage: float)
 
 const TICK := 1.0 / 30.0
@@ -177,8 +176,7 @@ func _deploy(m: MechState) -> void:
 	m.lifetime = float(frame.lifetime)
 	m.base_rate = float(core.credits_per_sec)
 	m.deploy_fee = float(core.deploy_fee)
-	m.kill_rate = float(arms.kills_per_sec)
-	m.scrap_per_kill = float(arms.scrap_per_kill)
+	m.dps = float(arms.dps)
 	m.arrive_t = 0.0
 	field.append(m)
 	mechs_built += 1
@@ -197,19 +195,12 @@ func _step_field(dt: float) -> void:
 		m.age += dt
 		_gain_credits(c)
 		m.pend_credits += c
-		m.kill_acc += m.kill_rate * dt
-		while m.kill_acc >= 1.0 - 1e-6:
-			m.kill_acc -= 1.0
-			_gain_scrap(m.scrap_per_kill)
-			m.pend_scrap += m.scrap_per_kill
-			enemy_killed.emit(m)
 		m.pend_t += dt
 		var dead := m.age >= m.lifetime
 		if m.pend_t >= 1.0 or dead:
-			mech_income.emit(m, m.pend_credits, m.pend_scrap)
+			mech_income.emit(m, m.pend_credits)
 			m.pend_t = 0.0
 			m.pend_credits = 0.0
-			m.pend_scrap = 0.0
 		if dead:
 			var salvage := m.scrap_cost * Data.econ("salvage")
 			_gain_scrap(salvage)

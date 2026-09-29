@@ -36,7 +36,6 @@ func _ready() -> void:
 
 	GameState.mech_deployed.connect(_on_deployed)
 	GameState.mech_income.connect(_on_income)
-	GameState.enemy_killed.connect(_on_kill)
 	GameState.mech_died.connect(_on_died)
 	for m in GameState.field:
 		var view := _add_view(m)
@@ -103,17 +102,9 @@ func _on_deployed(m: MechState) -> void:
 		_fly(m, Flyers.Kind.CREDITS, 3)
 
 
-func _on_income(m: MechState, credits: float, scrap: float) -> void:
+func _on_income(m: MechState, credits: float) -> void:
 	if credits > 0.0:
 		_fly(m, Flyers.Kind.CREDITS, 1)
-	if scrap > 0.0:
-		_fly(m, Flyers.Kind.SCRAP, 1)
-
-
-func _on_kill(_m: MechState) -> void:
-	var e: Sprite2D = _enemies.pick_random()
-	e.modulate = Color(3, 3, 3)
-	e.create_tween().tween_property(e, "modulate", Color.WHITE, 0.2)
 
 
 func _on_died(m: MechState, salvage: float) -> void:

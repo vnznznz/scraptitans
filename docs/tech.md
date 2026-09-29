@@ -26,15 +26,15 @@
 - Views never mutate state except through `GameState` methods; they read it every frame
 - Segment: work banks up to bar size; full bar + mech (Frame: free slot, line complete) + scrap → assemble; one mech per segment; `stall` NONE / NO_SCRAP / BLOCKED
 - Line processed last → first each tick
-- Field mech: payout `base·step^min(floor(age/interval), cap)`, kills accumulate `kill_rate·dt`, income batched to `mech_income` once per second, salvage on death
-- Signals: `purchased`, `mech_deployed`, `mech_income`, `enemy_killed`, `mech_died`
+- Field mech: payout `base·step^min(floor(age/interval), cap)`, income batched to `mech_income` once per second, salvage on death; `dps` stored (Arms), unused until waves
+- Signals: `purchased`, `mech_deployed`, `mech_income`, `mech_died`
 
 ## Data
 - Tunables only in `data/*.json`: `economy.json`, `segments.json` (`line_slots`, `types` → tiers array)
 
 ## Income feedback
 - No floating numbers. `Flyers.spawn(kind, global_pos, count)` (`ui/flyers.gd`): disc bursts up, flies to `Hud.target(kind)`, `Hud.pulse(kind)` on arrival; max 48 in flight
-- Pile tap: 1 scrap disc; mech: deploy 3 credits, per second 1 credit (+1 scrap if kills), salvage 2 scrap
+- Pile tap: 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap
 
 ## Input
 - Taps: `TapArea` (`ui/tap_area.gd`): fires on `ScreenTouch` press (multi-touch) or real mouse press; ignores touch-emulated mouse; `MOUSE_FILTER_PASS` so drags reach `ScrollContainer`

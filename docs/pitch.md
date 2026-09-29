@@ -7,8 +7,8 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 1. Tap the **scrap pile** → scrap.
 2. **Line 1 is unlocked from the start.** Build its segments with scrap. Each segment has a **work bar** filled by player taps or its workers. When the bar is full and a mech is waiting, the segment consumes scrap, plays a short assembly animation and the mech moves along the belt to the next segment.
 3. After the last segment the mech **walks off the line** onto the **battlefield**. The player **receives a deploy fee** in credits.
-4. On the battlefield it fires, kills enemies and takes fire. It earns **credits per second** (rising in steps while it lives) and **scrap per kill**.
-5. The mech explodes. Lifetime depends on its parts. **Salvage** returns a share of its scrap cost.
+4. On the battlefield it fires at the current **enemy wave** and takes fire. It earns **credits per second** (rising in steps while it lives), and its damage drains the wave's healthbar. A drained wave pays a big **credit bounty**.
+5. The mech explodes. Lifetime depends on its parts. **Salvage** returns a share of its scrap cost. Mechs pay no scrap while alive.
 6. Spend credits on workers, lines and unlocks; spend scrap on building, upgrading and operating segments.
 7. Unlock and build the **Atomic Missile**. The nuke ends the run.
 
@@ -16,8 +16,8 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 
 | Resource | Source | Spent on |
 |---|---|---|
-| **Scrap** | Pile taps, yard workers, enemy kills, salvage | Building segments, segment tier upgrades, per-mech production cost |
-| **Credits** | Deploy fee, battlefield payout | Workers, unlocking lines, unlocking upgrades in the menu |
+| **Scrap** | Pile taps, yard workers, salvage | Building segments, segment tier upgrades, per-mech production cost |
+| **Credits** | Deploy fee, battlefield payout, wave bounties | Workers, unlocking lines, unlocking upgrades in the menu |
 
 ## Assembly line
 
@@ -26,7 +26,7 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 - Each segment owns one stat:
   - **Frame** → lifetime.
   - **Core** → credit payout.
-  - **Arms** → kill rate, so scrap income.
+  - **Arms** → damage per second against the enemy wave, so bounty rate.
   - **Plating** → lifetime.
 - **Work bar:** the only throughput gate. Fills from player taps (tap the segment) and from the segment's workers. It fills **even when no mech is present**, so work is banked. When full and a mech is waiting: deduct scrap, play the assembly animation (~0.5 s), attach the part, send the mech down the belt. Frame spawns the mech.
 - A segment holds one mech. If the next segment is busy, the mech waits on the belt and blocks upstream.
@@ -43,26 +43,35 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 - Cost formula: `cost = base * growth^n` where `n` = workers hired **on that station**, base and growth per station type (e.g. base 50, growth 1.35). Tune so the first worker per station arrives within the first few minutes.
 - Slot caps are raised through the upgrade menu.
 
-## Battlefield (cosmetic, nearly no UI)
+## Battlefield (nearly no UI)
 
-- Mechs walk in from the left and fire at enemies on the right. Enemies fire back.
-- No HP bars. Damage shows as smoke (3 intensities), then sparks, then explosion and debris.
-- Kills are cosmetic: kill rate is derived from Arms tier and produces `+scrap` floaters and an enemy death pop.
-- **Floating numbers** are the only UI: gold `+credits`, grey `+scrap`. They drift up and fade.
-- No combat sim. Lifetime, payout and kill rate come from the stats; visuals play along.
+- Mechs walk in from the left and fire at the enemy wave on the right. Enemies fire back.
+- No HP bars on mechs. Mech damage shows as smoke (3 intensities), then sparks, then explosion and debris. It follows remaining lifetime, not enemy fire.
+- No combat sim beyond the wave: lifetime, payout and damage come from the stats; visuals play along.
 
-## Floating numbers
+## Enemy waves
 
-- **Batch per source per second:** one floater per mech per second for credits, and one per second for scrap kills, summed.
-- **Placement:** each mech owns a spawn column above its head. Floaters in a column stack upward with a fixed vertical gap; if the column is full the oldest fades faster. Columns of neighbouring mechs offset horizontally to avoid overlap. Global cap of ~12 visible floaters; above that, merge into the nearest column's total.
-- Big numbers use short suffixes (1.2K, 3.4M).
+- One **wave** at a time: a set of enemies of one type, standing on the right.
+- The wave has one **healthbar**, full layout width, at the top of the battlefield. It shows HP left / total and the current **damage per second** (sum of the Arms DPS of all mechs on the field).
+- The bar drains slowly while mechs are alive and stops when the field is empty.
+- **Drained:** big **credit bounty** (disc burst), explosion animation and particle effects, then the next wave walks in from the right.
+- Each wave has more HP and a bigger bounty than the last. Wave types cycle.
+- Three enemy types to start (placeholder names): **Scrap Drones** (small, flying, many), **Crawler Tanks** (medium), **Junk Brute** (one big walker). Data-driven, more types later.
+- Individual enemies pop as the bar passes their share of the wave's HP, so the set thins out as it drains.
+
+## Income discs
+
+- No floating numbers. Every gain launches small **discs**: gold for credits, grey for scrap.
+- A disc bursts up from its source (mech, pile, wave), then flies into the matching HUD counter, which pulses on arrival. Bursting up first keeps it clear of the thumb on the pile.
+- Counts: pile tap 1 scrap; mech deployed 3 credits; each second alive 1 credit; salvage 2 scrap; wave bounty a big burst.
+- Cap on discs in flight. Big numbers in the HUD use short suffixes (1.2K, 3.4M).
 
 ## Economy defaults (tune later)
 
 - **Payout while alive:** `rate = base_rate(Core) * step^min(floor(t / interval), cap)` with `step = 1.5`, `interval = 5 s`, `cap = 6`. The Payout upgrade chain raises `cap` and lowers `interval`. Bounded, so lifetime is strong but not the whole game.
 - **Deploy fee:** paid to the player on arrival, scales with Core tier.
-- **Scrap per kill:** `kill_rate(Arms) * scrap_per_kill(Arms tier)`.
-- **Salvage:** 40% of the mech's scrap cost. Upgrades raise it, hard cap 90%.
+- **Wave HP and bounty:** `hp = base_hp * hp_growth^wave`, `bounty = base_bounty * bounty_growth^wave`. DPS = sum of Arms DPS on the field.
+- **Salvage:** 20% of the mech's scrap cost. Upgrades raise it, hard cap 90%.
 - **Cost curve for credit purchases:** `cost = base * 1.15^level`.
 - **Tier upgrades cost a fixed scrap amount** per tier (rising per tier, not per line). Cheap enough to feel good, expensive enough that pausing a line matters.
 - Run length target: 30–60 min active play. No offline progress.
@@ -76,7 +85,7 @@ A fixed **UPGRADES** button opens a tabbed purchase menu. Everything here costs 
 - **Workers tab:** bigger work chunks, shorter chunk interval.
 - **Yard tab:** scrap per tap, yard slots.
 - **Payout tab:** step cap, step interval, deploy fee.
-- **Salvage tab:** 40% → 90%.
+- **Salvage tab:** 20% → 90%.
 - **Lines tab:** unlock line 2, 3, …
 
 Each segment has a small ⬆ icon that jumps to its tier row. Tapping the segment body only fills the work bar.
@@ -115,7 +124,8 @@ Each segment has a small ⬆ icon that jumps to its tier row. Tapping the segmen
 │ HUD: credits +/s  scrap +/s ⚙│  fixed
 ├──────────────────────────────┤
 │ BATTLEFIELD (fixed, ~25%)    │  fixed, visuals only
-│  mechs →  smoke  ✸   ← enemy │  floating +cr / +scrap
+│ ▓▓▓▓▓▓▓▓░░░ 1.2K/3K  45 DPS  │  wave healthbar, full width
+│  mechs →  smoke  ✸   ← enemy │  discs fly to the HUD
 ├──────────────────────────────┤
 │ ▼ ScrollContainer (vertical) │
 │ LINE 1                  ⏸    │  pause = stop burning scrap
@@ -140,7 +150,7 @@ Each segment has a small ⬆ icon that jumps to its tier row. Tapping the segmen
 - **Rendering:** Compatibility renderer, for web export.
 - **Pixel art:** base viewport 360×640 (or 720×1280 at 2×), `stretch mode = canvas_items`, keep aspect, texture filter **Nearest**.
 - **Data:** segment types, tiers, upgrades and mech parts as `Resource` files. New segment types are data only.
-- **Scene structure:** `Main` (HUD, `Battlefield`, `ScrollContainer` → `VBox` → `AssemblyLine` × N + `Scrapyard`, fixed `UpgradeButton`, `UpgradeMenu` overlay). `AssemblyLine` owns `Segment` nodes, the belt and mechs in transit. `Battlefield` owns active mechs, enemies, effects and the floater manager.
+- **Scene structure:** `Main` (HUD, `Battlefield`, `ScrollContainer` → `VBox` → `AssemblyLine` × N + `Scrapyard`, fixed `UpgradeButton`, `UpgradeMenu` overlay). `AssemblyLine` owns `Segment` nodes, the belt and mechs in transit. `Battlefield` owns active mechs, the enemy wave and its healthbar, and effects. A top-level `Flyers` layer draws income discs.
 - **Simulation:** one tick in a central autoload (`GameState`), separate from visuals. Workers fire on timers, not per frame.
 - **Save:** JSON in `user://` (IndexedDB on web). Save on change and on hide. No offline progress.
 - **Poki:** Poki SDK via `JavaScriptBridge`. Gameplay start/stop, commercial break on run end, rewarded ads: 2× payout for 5 min, fill all work bars.
@@ -151,7 +161,8 @@ Each segment has a small ⬆ icon that jumps to its tier row. Tapping the segmen
 - Mech parts per tier (see table): frame, core, arms, plating. Layered sprites so combinations vary for free.
 - Nuclear Mech, missile launch, flash, mushroom cloud, shockwave, flattened-factory debris.
 - Mech walk cycle (4 frames), firing, muzzle flash, smoke ×3, explosion, debris.
-- Enemies: 2–3 silhouette types with a death pop.
+- Enemies: 3 types (Scrap Drone, Crawler Tank, Junk Brute) with a death pop; wave explosion and particles.
+- Wave healthbar, credit and scrap discs.
 - Segment machines: gantry + tool per segment type, idle and working states. Empty slot pad.
 - Belt tile (animated), scrap pile (fill states), stall icon.
 - Worker: idle, shovel, carry.
