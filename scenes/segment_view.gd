@@ -21,12 +21,14 @@ const PAUSED := Color(0.55, 0.55, 0.6)
 const WORKER_TEX := preload("res://art/line/worker.png")
 const TOOL_HEAD := Vector2(40, 56)
 const BLOCKED_DELAY := 3.0
+const WORK_FPS := 11.0
 
 var line_index := 0
 var seg_index := 0
 
 var _name: Label
 var _machine: TextureRect
+var _frames: Array[Texture2D] = []
 var _pad: TextureRect
 var _build: Button
 var _bar: TextureProgressBar
@@ -69,7 +71,9 @@ func _ready() -> void:
 	header.add_child(stat)
 
 	_machine = TextureRect.new()
-	_machine.texture = load("res://art/line/machine_%s.png" % type_id)
+	for f in 3:
+		_frames.append(load("res://art/line/machine_%s_%d.png" % [type_id, f]))
+	_machine.texture = _frames[0]
 	_machine.position = Vector2(0, MACHINE_Y)
 	_machine.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_machine)
@@ -154,8 +158,7 @@ func _process(delta: float) -> void:
 	_bar.modulate = Color(1.4, 1.4, 1.0) if s.bar_full() else Color.WHITE
 	_bump_t = maxf(0.0, _bump_t - delta)
 	_machine.position = Vector2(0, MACHINE_Y + (1.0 if _bump_t > 0.0 else 0.0))
-	if s.assembling:
-		_machine.position += Vector2(randf_range(-1, 1), randf_range(-1, 1)).round()
+	_machine.texture = _frames[1 + int(Time.get_ticks_msec() / 1000.0 * WORK_FPS) % 2] if s.assembling else _frames[0]
 	_blocked_t = _blocked_t + delta * GameState.time_scale if s.stall == SegmentState.Stall.BLOCKED else 0.0
 	_stall.visible = s.stall == SegmentState.Stall.NO_SCRAP or _blocked_t >= BLOCKED_DELAY
 	if _stall.visible:

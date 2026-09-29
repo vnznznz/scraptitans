@@ -1,8 +1,8 @@
 class_name IntroGuide
 extends Control
 
-const COLOR := Color(1.0, 0.85, 0.3)
-const OUTLINE := Color(0.08, 0.07, 0.1)
+const COLOR := Pal.YELLOW
+const OUTLINE := Pal.INK
 const ARROW := Vector2(8, 10)
 const MARGIN := 16.0
 const FIELD_TAPS := 3

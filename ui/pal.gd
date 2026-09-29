@@ -1,0 +1,18 @@
+class_name Pal
+
+const INK := Color("181425")
+const NAVY := Color("262b44")
+const SLATE_D := Color("3a4466")
+const SLATE := Color("5a6988")
+const STEEL := Color("8b9bb4")
+const STEEL_L := Color("c0cbdc")
+const WHITE := Color("ffffff")
+const CREAM := Color("ead4aa")
+const GOLD := Color("feae34")
+const YELLOW := Color("fee761")
+const ORANGE := Color("f77622")
+const RUST := Color("be4a2f")
+const RED := Color("e43b44")
+const PINK := Color("f6757a")
+const CYAN := Color("2ce8f5")
+const GREEN := Color("63c74d")

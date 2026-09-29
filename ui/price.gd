@@ -1,6 +1,6 @@
 class_name Price
 
-const COLORS := [Color(1.0, 0.83, 0.3), Color(0.86, 0.86, 0.82)]
+const COLORS := [Pal.GOLD, Pal.STEEL_L]
 const DIM := Color(1, 1, 1, 0.45)
 
 

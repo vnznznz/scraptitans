@@ -2,6 +2,7 @@ class_name Nuke
 extends Control
 
 const SWEEP_TIME := 3.0
+const COUNT_TIME := 1.2
 
 @export var battlefield: Battlefield
 @export var scroll: ScrollContainer
@@ -9,9 +10,9 @@ const SWEEP_TIME := 3.0
 @export var scrapyard: Scrapyard
 
 var _flash: ColorRect
-var _band: ColorRect
+var _band: TextureRect
 var _card: PanelContainer
-var _stats: Label
+var _values: Array[Label] = []
 
 
 func _ready() -> void:
@@ -25,36 +26,62 @@ func _ready() -> void:
 	_flash.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_flash)
 
-	_band = ColorRect.new()
-	_band.color = Color(1.0, 0.85, 0.6, 0.85)
-	_band.size = Vector2(0, 10)
+	_band = TextureRect.new()
+	_band.texture = preload("res://art/fx/shockwave.png")
 	_band.visible = false
 	_band.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_band)
 
 	_card = PanelContainer.new()
 	_card.name = "Card"
-	_card.custom_minimum_size = Vector2(280, 0)
+	_card.custom_minimum_size = Vector2(288, 0)
 	_card.set_anchors_and_offsets_preset(PRESET_CENTER)
 	_card.grow_horizontal = GROW_DIRECTION_BOTH
 	_card.grow_vertical = GROW_DIRECTION_BOTH
 	_card.visible = false
 	add_child(_card)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 6)
 	_card.add_child(box)
+	var icon := TextureRect.new()
+	icon.texture = preload("res://art/ui/nuke.png")
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	box.add_child(icon)
 	var title := Label.new()
-	title.text = "RUN OVER"
+	title.text = "THE WAR IS OVER"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_color_override("font_color", Color(1.0, 0.6, 0.3))
+	title.add_theme_color_override("font_color", Pal.ORANGE)
 	box.add_child(title)
-	_stats = Label.new()
-	_stats.name = "Stats"
-	_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(_stats)
+	var sub := Label.new()
+	sub.text = "ONLY SCRAP REMAINS"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	sub.modulate = Color(1, 1, 1, 0.6)
+	box.add_child(sub)
+	var stats := VBoxContainer.new()
+	stats.name = "Stats"
+	stats.add_theme_constant_override("separation", 2)
+	box.add_child(stats)
+	for row: Array in [[preload("res://art/ui/life.png"), "TIME", Pal.STEEL_L], [preload("res://art/ui/mech.png"), "MECHS", Pal.CYAN], [preload("res://art/ui/credits.png"), "CREDITS", Pal.GOLD]]:
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 8)
+		stats.add_child(h)
+		var i := TextureRect.new()
+		i.texture = row[0]
+		i.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		h.add_child(i)
+		var k := Label.new()
+		k.text = row[1]
+		k.size_flags_horizontal = SIZE_EXPAND_FILL
+		h.add_child(k)
+		var v := Label.new()
+		v.add_theme_color_override("font_color", row[2])
+		h.add_child(v)
+		_values.append(v)
 	var again := Button.new()
 	again.name = "StartAgain"
 	again.text = "START AGAIN"
+	again.theme_type_variation = &"LitButton"
 	again.custom_minimum_size = Vector2(0, 44)
 	again.pressed.connect(Save.reset_run)
 	box.add_child(again)
@@ -76,7 +103,10 @@ func _play(m: MechState) -> void:
 	await get_tree().create_timer(0.3).timeout
 	_flash.color = Color.WHITE
 	battlefield.mushroom()
-	create_tween().tween_property(_flash, "color:a", 0.0, 1.2)
+	_shake(6.0, 1.6)
+	var tw := create_tween()
+	tw.tween_property(_flash, "color", Color(Pal.YELLOW, 0.8), 0.25)
+	tw.tween_property(_flash, "color", Color(Pal.ORANGE, 0.0), 1.0)
 	await get_tree().create_timer(1.6).timeout
 	await _sweep()
 	await get_tree().create_timer(0.6).timeout
@@ -86,7 +116,8 @@ func _play(m: MechState) -> void:
 func _sweep() -> void:
 	scroll.scroll_vertical = 0
 	_band.visible = true
-	_band.size.x = size.x
+	_band.size = Vector2(size.x, _band.texture.get_height())
+	_shake(2.0, SWEEP_TIME)
 	var targets := content.get_children().filter(func(c: Node) -> bool: return c is Control and c.visible)
 	var total := content.size.y
 	var tw := create_tween()
@@ -97,8 +128,7 @@ func _sweep() -> void:
 		for c: Control in targets.duplicate():
 			if y >= c.position.y + c.size.y / 2.0:
 				targets.erase(c)
-				_collapse(c)
-				battlefield.shake(2.0, 2), 0.0, 1.0, SWEEP_TIME)
+				_collapse(c), 0.0, 1.0, SWEEP_TIME)
 	await tw.finished
 	_band.visible = false
 	scrapyard.collapse()
@@ -117,8 +147,29 @@ func _collapse(c: Node) -> void:
 		c.visible = false
 
 
+func _shake(strength: float, time: float) -> void:
+	var layout := scroll.get_parent() as Control
+	var tw := create_tween()
+	var steps := int(time / 0.04)
+	for k in steps:
+		var fade := 1.0 - float(k) / steps
+		tw.tween_property(layout, "position", Vector2(randf_range(-1, 1), randf_range(-1, 1)).round() * strength * fade, 0.04)
+	tw.tween_property(layout, "position", Vector2.ZERO, 0.04)
+
+
 func _show_card() -> void:
 	visible = true
 	var t := int(GameState.run_time)
-	_stats.text = "TIME %d:%02d\nMECHS %s\nCREDITS %s" % [floori(t / 60.0), t % 60, Fmt.num(GameState.mechs_built), Fmt.num(GameState.credits_earned)]
+	var targets := [float(t), float(GameState.mechs_built), GameState.credits_earned]
 	_card.visible = true
+	_card.pivot_offset = _card.size / 2.0
+	_card.scale = Vector2(0.6, 0.6)
+	_card.modulate.a = 0.0
+	var tw := create_tween().set_parallel()
+	tw.tween_property(_card, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_card, "modulate:a", 1.0, 0.2)
+	tw.chain().tween_method(func(k: float) -> void:
+		var secs := int(targets[0] * k)
+		_values[0].text = "%d:%02d" % [floori(secs / 60.0), secs % 60]
+		_values[1].text = Fmt.num(roundf(targets[1] * k))
+		_values[2].text = Fmt.num(roundf(targets[2] * k)), 0.0, 1.0, COUNT_TIME).set_ease(Tween.EASE_OUT)

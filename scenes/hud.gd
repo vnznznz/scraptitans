@@ -6,7 +6,7 @@ signal settings_pressed
 const ICON_Y := 6.0
 const RATE_Y := 26.0
 const RATE_COLOR := Color(1, 1, 1, 0.7)
-const STARVED := Color(1.0, 0.3, 0.25)
+const STARVED := Pal.RED
 
 var _icons: Array[TextureRect] = []
 var _credits: Label
@@ -28,7 +28,7 @@ func _ready() -> void:
 	_credits_rate = _rate(214)
 	_scrap = _amount(preload("res://art/ui/scrap.png"), 6, Price.COLORS[Flyers.Kind.SCRAP])
 	_scrap_rate = _rate(6)
-	_mechs = _amount(preload("res://art/ui/mech.png"), 112, Color(0.75, 0.85, 1.0))
+	_mechs = _amount(preload("res://art/ui/mech.png"), 112, Pal.CYAN)
 	_mechs.name = "Mechs"
 	_mech_icon = _icons.pop_back()
 	_mechs_rate = _rate(112)

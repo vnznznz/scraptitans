@@ -7,7 +7,7 @@ Custom Godot 4.7.2 web export templates with only the engine parts the game uses
 | official 4.7.2 `web_nothreads_release` | 39.5 MB | 10.1 MB | 7.1 MB |
 | custom | 12.9 MB | 3.8 MB | 2.6 MB |
 
-`.pck` 188 → 208 KB (PNG instead of WebP).
+`.pck` 188 → 208 KB (PNG instead of WebP); 305 KB after the M10 art.
 
 ## Game needs
 

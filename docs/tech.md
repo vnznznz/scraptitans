@@ -79,20 +79,25 @@
 ## Battlefield
 - Wave bar at top (`WaveBar`): `WAVE n` left, `x DMG/S` right = `wave_dps()` (mech DPS + `tap_dps`); the bar alone shows HP
 - Taller than 160: bg, enemies, mechs and fx live in `World` (Node2D), shifted down by the extra height; the sky above is filled with the bg's top color (`_draw`)
-- Enemies right side, y-sorted layer; air and ground each spread left→right in pop order; visible = `wave_alive()`; flyers bob; `enemy_<sprite>_<variant>.png`
-- `DamageFx` (`scenes/damage_fx.gd`): smoke ×3 / sparks by remaining share; mechs (lifetime) and enemies (wave HP left) share it
-- Wave cleared: puffs, `CPUParticles2D` sparks, bounty disc burst, shake, next wave walks in from the right
-- Mechs: max 24 drawn (3 rows × 8, back rows darker, drawn behind), rest simulated only; walk in with 4-frame cycle, fire bullets + muzzle flash every 0.8–1.6 s; enemies fire back, hit flashes the mech
-- Damage from `remaining()` (1 − wear/lifetime): smoke <75/50/30 %, sparks <15 %, death = puff + debris particles
+- Layers: `bg.png` (sky, ruins, ground), `smoke.png` tiled and drifting (`SMOKE_SPEED`), sky above filled with `Pal.NAVY`
+- Enemies right side, y-sorted layer; air and ground each spread left→right in pop order, clamped inside the field; visible = `wave_alive()`; flyers bob; `enemy_<sprite>_<variant>.png`, sprites grow per variant (variant 5 brute = boss); shots `enemy_shot_<sprite>.png`
+- `DamageFx` (`scenes/damage_fx.gd`): dark smoke plume ×3 / flames / sparks by remaining share; mechs (lifetime) and enemies (wave HP left) share it
+- `Fx` (`scenes/fx.gd`, static): `explosion` (6-frame sheet, `big` 40 px), `hit`, `puff`, `trail`/`detach` (rocket smoke), `debris`, `sparks`
+- Wave cleared: explosions on the survivors + center, sparks, bounty disc burst, shake, next wave walks in from the right
+- Mechs: max 24 drawn (3 rows × 8 at y 156/141/126, back rows darker, drawn behind), rest simulated only; slots fill spread out (`FILL_ORDER`), ±3 px jitter; walk in with 4-frame cycle, fire every 0.8–1.6 s; enemies fire back, hit flashes the mech
+- Shots by Arms tier: slug, bolt, 3-round tracer burst, arcing rocket with smoke trail + explosion, railgun beam (1×3 texture stretched); muzzle flash + 1 px arm recoil
+- Nuclear Mech: own sprite (`nuclear.png`, 2×), own spot `NUKE_POS` (slot −1), walks slower; the others stop firing and step aside (`ASIDE`)
+- Damage from `remaining()` (1 − wear/lifetime): smoke <40/25/15 % (flames from the third stage), sparks <8 %, death = big explosion + debris
 - Income discs: per-second discs throttled to ~10/s overall; deploy 2–6 discs by log10(fee); popped enemy 2 scrap discs with kill scrap
 
 ## Nuke
-- `Nuke` (`scenes/nuke.gd`, refs battlefield/scroll/content/scrapyard): mech walks in → missile arcs off-screen → white flash + mushroom (battlefield scorched) → shockwave band sweeps the pane with auto-scroll, `collapse()` on each content child (lines → rubble + debris), then the yard (pile only) → run stats card → START AGAIN = `Save.reset_run`
+- `Nuke` (`scenes/nuke.gd`, refs battlefield/scroll/content/scrapyard): Nuclear Mech walks in → missile launches from its silo (explosion, smoke trail) and arcs off-screen → white → yellow → orange flash, 8-frame mushroom (battlefield scorched, ground explosions), screen shake (whole `Layout`) → `shockwave.png` band sweeps the pane with auto-scroll, `collapse()` on each content child (lines → explosions, debris, rubble), then the yard (pile only) → run card (mushroom icon, `THE WAR IS OVER`, time/mechs/credits counting up, lit START AGAIN) = `Save.reset_run`
 - Loaded with `run_over`: everything collapsed, card shown
 
 ## Income feedback
 - No floating numbers. `Flyers.spawn(kind, global_pos, amount, count)` (`ui/flyers.gd`): disc bursts up, flies to `Hud.target(kind)`, `Hud.pulse(kind)` on arrival; max 48 in flight
-- Disc color tier by `amount` / current gross rate (`Flyers.tier`): <2 s of income tier 1, <10 s tier 2, else tier 3; `disc_<kind>_<1..3>.png`
+- Disc color tier by `amount` / current gross rate (`Flyers.tier`): <2 s of income tier 1, <10 s tier 2, else tier 3; `disc_<kind>_<1..3>.png`; burst up, then a curved flight (quadratic bezier) to the counter
+- Quiet discs: tier 1 scrap while gross scrap ≥ `QUIET_RATE` (30/s): ≤ 5/s, one disc, 6 px `_s` texture, fades to 35 %, no HUD pulse; pile taps always loud
 - Spending: `Flyers.spend(kind, to, amount)`: disc leaves the HUD counter (icon `pulse_out`) and flies into the target; ≤6/s, dropped at the in-flight cap
 - Purchases: `Flyers.pay(kind, button, amount)` after a successful buy (build, hire, fit tier, yard hire, upgrade rows, missile confirm, unlock line): 1 + log10(amount) discs (≤8, staggered 0.05 s), tier color by `amount` / income rate, not throttled; target = the button's center at purchase time
 - Segment assembly start (`SegmentState.assemblies`, unsaved counter): 1 scrap disc HUD → tool head (only if the head is inside the scroll pane) + scrap bits and sparks falling onto the mech (`LineView.scrap_bits`, fx layer above belt mechs)
@@ -106,21 +111,26 @@
 - Buttons in the scroll pane use `MOUSE_FILTER_PASS`; scroll deadzone 8
 
 ## Art
-- All sprites are PNGs in `art/`, generated by `tools/gen_placeholders.py` (PIL)
-- Mech parts: 24×32 canvas, feet at bottom, layered by the type's `layer` (child order, not z_index); `art/mech/<type>_<tier>.png`, 6 tiers; frame is a 4-frame walk sheet (96×32), other parts bob on frames 1/3; Atomic Missile arms = the Nuclear Mech look
-- Machines: `art/line/machine_<type>.png`, 80×56
-- HUD icons 16×16 `art/ui/` (stat icons `life.png`, `damage.png`, credits reused), discs 10×10 `art/fx/disc_<kind>_<tier>.png`; `button_lit.png` = affordable face
-- Enemies `art/battlefield/enemy_<sprite>_<variant>.png` (5 body colors), feet at bottom; workers 10×14 `art/line/worker.png`, `art/yard/worker.png`
+- All sprites are PNGs in `art/`, generated by `tools/gen_art.py` (PIL); one palette (Endesga 32, `PALETTE`), 1 art px = 1 base px everywhere (no scaled sprites except particles and the beam); code colors from `Pal` (`ui/pal.gd`)
+- Tier colors (all part types): rust, iron, steel, blue composite, gold titan, atomic green; each part tier also has its own shape
+- Mechs: cell 40×48, feet at the bottom; frame silhouette grows with tier (torso 13→26 px, legs 8→15 px); `frame_<t>.png` = 4-frame walk sheet (160×48, body bobs on 1/3); `core|arms|plating_<t>.png` = 6 cells, one per frame tier (parts fit the torso), `MechView` picks `frame = frame tier`; layered by the type's `layer`; `art/mech/rig.json` (written by the generator): per frame tier `chest`, `top`, `muzzle[frame][arms]`, plus `nuke_muzzle` / `nuke_chest`, relative to the feet
+- Nuclear Mech `mech/nuclear.png`: 4-frame sheet, 72×88 cells; Atomic Missile arms on the belt = shoulder missile
+- Machines: `art/line/machine_<type>_<0..2>.png`, 80×56: 0 idle, 1–2 working (alternating at 11 fps while assembling); press (frame), glass dome (core), gun rack + robot arm (arms), plate rollers (plating); work bar overlays the top beam
+- Pile `art/yard/pile_<1..3>.png` (same 112×64 canvas) by scrap stock in seconds of gross gain: <5 s, <30 s, more
+- HUD icons 16×16 `art/ui/` (stat icons `life.png`, `damage.png`, credits reused; `nuke.png` card icon), discs 10×10 (+ 6×6 `_s`) `art/fx/disc_<kind>_<tier>.png`; buttons/panel 12×12 nine-patch, `button_lit.png` = affordable face
+- Fx: `shot_1..4`, `beam`, `muzzle(_big)`, `hit`, `explosion(_big)` sheets, `mushroom.png` (8 frames, 168×156), `missile.png`, `shockwave.png`, `debris(_big)`, `puff`, `smoke_small`, `spark`
+- Enemies `art/battlefield/enemy_<sprite>_<variant>.png` (5 body colors, bigger per variant), feet at bottom, facing left; workers 10×14 `art/line/worker.png`, `art/yard/worker.png`
 
 ## Commands
 - Import: `godot --headless --path . --import`
-- Scenario: `godot --headless --path . -- --scenario <m0..m9|intro>`; exit code 1 on failure (2 on unknown scenario or script parse error); `Instrument.click` scrolls the target into view first; windowed `m9 --shots <dir>` also saves tall-phone (360×780) and 2× (720×1280) shots
+- Scenario: `godot --headless --path . -- --scenario <m0..m9|intro|art>`; exit code 1 on failure (2 on unknown scenario or script parse error); `Instrument.click` scrolls the target into view first; windowed `m9 --shots <dir>` also saves tall-phone (360×780) and 2× (720×1280) shots
 - Tuning: `godot --headless --path . -- --scenario tune [--profile <name>]`: bot runs (3 taps/s: pile while short on scrap or saving for a fit, else the emptiest station bar; builds, buys cheapest, fits tiers, pauses all lines while a fit isn't reachable in 60 s). Profiles: `baseline`, `casual` (1.5 taps/s), `field` / `third` (all / ⅓ of taps on the battlefield after the reveal), `quit10` (no taps after 10 min), `no_arms` (never fits Arms, except the missile), `no_pause`. Prints a summary row per profile (nuke min, bounty share of credits, NO_SCRAP share, phases ≥ 10 s (stalls < 30 s apart merge), longest wait between buys, first fit, final wait before the missile, first regular row maxed, tap share of scrap / of station work); per-minute economy + timeline for baseline or the named profile; checks the M9 targets
 - Tuning now: baseline 37 min (casual 43, field 35, third 33.5, quit10 44, no_arms 44, no_pause 39); bounties 36 %; NO_SCRAP 10 % in 9 phases; longest wait 80 s; first fit 2.2 min; final wait 28 s; first row maxed 21 min
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
-- Placeholders: `uv run --with pillow python3 tools/gen_placeholders.py`
+- Art: `uv run --with pillow python3 tools/gen_art.py`, then import
+- Art shots: `godot --path . -- --scenario art --shots <dir>` (windowed): full mixed-tier field at wave 27 with one hurt mech, 3 lines of high-tier stations, then the whole nuke sequence
 - Templates: `tools/build_templates.sh [web|smoke]` → `build/templates/`; scons in `~/work/source/godot` (`GODOT_SRC`, at `4.7.2-stable`); web via emsdk 4.0.11 in `~/work/source/emsdk` (`EMSDK_DIR`), ~25 min for both; smoke = Linux `template_debug` in a `fedora:43` podman container (no host g++), `x11=no wayland=no vulkan=no accesskit=no` (vulkan=no: link error without x11/wayland)
-- Template smoke: `tools/smoke_templates.sh [binary]` (default `build/templates/linux_smoke.x86_64`): "Linux smoke" preset (includes `tools/`) → `build/smoke/smoke.pck` next to the binary, runs m0–m8 + intro headless (templates refuse `--main-pack`)
+- Template smoke: `tools/smoke_templates.sh [binary]` (default `build/templates/linux_smoke.x86_64`): "Linux smoke" preset (includes `tools/`) → `build/smoke/smoke.pck` next to the binary, runs m0–m9, intro, art headless (templates refuse `--main-pack`)
 - Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel; `build/.gdignore` keeps the editor from importing the exported PNGs
 - Deploy: `tools/deploy_web.sh` → release build, `lftp` FTPS mirror (`--delete`, temp file + rename per file, `index.html` put last) via `www161.your-server.de` to `https://distco.de/games/scraptitans/`; credentials in gitignored `tools/deploy.env` (`FTP_HOST/USER/PASS/DIR`, FTP user chrooted to the game folder, so `FTP_DIR=/`); `FTP_VERIFY_CERT=false` if the host cert doesn't match
 - Serve: `tools/serve_web.sh` → Caddy, `tls internal` (cert generated on the fly, untrusted: accept the browser warning), `https://localhost:8443`, `https://<lan-ip>:8443`, `Cache-Control: no-cache`; `LAN_IP` overrides detection

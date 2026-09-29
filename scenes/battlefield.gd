@@ -2,23 +2,31 @@ class_name Battlefield
 extends Control
 
 const HEIGHT := 160.0
-const SKY := Color(34 / 255.0, 36 / 255.0, 60 / 255.0)
-const GROUND_Y := 138.0
-const AIR_Y := 84.0
+const SKY := Pal.NAVY
+const GROUND_Y := 146.0
+const AIR_Y := 70.0
 const ROWS := 3
 const SLOTS_PER_ROW := 8
-const ROW_DY := 10.0
-const SLOT_X0 := 214.0
-const SLOT_DX := 24.0
+const ROW_Y := [156.0, 141.0, 126.0]
+const ROW_SHADE := [1.0, 0.78, 0.6]
+const FILL_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
+const SLOT_X0 := 224.0
+const SLOT_DX := 28.0
 const WALK_SPEED := 40.0
-const ENTRY_X := -16.0
-const ENEMY_X0 := 250.0
+const NUKE_SPEED := 22.0
+const NUKE_POS := Vector2(118, 156)
+const ASIDE := Vector2(34, -5)
+const ENTRY_X := -24.0
+const ENEMY_X0 := 256.0
 const ENEMY_X1 := 346.0
+const SMOKE_Y := 28.0
+const SMOKE_SPEED := 3.0
 const ENEMY_WALK_IN := 1.2
 const BAR_RECT := Rect2(4, 4, 352, 20)
 const MECH_FIRE := Vector2(0.8, 1.6)
 const ENEMY_FIRE := Vector2(1.2, 2.4)
 const INCOME_DISCS_PER_S := 10.0
+const MUSHROOM_FRAMES := 8
 
 var _world: Node2D
 var _mechs: Node2D
@@ -34,6 +42,8 @@ var _bar: TextureProgressBar
 var _hp_label: Label
 var _dps_label: Label
 var _bg: TextureRect
+var _smoke: TextureRect
+var _nuke_id := -1
 var _tap: TapArea
 var _hint: Control
 
@@ -47,6 +57,14 @@ func _ready() -> void:
 	_bg.texture = preload("res://art/battlefield/bg.png")
 	_bg.mouse_filter = MOUSE_FILTER_IGNORE
 	_world.add_child(_bg)
+	_smoke = TextureRect.new()
+	_smoke.texture = preload("res://art/battlefield/smoke.png")
+	_smoke.stretch_mode = TextureRect.STRETCH_TILE
+	_smoke.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	_smoke.size = Vector2(_smoke.texture.get_width() * 2, _smoke.texture.get_height())
+	_smoke.position.y = SMOKE_Y
+	_smoke.mouse_filter = MOUSE_FILTER_IGNORE
+	_world.add_child(_smoke)
 
 	_tap = TapArea.new()
 	_tap.name = "FieldTap"
@@ -126,6 +144,7 @@ func mech_view(id: int) -> MechView:
 
 
 func _process(delta: float) -> void:
+	_smoke.position.x = -fmod(Time.get_ticks_msec() / 1000.0 * SMOKE_SPEED, _smoke.texture.get_width())
 	if GameState.run_over:
 		_step_views(delta, false)
 		return
@@ -162,15 +181,17 @@ func _process(delta: float) -> void:
 
 
 func _step_views(delta: float, fight: bool) -> void:
-	var step := WALK_SPEED * delta * maxf(GameState.time_scale, 1.0)
+	var speed := delta * maxf(GameState.time_scale, 1.0)
 	for id: int in _views:
 		var view: MechView = _views[id]
-		var target := _slot_pos(_slots[id])
-		view.position.x = move_toward(view.position.x, target.x, step)
-		view.position.y = target.y
-		view.walking = view.position.x != target.x
 		var m: MechState = _states[id]
 		view.set_damage(m.remaining())
+		if _nuke_id != -1 and id != _nuke_id:
+			continue
+		var target := _slot_pos(_slots[id])
+		view.position.x = move_toward(view.position.x, target.x, (NUKE_SPEED if view.nuclear else WALK_SPEED) * speed)
+		view.position.y = target.y
+		view.walking = view.position.x != target.x
 		if not fight or view.walking or m.dps <= 0.0:
 			continue
 		_fire_t[id] = float(_fire_t.get(id, randf_range(0.0, MECH_FIRE.y))) - delta * GameState.time_scale
@@ -178,7 +199,8 @@ func _step_views(delta: float, fight: bool) -> void:
 			_fire_t[id] = randf_range(MECH_FIRE.x, MECH_FIRE.y)
 			var target_enemy := _random_enemy()
 			if target_enemy:
-				view.fire(_enemy_center(target_enemy) + Vector2(randf_range(-6, 6), randf_range(-4, 4)))
+				var half := target_enemy.texture.get_size() / 4.0
+				view.fire(_enemy_center(target_enemy) + Vector2(randf_range(-half.x, half.x), randf_range(-half.y, half.y)))
 
 
 func _random_enemy() -> Sprite2D:
@@ -195,15 +217,17 @@ func _enemy_fire(e: Sprite2D) -> void:
 	if view.walking:
 		return
 	var bullet := Sprite2D.new()
-	bullet.texture = preload("res://art/fx/enemy_bullet.png")
+	bullet.texture = load("res://art/fx/enemy_shot_%s.png" % e.get_meta("sprite"))
 	bullet.position = _enemy_center(e) - Vector2(e.texture.get_width() / 2.0, 0)
 	_mechs.add_child(bullet)
-	var target := view.position + Vector2(0, -14)
+	var target := view.position + view.chest() + Vector2(randf_range(-4, 4), randf_range(-3, 3))
+	bullet.rotation = (target - bullet.position).angle() + PI
 	var tw := bullet.create_tween()
 	tw.tween_property(bullet, "position", target, bullet.position.distance_to(target) / 260.0)
 	tw.tween_callback(func() -> void:
 		if is_instance_valid(view):
 			view.hit()
+		Fx.hit(_mechs, target, Pal.PINK)
 		bullet.queue_free())
 
 
@@ -223,11 +247,13 @@ func _show_wave(walk_in: bool) -> void:
 		e.texture = load("res://art/battlefield/enemy_%s_%d.png" % [en.sprite, en.variant + 1])
 		e.offset = Vector2(0, -e.texture.get_height() / 2.0)
 		e.set_meta("flying", en.flying)
+		e.set_meta("sprite", en.sprite)
 		var i: int = layer_i[en.flying]
 		var count: int = layer_sizes[en.flying]
 		layer_i[en.flying] += 1
 		var x := (ENEMY_X0 + ENEMY_X1) / 2.0 if count == 1 else lerpf(ENEMY_X0, ENEMY_X1, float(i) / (count - 1))
-		var y := (AIR_Y + (i % 2) * 20.0) if en.flying else GROUND_Y - (i % 2) * 6.0
+		x = minf(x, size.x - e.texture.get_width() / 2.0 - 2.0)
+		var y := (AIR_Y + (i % 2) * 18.0) if en.flying else GROUND_Y - (i % 2) * 7.0
 		e.position = Vector2(x, y)
 		var fx := DamageFx.new()
 		fx.name = "Damage"
@@ -258,14 +284,18 @@ func _on_tap(at: Vector2) -> void:
 	if target:
 		target.modulate = Color(3, 3, 3)
 		target.create_tween().tween_property(target, "modulate", Color.WHITE, 0.12)
-		_puff(_enemy_center(target) + Vector2(randf_range(-4, 4), randf_range(-4, 4)), 0.4, Color(1, 0.9, 0.6))
+		var spot := _enemy_center(target) + Vector2(randf_range(-4, 4), randf_range(-4, 4))
+		Fx.hit(_mechs, spot)
+		Fx.puff(_mechs, spot, 0.4, Pal.YELLOW)
 
 
 func _pop_enemy(i: int) -> void:
 	var e := _enemies[i]
 	if not e.visible:
 		return
-	_puff(_enemy_center(e), 1.0, Color(1, 0.8, 0.6))
+	var big := e.texture.get_height() > 30
+	Fx.explosion(_mechs, _enemy_center(e), big)
+	Fx.debris(_mechs, _enemy_center(e), 10 if big else 5)
 	e.visible = false
 
 
@@ -275,12 +305,14 @@ func _on_enemy_killed(i: int, scrap: float) -> void:
 
 
 func _on_wave_cleared(bounty: float) -> void:
-	var center := Vector2((ENEMY_X0 + ENEMY_X1) / 2.0, GROUND_Y - 24.0)
+	var center := Vector2((ENEMY_X0 + ENEMY_X1) / 2.0, GROUND_Y - 30.0)
 	for e in _enemies:
 		if e.visible:
-			_puff(_enemy_center(e), 1.4, Color(1, 0.6, 0.3))
-	_puff(center, 2.5, Color(1, 0.7, 0.3))
-	_sparks(center)
+			Fx.explosion(_mechs, _enemy_center(e), true, randf_range(0.4, 0.6))
+	Fx.explosion(_mechs, center, true, 0.6)
+	Fx.explosion(_mechs, center + Vector2(-18, 10), true, 0.5)
+	Fx.puff(_mechs, center, 2.5, Pal.ORANGE)
+	Fx.sparks(_mechs, center)
 	Flyers.spawn(Flyers.Kind.CREDITS, _world.global_position + center, bounty, clampi(8 + GameState.wave, 8, 20))
 	shake()
 	_show_wave(true)
@@ -299,19 +331,26 @@ func fire_missile(id: int) -> void:
 		return
 	while is_instance_valid(view) and view.walking:
 		await get_tree().process_frame
-	await get_tree().create_timer(0.4).timeout
+	await get_tree().create_timer(0.5).timeout
 	var missile := Sprite2D.new()
 	missile.texture = preload("res://art/fx/missile.png")
-	var start := view.position + Vector2(-8, -20)
+	var start := view.position + view.muzzle() + Vector2(0, missile.texture.get_height() / 2.0)
 	missile.position = start
 	_mechs.add_child(missile)
-	_puff(start + Vector2(0, 8), 1.2, Color(0.8, 0.8, 0.8))
-	var peak := Vector2(start.x + 90, -60)
+	var trail := Fx.trail(missile)
+	trail.position = Vector2(0, missile.texture.get_height() / 2.0)
+	trail.amount = 30
+	trail.lifetime = 0.9
+	Fx.explosion(_mechs, start + Vector2(0, 10), true)
+	Fx.puff(_mechs, start + Vector2(-8, 16), 1.6, Pal.STEEL_L)
+	Fx.puff(_mechs, start + Vector2(8, 16), 1.6, Pal.STEEL_L)
+	shake(2.0, 6)
+	var peak := Vector2(start.x + 70, -_world.position.y - 40)
 	var tw := missile.create_tween()
 	tw.tween_method(func(k: float) -> void:
-		var p := start.lerp(peak, k).lerp(peak.lerp(Vector2(420, -40), k), k)
+		var p := start.lerp(Vector2(start.x, peak.y), k).lerp(Vector2(start.x, peak.y).lerp(peak + Vector2(300, 0), k), k)
 		missile.rotation = (p - missile.position).angle() + PI / 2.0
-		missile.position = p, 0.0, 1.0, 1.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		missile.position = p, 0.0, 1.0, 1.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await tw.finished
 	missile.queue_free()
 
@@ -320,14 +359,15 @@ func mushroom() -> void:
 	scorch()
 	var cloud := Sprite2D.new()
 	cloud.texture = preload("res://art/fx/mushroom.png")
-	cloud.offset = Vector2(0, -cloud.texture.get_height())
-	cloud.position = Vector2(size.x / 2.0, GROUND_Y + 8)
-	cloud.scale = Vector2(0.3, 0.1)
+	cloud.hframes = MUSHROOM_FRAMES
+	cloud.offset = Vector2(0, -cloud.texture.get_height() / 2.0)
+	cloud.position = Vector2(size.x / 2.0, GROUND_Y + 6)
 	_world.add_child(cloud)
 	var tw := cloud.create_tween()
-	tw.tween_property(cloud, "scale", Vector2(2.0, 2.0), 1.8).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	tw.parallel().tween_property(cloud, "modulate", Color(0.7, 0.6, 0.6), 3.0)
-	shake(5.0, 12)
+	tw.tween_property(cloud, "frame", MUSHROOM_FRAMES - 1, 2.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(cloud, "position:y", GROUND_Y - 6, 3.0)
+	for k in 6:
+		Fx.explosion(_world, Vector2(randf_range(20, size.x - 20), GROUND_Y - randf_range(0, 12)), true, randf_range(0.5, 0.9))
 
 
 func scorch() -> void:
@@ -336,47 +376,15 @@ func scorch() -> void:
 	_views.clear()
 	_slots.clear()
 	_states.clear()
+	_nuke_id = -1
 	_enemies.clear()
 	_enemy_count = 0
 	_bar.visible = false
 	_hp_label.visible = false
 	_dps_label.visible = false
 	_bg.modulate = Color(1.2, 0.7, 0.5)
+	_smoke.modulate = Color(0.4, 0.2, 0.2)
 	queue_redraw()
-
-
-func _puff(pos: Vector2, size_scale: float, color: Color) -> void:
-	var puff := Sprite2D.new()
-	puff.texture = preload("res://art/fx/puff.png")
-	puff.position = pos
-	puff.modulate = color
-	puff.scale = Vector2.ONE * 0.5 * size_scale
-	_mechs.add_child(puff)
-	var tw := puff.create_tween().set_parallel()
-	tw.tween_property(puff, "scale", Vector2.ONE * 2.2 * size_scale, 0.35)
-	tw.tween_property(puff, "modulate:a", 0.0, 0.35)
-	tw.chain().tween_callback(puff.queue_free)
-
-
-func _sparks(pos: Vector2) -> void:
-	var p := CPUParticles2D.new()
-	p.texture = preload("res://art/fx/spark.png")
-	p.position = pos
-	p.amount = 40
-	p.one_shot = true
-	p.explosiveness = 1.0
-	p.lifetime = 0.8
-	p.direction = Vector2.UP
-	p.spread = 80.0
-	p.initial_velocity_min = 60.0
-	p.initial_velocity_max = 160.0
-	p.gravity = Vector2(0, 300)
-	p.color_ramp = Gradient.new()
-	p.color_ramp.set_color(0, Color(1, 0.9, 0.4))
-	p.color_ramp.set_color(1, Color(0.9, 0.3, 0.1, 0))
-	p.emitting = true
-	_mechs.add_child(p)
-	p.finished.connect(p.queue_free)
 
 
 func _bar_label(node_name: String, align: HorizontalAlignment) -> Label:
@@ -387,23 +395,27 @@ func _bar_label(node_name: String, align: HorizontalAlignment) -> Label:
 	label.horizontal_alignment = align
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_constant_override("outline_size", 4)
-	label.add_theme_color_override("font_outline_color", Color(0.08, 0.07, 0.1))
+	label.add_theme_color_override("font_outline_color", Pal.INK)
 	label.z_index = Main.TEXT_Z
 	add_child(label)
 	return label
 
 
 func _add_view(m: MechState) -> MechView:
-	var slot := _free_slot()
-	if slot == -1:
+	var slot := -1 if m.is_nuclear() else _free_slot()
+	if slot == -1 and not m.is_nuclear():
 		return null
 	var view := MechView.new()
+	view.nuclear = m.is_nuclear()
 	view.set_parts(m.parts)
-	var row := int(float(slot) / SLOTS_PER_ROW)
+	var row := int(float(slot) / SLOTS_PER_ROW) if slot >= 0 else -1
 	view.position = Vector2(ENTRY_X, _slot_pos(slot).y)
 	view.walking = true
-	var shade := 1.0 - row * 0.15
-	view.modulate = Color(shade, shade, shade + 0.03)
+	if view.nuclear:
+		view.walk_speed = 0.6
+	var shade: float = ROW_SHADE[row] if row >= 0 else 1.0
+	view.modulate = Color(shade, shade, minf(shade + 0.04, 1.0))
+	view.set_meta("shade", view.modulate)
 	view.set_meta("row", row)
 	_mechs.add_child(view)
 	_mechs.move_child(view, _row_index(row))
@@ -430,26 +442,36 @@ func _free_slot() -> int:
 
 
 func _slot_pos(slot: int) -> Vector2:
+	if slot < 0:
+		return NUKE_POS
 	var row := int(float(slot) / SLOTS_PER_ROW)
-	var col := slot % SLOTS_PER_ROW
-	return Vector2(SLOT_X0 - col * SLOT_DX - row * SLOT_DX / 2.0, GROUND_Y - row * ROW_DY)
+	var col: int = FILL_ORDER[slot % SLOTS_PER_ROW]
+	var jitter := float((slot * 37) % 7 - 3)
+	return Vector2(SLOT_X0 - col * SLOT_DX - [0.0, SLOT_DX / 2.0, SLOT_DX / 4.0][row] + jitter, ROW_Y[row])
 
 
 func _fly(m: MechState, kind: Flyers.Kind, amount: float, count: int) -> void:
 	var view: MechView = _views.get(m.id)
 	if view:
-		Flyers.spawn(kind, view.global_position + Vector2(0, -34), amount, count)
+		Flyers.spawn(kind, view.global_position + view.top(), amount, count)
 
 
 func _on_deployed(m: MechState) -> void:
-	if m.is_nuclear() and _free_slot() == -1:
-		var evict: int = _slots.find_key(0)
-		_views[evict].queue_free()
-		_views.erase(evict)
-		_slots.erase(evict)
 	var view := _add_view(m)
+	if m.is_nuclear():
+		_nuke_id = m.id
+		_clear_path()
 	if view:
 		_fly(m, Flyers.Kind.CREDITS, m.deploy_fee, clampi(2 + int(log(maxf(m.deploy_fee, 1.0)) / log(10.0)), 2, 6))
+
+
+func _clear_path() -> void:
+	for id: int in _views:
+		if id == _nuke_id:
+			continue
+		var view: MechView = _views[id]
+		var side := -1.0 if view.position.x < NUKE_POS.x else 1.0
+		view.step_aside(Vector2(clampf(view.position.x + side * ASIDE.x, 12.0, ENEMY_X0 - 16.0), view.position.y + ASIDE.y))
 
 
 func _on_income(m: MechState, credits: float) -> void:

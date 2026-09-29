@@ -1,7 +1,7 @@
 class_name Main
 extends Control
 
-const BADGE_ON := Color(0.85, 0.25, 0.2)
+const BADGE_ON := Pal.RED
 const FIELD_MAX := 2.0
 const UNLOCK_SMALL := Vector2(220, 32)
 const UNLOCK_BIG := Vector2(300, 44)
@@ -49,7 +49,7 @@ func _ready() -> void:
 	_badge.name = "Badge"
 	_badge_style = StyleBoxFlat.new()
 	_badge_style.bg_color = BADGE_ON
-	_badge_style.border_color = Color(0.08, 0.07, 0.1)
+	_badge_style.border_color = Pal.INK
 	_badge_style.set_border_width_all(1)
 	_badge_style.content_margin_left = 5
 	_badge_style.content_margin_right = 5

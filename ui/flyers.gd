@@ -7,9 +7,16 @@ const MAX_IN_FLIGHT := 48
 const PAY_Z := 2
 const SPENDS_PER_S := 6.0
 const TIER_SECONDS := [2.0, 10.0]
+const QUIET_RATE := 30.0
+const QUIET_PER_S := 5.0
+const QUIET_ALPHA := 0.35
 const TEXTURES := [
 	[preload("res://art/fx/disc_credits_1.png"), preload("res://art/fx/disc_credits_2.png"), preload("res://art/fx/disc_credits_3.png")],
 	[preload("res://art/fx/disc_scrap_1.png"), preload("res://art/fx/disc_scrap_2.png"), preload("res://art/fx/disc_scrap_3.png")],
+]
+const SMALL := [
+	preload("res://art/fx/disc_credits_1_s.png"),
+	preload("res://art/fx/disc_scrap_1_s.png"),
 ]
 
 static var _instance: Flyers
@@ -17,6 +24,7 @@ static var _instance: Flyers
 @export var hud: Hud
 
 var _last_spend := -1000
+var _last_quiet := -1000
 
 
 func _ready() -> void:
@@ -29,9 +37,9 @@ func _exit_tree() -> void:
 		_instance = null
 
 
-static func spawn(kind: Kind, from: Vector2, amount: float, count: int = 1) -> void:
+static func spawn(kind: Kind, from: Vector2, amount: float, count: int = 1, loud := false) -> void:
 	if _instance:
-		_instance._spawn(kind, from, count, tier(kind, amount))
+		_instance._spawn(kind, from, count, tier(kind, amount), loud)
 
 
 static func spend(kind: Kind, to: Vector2, amount: float) -> void:
@@ -59,8 +67,16 @@ func in_flight() -> int:
 	return get_child_count()
 
 
-func _spawn(kind: Kind, from: Vector2, count: int, disc_tier: int) -> void:
+func _spawn(kind: Kind, from: Vector2, count: int, disc_tier: int, loud: bool) -> void:
 	var tex: Texture2D = TEXTURES[kind][disc_tier]
+	var quiet := not loud and kind == Kind.SCRAP and disc_tier == 0 and GameState.scrap_gain_rate >= QUIET_RATE
+	if quiet:
+		var now := Time.get_ticks_msec()
+		if now - _last_quiet < 1000.0 / QUIET_PER_S:
+			return
+		_last_quiet = now
+		count = 1
+		tex = SMALL[kind]
 	var half := tex.get_size() / 2.0
 	var target := hud.target(kind)
 	for i in count:
@@ -72,13 +88,19 @@ func _spawn(kind: Kind, from: Vector2, count: int, disc_tier: int) -> void:
 		disc.position = from - half
 		add_child(disc)
 		var burst := from + Vector2(randf_range(-20, 20), randf_range(-36, -18))
+		var bend := Vector2(lerpf(burst.x, target.x, 0.3) + randf_range(-30, 30), minf(burst.y, target.y + 60.0))
+		var fly := randf_range(0.4, 0.55)
 		var tw := disc.create_tween()
 		tw.tween_property(disc, "position", burst - half, 0.14 + i * 0.04) \
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tw.tween_property(disc, "position", target - half, randf_range(0.35, 0.5)) \
+		tw.tween_method(func(k: float) -> void:
+			disc.position = (burst.lerp(bend, k).lerp(bend.lerp(target, k), k) - half).round(), 0.0, 1.0, fly) \
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		if quiet:
+			tw.parallel().tween_property(disc, "modulate:a", QUIET_ALPHA, fly)
 		tw.tween_callback(func() -> void:
-			hud.pulse(kind)
+			if not quiet:
+				hud.pulse(kind)
 			disc.queue_free())
 
 

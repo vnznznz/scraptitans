@@ -1,7 +1,9 @@
 class_name Scrapyard
 extends Control
 
-const PILE_TEX := preload("res://art/yard/pile.png")
+const PILE_TEX := preload("res://art/yard/pile_3.png")
+const PILE_LEVELS := [preload("res://art/yard/pile_1.png"), preload("res://art/yard/pile_2.png"), PILE_TEX]
+const PILE_SECONDS := [5.0, 30.0]
 const WORKER_TEX := preload("res://art/yard/worker.png")
 const PILE_POS := Vector2(62, 32)
 const PILE_EDGES := Vector2(75, 163)
@@ -67,6 +69,7 @@ func collapse() -> void:
 
 
 func _process(_delta: float) -> void:
+	_pile.texture = PILE_LEVELS[pile_level()]
 	if _collapsed:
 		return
 	var slots := GameState.yard_slots()
@@ -98,6 +101,15 @@ func _process(_delta: float) -> void:
 	var cost := GameState.yard_worker_cost()
 	_hire.visible = GameState.revealed() and n < slots
 	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
+
+
+func pile_level() -> int:
+	var seconds := GameState.scrap / maxf(GameState.scrap_gain_rate, 1.0)
+	var level := 0
+	for s: float in PILE_SECONDS:
+		if seconds >= s:
+			level += 1
+	return level
 
 
 func _yard_x() -> float:
@@ -158,5 +170,5 @@ func _on_hire() -> void:
 func _on_tap(at: Vector2) -> void:
 	var amount := GameState.tap_scrap()
 	GameState.tap_pile()
-	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), amount)
+	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), amount, 1, true)
 	_squash(0.92, 2.0)

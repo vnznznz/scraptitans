@@ -229,16 +229,16 @@ Test:
 
 Build: release candidate. Claude refines the placeholder art.
 
-- [ ] One palette and pixel scale for everything
-- [ ] Mechs: parts per tier, walk cycle, firing, Nuclear Mech; the silhouette grows with Frame tier (Atomic Colossus visibly bigger than Scrap Frame), so tiers read by shape, not only color
-- [ ] Factory: one machine silhouette per station type (e.g. press, dome, gun rack, plate roller) instead of one gantry with a colored tool head; idle and working; empty pad, belt tile, scrap pile fill states, stall icon, workers
-- [ ] Battlefield: enemies, smoke, sparks, explosion, debris, background layers, bullet variations, tracers
-- [ ] Battlefield crowd: smoke starts later (< 40% life, now < 75%, so ~¾ of mechs smoke) and lighter, so a hurt mech stands out among 24; drawn mechs spread wider instead of one blob
-- [ ] Enemies escalate at later waves in size and count (boss-size brutes), not only in color
-- [ ] Nuke: missile, flash, mushroom cloud, shockwave, factory debris, camera shake; the Nuclear Mech is 2× size and the other mechs stop and step aside, so it reads within a second; run card with more character
-- a pass over the flying discs animations (late-game scrap discs quieter: fewer, smaller, fading)
-- a pass over layout alignment, button sizes
-- unify UI style
+- [x] One palette and pixel scale for everything
+- [x] Mechs: parts per tier, walk cycle, firing, Nuclear Mech; the silhouette grows with Frame tier (Atomic Colossus visibly bigger than Scrap Frame), so tiers read by shape, not only color
+- [x] Factory: one machine silhouette per station type (e.g. press, dome, gun rack, plate roller) instead of one gantry with a colored tool head; idle and working; empty pad, belt tile, scrap pile fill states, stall icon, workers
+- [x] Battlefield: enemies, smoke, sparks, explosion, debris, background layers, bullet variations, tracers
+- [x] Battlefield crowd: smoke starts later (< 40% life, now < 75%, so ~¾ of mechs smoke) and lighter, so a hurt mech stands out among 24; drawn mechs spread wider instead of one blob. Built: few mechs smoke now, so the plume is dark and joined by flames below 15%; rows 15 px apart, slots fill spread out
+- [x] Enemies escalate at later waves in size and count (boss-size brutes), not only in color
+- [x] Nuke: missile, flash, mushroom cloud, shockwave, factory debris, camera shake; the Nuclear Mech is 2× size and the other mechs stop and step aside, so it reads within a second; run card with more character
+- [x] A pass over the flying discs animations (late-game scrap discs quieter: fewer, smaller, fading)
+- [x] A pass over layout alignment, button sizes
+- [x] Unify UI style
 
 Test:
 - Every sprite reads at phone size; part tiers are distinguishable at a glance.

@@ -5,8 +5,8 @@ const SEG_Y := 0.0
 const SEG_STEP := 84.0
 const PAUSE_W := 24.0
 const METER := Rect2(8, 26, 8, 44)
-const METER_BG := Color(0.08, 0.07, 0.1, 0.6)
-const USAGE_COLOR := Color(0.86, 0.86, 0.82)
+const METER_BG := Color(Pal.INK, 0.6)
+const USAGE_COLOR := Pal.STEEL_L
 const BELT_TEX := preload("res://art/line/belt.png")
 const PAUSE_TEX := preload("res://art/ui/pause.png")
 const PLAY_TEX := preload("res://art/ui/play.png")
@@ -73,23 +73,10 @@ func collapse() -> void:
 			c.visible = false
 	queue_redraw()
 	for i in _segments.size():
-		var p := CPUParticles2D.new()
-		p.texture = preload("res://art/fx/debris.png")
-		p.position = Vector2(_seg_x(i) + SegmentView.WIDTH / 2.0, SEG_Y + SegmentView.BELT_Y - 30)
-		p.amount = 16
-		p.one_shot = true
-		p.explosiveness = 0.9
-		p.lifetime = 0.9
-		p.direction = Vector2.UP
-		p.spread = 60.0
-		p.initial_velocity_min = 40.0
-		p.initial_velocity_max = 120.0
-		p.gravity = Vector2(0, 400)
-		p.angular_velocity_min = -300.0
-		p.angular_velocity_max = 300.0
-		p.emitting = true
-		add_child(p)
-		p.finished.connect(p.queue_free)
+		var at := Vector2(_seg_x(i) + SegmentView.WIDTH / 2.0, SEG_Y + SegmentView.BELT_Y - 30)
+		Fx.explosion(self, at + Vector2(randf_range(-16, 16), randf_range(-10, 10)), true, randf_range(0.4, 0.7))
+		Fx.debris(self, at, 12)
+		Fx.debris(self, at, 6, true)
 
 
 func _sync_segments() -> void:
@@ -130,7 +117,7 @@ func scrap_bits(pos: Vector2) -> void:
 	sparks.gravity = Vector2(0, 200)
 	sparks.scale_amount_min = 0.5
 	sparks.scale_amount_max = 0.8
-	sparks.color = Color(1, 0.85, 0.3)
+	sparks.color = Pal.YELLOW
 
 
 func _burst(tex: Texture2D, pos: Vector2, amount: int, life: float) -> CPUParticles2D:

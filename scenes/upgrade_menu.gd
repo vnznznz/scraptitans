@@ -21,8 +21,8 @@ class Pips:
 
 	const SIZE := 3.0
 	const GAP := 1.0
-	const ON := Color(0.95, 0.8, 0.3)
-	const OFF := Color(0.3, 0.3, 0.36)
+	const ON := Pal.GOLD
+	const OFF := Pal.SLATE_D
 
 	var level := 0
 	var max_level := 1
@@ -45,7 +45,7 @@ func _ready() -> void:
 	visible = false
 	add_to_group("upgrade_menu")
 	var bg := ColorRect.new()
-	bg.color = Color(0.1, 0.09, 0.12, 0.75)
+	bg.color = Color(Pal.INK, 0.8)
 	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -146,7 +146,7 @@ func _add_row(r: Dictionary) -> void:
 	desc.name = "Desc"
 	desc.text = _desc(r).to_upper()
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
+	desc.add_theme_color_override("font_color", Pal.CYAN)
 	desc.visible = false
 	box.add_child(desc)
 	var info := Button.new()
@@ -275,7 +275,7 @@ func _build_confirm() -> Control:
 	root.visible = false
 	add_child(root)
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.7)
+	dim.color = Color(Pal.INK, 0.8)
 	dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	root.add_child(dim)
 	var panel := PanelContainer.new()
@@ -290,7 +290,7 @@ func _build_confirm() -> Control:
 	var label := Label.new()
 	label.text = "THIS ENDS\nEVERYTHING.\nUNLOCK?"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+	label.add_theme_color_override("font_color", Pal.RED)
 	box.add_child(label)
 	var yes := Button.new()
 	yes.name = "Yes"

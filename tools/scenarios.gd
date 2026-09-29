@@ -450,16 +450,16 @@ func m6() -> void:
 	await t.frames(2)
 	var view := field.mech_view(GameState.field[0].id)
 	t.check(view.walking, "mechs walk in")
-	await t.wait(6.0)
+	await t.wait(7.5)
 	t.check(not view.walking, "and hold a slot")
 	var bullets := field.find_children("*", "Sprite2D", true, false).filter(func(n: Node) -> bool:
-		return n.texture == preload("res://art/fx/bullet.png") or n.texture == preload("res://art/fx/enemy_bullet.png"))
+		return n.texture and n.texture.resource_path.contains("shot_"))
 	await t.shot("m6_fight")
 	var fired := 0
 	for k in 60:
 		await t.frames(1)
 		fired = maxi(fired, field.find_children("*", "Sprite2D", true, false).filter(func(n: Node) -> bool:
-			return n.texture == preload("res://art/fx/bullet.png")).size())
+			return n.texture and n.texture.resource_path.begins_with("res://art/fx/shot_")).size())
 	t.check(fired > 0 or bullets.size() > 0, "mechs fire at the wave")
 	var drone: Sprite2D = field.find_children("*", "Sprite2D", true, false).filter(func(n: Sprite2D) -> bool:
 		return n.texture and n.texture.resource_path.contains("enemy_")).front()
@@ -468,7 +468,7 @@ func m6() -> void:
 	t.check(drawn.has_point(field.call("_enemy_center", drone)) and absf(field.call("_enemy_center", drone).y - drawn.get_center().y) < 1.0, "bullets aim at the enemy's drawn center")
 
 	var m: MechState = GameState.field[0]
-	for pair: Array in [[0.9, 0], [0.6, 1], [0.4, 2], [0.2, 3], [0.1, 4]]:
+	for pair: Array in [[0.9, 0], [0.35, 1], [0.2, 2], [0.12, 3], [0.05, 4]]:
 		m.wear = m.lifetime * (1.0 - pair[0])
 		await t.frames(1)
 		t.check(view.damage_stage() == pair[1], "remaining %d%%: damage stage %d" % [pair[0] * 100, pair[1]])
@@ -667,11 +667,11 @@ func m8() -> void:
 	GameState.wave_hp = GameState.wave_max_hp()
 	await t.frames(40)
 	GameState.debug_spawn_mechs(10)
-	GameState.wave_hp = GameState.wave_max_hp() * 0.4
+	GameState.wave_hp = GameState.wave_max_hp() * 0.2
 	await t.frames(60)
 	var enemies := field.find_children("Damage", "DamageFx", true, false).filter(func(d: DamageFx) -> bool:
 		return (d.get_parent() as CanvasItem).visible)
-	t.check(enemies.size() > 0 and enemies.all(func(d: DamageFx) -> bool: return d.stage >= 2), "wave at 40%%: %d enemies smoke" % enemies.size())
+	t.check(enemies.size() > 0 and enemies.all(func(d: DamageFx) -> bool: return d.stage >= 2), "wave at 20%%: %d enemies smoke" % enemies.size())
 	var tinted := field.find_children("*", "Sprite2D", true, false).filter(func(n: Sprite2D) -> bool:
 		return n.texture and n.texture.resource_path.contains("enemy_") and not n.texture.resource_path.ends_with("_1.png"))
 	t.check(tinted.size() > 0, "wave 17 shows tinted enemies (%d)" % tinted.size())
@@ -1297,6 +1297,78 @@ func shots() -> void:
 	await t.click(main.find_child("DebugToggle", true, false))
 	await t.click(main.find_child("SettingsButton", true, false))
 	await t.shot("settings")
+
+
+func art() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var nuke: Nuke = main.get_node("%Nuke")
+	GameState.mechs_built = 1
+	GameState.stalled_once = true
+	GameState.credits = 1e9
+	GameState.scrap = 1e9
+	GameState.buy_upgrade("tier_plating")
+	for i in 2:
+		GameState.buy_upgrade("lines")
+	await t.frames(2)
+	for li in GameState.lines.size():
+		var segs := GameState.lines[li].segments
+		for si in segs.size():
+			GameState.build_segment(li, si)
+			segs[si].tier = clampi(li * 2 + si % 2, 0, 4)
+			GameState.hire_worker(li, si)
+			if si % 2 == 0:
+				GameState.hire_worker(li, si)
+			var m := MechState.new()
+			m.id = GameState.next_mech_id
+			GameState.next_mech_id += 1
+			for k in si + 1:
+				m.parts[Data.line_slots()[k]] = clampi(li * 2 + k % 3, 0, 4)
+			segs[si].mech = m
+		segs[1].assembling = true
+		segs[2].stall = SegmentState.Stall.NO_SCRAP
+	GameState.scrap = 5.0
+	GameState.wave = 26
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	for i in 24:
+		var m := MechState.new()
+		m.id = GameState.next_mech_id
+		GameState.next_mech_id += 1
+		m.parts = {"frame": rng.randi_range(0, 5), "core": rng.randi_range(0, 5), "arms": rng.randi_range(0, 4)}
+		if rng.randf() < 0.6:
+			m.parts["plating"] = rng.randi_range(0, 5)
+		GameState.call("_deploy", m)
+	GameState.time_scale = 1.0
+	await t.wait(8.0)
+	for i in GameState.field.size():
+		var m: MechState = GameState.field[i]
+		m.wear = m.lifetime * (0.85 if i == 5 else 0.1)
+	await t.wait(1.0)
+	await t.shot("art_field")
+	await t.wait(0.5)
+	await t.shot("art_field2")
+	GameState.time_scale = 0.0
+	(main.get_node("%Scroll") as ScrollContainer).scroll_vertical = 0
+	await t.frames(5)
+	await t.shot("art_factory")
+	await t.frames(12)
+	await t.shot("art_factory2")
+	GameState.time_scale = 1.0
+	var n := MechState.new()
+	n.id = GameState.next_mech_id
+	GameState.next_mech_id += 1
+	n.parts = {"frame": 5, "core": 5, "arms": 5, "plating": 5}
+	GameState.call("_deploy", n)
+	for k: Array in [[1.0, "nuke_walk"], [3.2, "nuke_ready"], [0.9, "nuke_launch"], [1.2, "nuke_flash"], [0.9, "nuke_cloud"], [1.4, "nuke_cloud2"], [1.2, "nuke_sweep"], [1.4, "nuke_sweep2"]]:
+		await t.wait(k[0])
+		await t.shot(k[1])
+	var start := Time.get_ticks_msec()
+	while not nuke.card_visible() and Time.get_ticks_msec() - start < 20000:
+		await t.frames(1)
+	await t.wait(1.5)
+	await t.shot("nuke_card")
+	t.check(nuke.card_visible(), "nuke ends on the card")
 
 
 func intro() -> void:
