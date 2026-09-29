@@ -1,6 +1,5 @@
 extends Control
 
-@onready var _scroll: ScrollContainer = %Scroll
 @onready var _content: VBoxContainer = %Content
 @onready var _settings: SettingsOverlay = %Settings
 @onready var _menu: UpgradeMenu = %UpgradeMenu
@@ -24,12 +23,10 @@ func _ready() -> void:
 	GameState.line_added.connect(_add_line)
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.pressed.connect(_toggle_menu)
-	await get_tree().process_frame
-	_scroll.scroll_vertical = int(_scroll.get_v_scroll_bar().max_value)
 
 
 func _process(_delta: float) -> void:
-	_upgrades.visible = GameState.revealed()
+	_upgrades.visible = GameState.revealed() and not GameState.run_over
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	_unlock.visible = GameState.revealed() and not GameState.upgrade_maxed("lines") and not GameState.run_over
 	if _unlock.visible:

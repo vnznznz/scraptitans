@@ -12,15 +12,16 @@
 - Theme `ui/theme.tres`: buttons/panels are nine-patch PNGs from `art/ui/`
 
 ## Layout
-- `scenes/main.tscn`: `Hud` (48) / `Battlefield` (160) / `Scroll` → `Content` (lines, `UnlockLine`, `Scrapyard`) / `BottomBar` (56); overlays `UpgradeMenu` (between HUD and bottom bar), `Flyers`, `Debug`, `Settings`, `Nuke` (topmost, blocks input)
+- `scenes/main.tscn`: `Hud` (48) / `Battlefield` (160) / `Scroll` → `Content` (lines, `UnlockLine`) / `BottomBar` (100: `Scrapyard` left, `Upgrades` bottom-right); overlays `UpgradeMenu` (between HUD and bottom bar), `Flyers`, `Debug`, `Settings`, `Nuke` (topmost, blocks input)
+- Scrapyard always visible in the bottom bar: pile (tap), yard workers on both sides, hire button (icon + cost, hidden when full) above UPGRADES; pane starts at the top
 - Views build their children in code; main adds one `LineView` per line, more on `line_added`
 - UPGRADES button toggles the menu (reads CLOSE while open)
 - Progressive reveal: UPGRADES, UNLOCK LINE, YARD WORKER (+ yard slots) hidden until `GameState.revealed()` (`mechs_built > 0`)
 - HUD: scrap left, credits right
 - Upgrade menu: one list, re-sorted every frame (unmaxed by cost, maxed last); each row: title / effect, info button toggles the `desc` label
-- Line: pause button left of the header; segments centered by count (step 88), re-laid out when a segment is appended; 182 px tall
-- Segment rows: name / machine (tap) / belt / bar / workers / one button row: hire (hidden when full) + apply-tier ⬆ (scrap, only when a higher tier is unlocked); both shown → hire narrows, ⬆ icon-only (no cost), row spans 84 px
-- DBG toggle anchored bottom-left, panel opens upward: time scale, +scrap/credits, kill wave, +50 mechs
+- Line: pause button left of the header; segments centered by count (step 88), re-laid out when a segment is appended; 158 px tall
+- Segment rows: name / machine (tap; work bar overlays its top beam, hired workers stand inside behind the mech, empty slots not drawn) / belt / one button row: hire (hidden when full) + apply-tier ⬆ (scrap, only when a higher tier is unlocked); both shown → hire narrows, ⬆ icon-only (no cost), row spans 84 px
+- DBG toggle bottom-left just above the bottom bar, panel opens upward: time scale, +scrap/credits, kill wave, +50 mechs
 - Positions hardcoded in base pixels
 
 ## Autoloads
@@ -69,13 +70,15 @@
 - Income discs: per-second discs throttled to ~10/s overall; deploy 2–6 discs by log10(fee); popped enemy 2 scrap discs with kill scrap
 
 ## Nuke
-- `Nuke` (`scenes/nuke.gd`): mech walks in → missile arcs off-screen → white flash + mushroom (battlefield scorched) → shockwave band sweeps the pane with auto-scroll, `collapse()` on each content child (lines → rubble + debris, yard → pile only) → run stats card → START AGAIN = `Save.reset_run`
+- `Nuke` (`scenes/nuke.gd`, refs battlefield/scroll/content/scrapyard): mech walks in → missile arcs off-screen → white flash + mushroom (battlefield scorched) → shockwave band sweeps the pane with auto-scroll, `collapse()` on each content child (lines → rubble + debris), then the yard (pile only) → run stats card → START AGAIN = `Save.reset_run`
 - Loaded with `run_over`: everything collapsed, card shown
 
 ## Income feedback
 - No floating numbers. `Flyers.spawn(kind, global_pos, amount, count)` (`ui/flyers.gd`): disc bursts up, flies to `Hud.target(kind)`, `Hud.pulse(kind)` on arrival; max 48 in flight
 - Disc color tier by `amount` / current gross rate (`Flyers.tier`): <2 s of income tier 1, <10 s tier 2, else tier 3; `disc_<kind>_<1..3>.png`
-- Pile tap: 1 scrap disc; yard chunk 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap; bounty 8–20 credits
+- Spending: `Flyers.spend(kind, to, amount)`: disc leaves the HUD counter (icon `pulse_out`) and flies into the target; ≤6/s, dropped at the in-flight cap
+- Segment assembly start (`SegmentState.assemblies`, unsaved counter): 1 scrap disc HUD → tool head (only if the head is inside the scroll pane) + scrap bits and sparks falling onto the mech (`LineView.scrap_bits`, fx layer above belt mechs)
+- Pile tap: 1 scrap disc; yard chunk: the worker runs into the pile, pile squashes, 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap; bounty 8–20 credits
 
 ## Input
 - Taps: `TapArea` (`ui/tap_area.gd`): fires on `ScreenTouch` press (multi-touch) or real mouse press; ignores touch-emulated mouse; `MOUSE_FILTER_PASS` so drags reach `ScrollContainer`

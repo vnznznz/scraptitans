@@ -2,17 +2,18 @@ class_name SegmentView
 extends Control
 
 const WIDTH := 80.0
-const HEIGHT := 156.0
+const HEIGHT := 132.0
 const NAME_H := 32.0
 const MACHINE_Y := 32.0
 const BELT_Y := 88.0
-const BAR_Y := 98.0
-const WORKERS_Y := 108.0
-const WORKER_DX := 10.0
-const ROW_Y := 124.0
+const BAR_RECT := Rect2(2, 2, 76, 8)
+const WORKERS_Y := 42.0
+const WORKER_DX := 6.0
+const ROW_Y := 100.0
 const ROW_H := 32.0
 const APPLY_W := 26.0
 const WORKER_TEX := preload("res://art/line/worker.png")
+const TOOL_HEAD := Vector2(40, 56)
 
 var line_index := 0
 var seg_index := 0
@@ -28,6 +29,8 @@ var _hire: Button
 var _apply: Button
 var _workers: Array[TextureRect] = []
 var _chunks_seen := 0
+var _assemblies_seen := 0
+var _scroll: ScrollContainer
 var _bump_t := 0.0
 
 
@@ -77,11 +80,11 @@ func _ready() -> void:
 	_bar.stretch_margin_top = 2
 	_bar.stretch_margin_right = 2
 	_bar.stretch_margin_bottom = 2
-	_bar.position = Vector2(4, BAR_Y)
-	_bar.size = Vector2(72, 8)
+	_bar.position = BAR_RECT.position
+	_bar.size = BAR_RECT.size
 	_bar.step = 0.0
 	_bar.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(_bar)
+	_machine.add_child(_bar)
 
 	_stall = TextureRect.new()
 	_stall.name = "Stall"
@@ -92,7 +95,7 @@ func _ready() -> void:
 	_tap = TapArea.new()
 	_tap.name = "Tap"
 	_tap.position = Vector2(0, MACHINE_Y)
-	_tap.size = Vector2(WIDTH, BAR_Y + 8 - MACHINE_Y)
+	_tap.size = Vector2(WIDTH, BELT_Y + 8 - MACHINE_Y)
 	_tap.tapped.connect(_on_tap)
 	add_child(_tap)
 
@@ -104,6 +107,8 @@ func _ready() -> void:
 	_apply.add_theme_color_override("font_disabled_color", Color(0.6, 1.0, 0.5, 0.5))
 	_apply.pressed.connect(func() -> void: GameState.apply_tier(line_index, seg_index))
 	_chunks_seen = _state().chunks
+	_assemblies_seen = _state().assemblies
+	_scroll = get_parent().get_parent().get_parent() as ScrollContainer
 
 
 func _process(delta: float) -> void:
@@ -128,6 +133,9 @@ func _process(delta: float) -> void:
 		return
 	_update_workers(s)
 	_layout_row()
+	if s.assemblies != _assemblies_seen:
+		_assemblies_seen = s.assemblies
+		_consume(s)
 	_bar.max_value = s.bar_size()
 	_bar.value = s.work
 	_bar.modulate = Color(1.4, 1.4, 1.0) if s.bar_full() else Color.WHITE
@@ -148,16 +156,14 @@ func _update_workers(s: SegmentState) -> void:
 		var w := TextureRect.new()
 		w.texture = WORKER_TEX
 		w.mouse_filter = MOUSE_FILTER_IGNORE
-		add_child(w)
+		var j := int(_workers.size() / 2.0)
+		w.position = Vector2(11.0 + j * WORKER_DX if _workers.size() % 2 == 0 else 59.0 - j * WORKER_DX, WORKERS_Y)
+		w.flip_h = _workers.size() % 2 == 1
+		_machine.add_child(w)
+		_machine.move_child(w, 0)
 		_workers.append(w)
-	var x0 := (WIDTH - slots * WORKER_DX) / 2.0
 	for i in _workers.size():
-		var w := _workers[i]
-		w.visible = i < slots
-		w.modulate = Color.WHITE if i < s.workers else Color(0.4, 0.4, 0.45, 0.5)
-		w.position.x = x0 + i * WORKER_DX
-		if w.position.y == 0.0:
-			w.position.y = WORKERS_Y
+		_workers[i].visible = i < s.workers
 	if s.chunks != _chunks_seen and s.workers > 0:
 		var w := _workers[(s.chunks - 1) % s.workers]
 		var tw := w.create_tween()
@@ -195,6 +201,13 @@ func _layout_row() -> void:
 		for b in [_hire, _apply]:
 			b.position = Vector2(4, ROW_Y)
 			b.size = Vector2(WIDTH - 8, ROW_H)
+
+
+func _consume(s: SegmentState) -> void:
+	(get_parent() as LineView).scrap_bits(position + TOOL_HEAD)
+	var head := global_position + TOOL_HEAD
+	if _scroll == null or _scroll.get_global_rect().has_point(head):
+		Flyers.spend(Flyers.Kind.SCRAP, head, float(s.tier_data().scrap_per_mech))
 
 
 func _state() -> SegmentState:

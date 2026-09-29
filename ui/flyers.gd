@@ -4,6 +4,7 @@ extends Control
 enum Kind { CREDITS, SCRAP }
 
 const MAX_IN_FLIGHT := 48
+const SPENDS_PER_S := 6.0
 const TIER_SECONDS := [2.0, 10.0]
 const TEXTURES := [
 	[preload("res://art/fx/disc_credits_1.png"), preload("res://art/fx/disc_credits_2.png"), preload("res://art/fx/disc_credits_3.png")],
@@ -13,6 +14,8 @@ const TEXTURES := [
 static var _instance: Flyers
 
 @export var hud: Hud
+
+var _last_spend := -1000
 
 
 func _ready() -> void:
@@ -28,6 +31,11 @@ func _exit_tree() -> void:
 static func spawn(kind: Kind, from: Vector2, amount: float, count: int = 1) -> void:
 	if _instance:
 		_instance._spawn(kind, from, count, tier(kind, amount))
+
+
+static func spend(kind: Kind, to: Vector2, amount: float) -> void:
+	if _instance:
+		_instance._spend(kind, to, tier(kind, amount))
 
 
 static func tier(kind: Kind, amount: float) -> int:
@@ -65,3 +73,24 @@ func _spawn(kind: Kind, from: Vector2, count: int, disc_tier: int) -> void:
 		tw.tween_callback(func() -> void:
 			hud.pulse(kind)
 			disc.queue_free())
+
+
+func _spend(kind: Kind, to: Vector2, disc_tier: int) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _last_spend < 1000.0 / SPENDS_PER_S or get_child_count() >= MAX_IN_FLIGHT:
+		return
+	_last_spend = now
+	var tex: Texture2D = TEXTURES[kind][disc_tier]
+	var half := tex.get_size() / 2.0
+	var from := hud.target(kind)
+	var disc := TextureRect.new()
+	disc.texture = tex
+	disc.mouse_filter = MOUSE_FILTER_IGNORE
+	disc.position = from - half
+	add_child(disc)
+	hud.pulse_out(kind)
+	var drop := from + Vector2(randf_range(-12, 12), randf_range(18, 30))
+	var tw := disc.create_tween()
+	tw.tween_property(disc, "position", drop - half, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(disc, "position", to - half, 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(disc.queue_free)

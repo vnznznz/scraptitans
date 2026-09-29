@@ -15,7 +15,8 @@ func m0() -> void:
 	t.check(main.size == Vector2(360, 640), "viewport is 360x640 (got %s)" % main.size)
 	t.check(t.node("Hud").size.y == 48 and t.node("Battlefield").size.y == 160, "hud and battlefield heights")
 	t.check(scroll.size.y > 300, "scroll pane fills the middle (%d px)" % scroll.size.y)
-	t.check(scroll.scroll_vertical + scroll.size.y >= content.size.y - 1, "starts scrolled to the bottom")
+	t.check(t.node("Scrapyard").get_parent().name == "BottomBar" and content.find_child("Scrapyard", true, false) == null, "scrapyard sits in the fixed bottom bar, not in the pane")
+	t.check(scroll.scroll_vertical == 0, "pane starts at the top")
 	t.check(ProjectSettings.get_setting("display/window/stretch/aspect") == "keep_width", "aspect keep_width")
 
 	var pile: Control = t.get_tree().current_scene.find_child("Pile", true, false)
@@ -141,8 +142,8 @@ func m1() -> void:
 	t.check(GameState.mechs_built - built_before >= 9, "steady production (%d mechs)" % (GameState.mechs_built - built_before))
 
 	await t.click(main.find_child("SettingsButton", true, false))
-	await t.click(main.find_child("Reset", true, false))
-	await t.click(main.find_child("Confirm", true, false))
+	await t.click(main.get_node("%Settings").find_child("Reset", true, false))
+	await t.click(main.get_node("%Settings").find_child("Confirm", true, false))
 	await t.frames(3)
 	t.check(GameState.mechs_built == 0 and not GameState.lines[0].segments[0].built, "settings reset starts a fresh run")
 
@@ -678,6 +679,26 @@ func m8() -> void:
 	t.check(absf(GameState.scrap - scrap - expect) < 1.0, "the popped enemy pays %s scrap (got %s)" % [Fmt.num(expect), Fmt.num(GameState.scrap - scrap)])
 	t.check(flyers.get_children().any(func(d: TextureRect) -> bool: return Flyers.TEXTURES[1].has(d.texture)), "and sends scrap discs")
 	await t.shot("m8_kill")
+
+	await _fresh()
+	main = t.get_tree().current_scene
+	line = main.line_view(0)
+	flyers = main.get_node("%Flyers")
+	GameState.scrap = 100.0
+	for i in 3:
+		await t.click(_build_button(line, i))
+	await t.wait(0.3)
+	for c in flyers.get_children():
+		c.free()
+	await _fill_bar(line, 0)
+	GameState.advance(0.1)
+	await t.frames(2)
+	var hud_scrap: Vector2 = main.get_node("%Hud").target(Flyers.Kind.SCRAP)
+	t.check(GameState.lines[0].segments[0].assembling and flyers.get_child_count() == 1, "assembly sends a scrap disc from the HUD")
+	t.check(flyers.get_child(0).position.distance_to(hud_scrap) < 40.0, "it starts at the scrap counter")
+	t.check(line.find_children("*", "CPUParticles2D", true, false).size() >= 2, "scrap bits and sparks drop onto the mech")
+	await t.wait(0.2)
+	await t.shot("m8_consume")
 
 
 func tune() -> void:

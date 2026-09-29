@@ -11,6 +11,7 @@ var _confirm: Control
 
 func _ready() -> void:
 	visible = false
+	add_to_group("upgrade_menu")
 	var bg := ColorRect.new()
 	bg.color = Color(0.1, 0.09, 0.12)
 	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)

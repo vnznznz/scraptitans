@@ -6,6 +6,7 @@ const SWEEP_TIME := 3.0
 @export var battlefield: Battlefield
 @export var scroll: ScrollContainer
 @export var content: Control
+@export var scrapyard: Scrapyard
 
 var _flash: ColorRect
 var _band: ColorRect
@@ -100,11 +101,13 @@ func _sweep() -> void:
 				battlefield.shake(2.0, 2), 0.0, 1.0, SWEEP_TIME)
 	await tw.finished
 	_band.visible = false
+	scrapyard.collapse()
 
 
 func _collapse_all() -> void:
 	for c in content.get_children():
 		_collapse(c)
+	scrapyard.collapse()
 
 
 func _collapse(c: Node) -> void:

@@ -55,6 +55,12 @@ func pulse(kind: Flyers.Kind) -> void:
 	icon.create_tween().tween_property(icon, "scale", Vector2.ONE, 0.15)
 
 
+func pulse_out(kind: Flyers.Kind) -> void:
+	var icon := _icons[kind]
+	icon.scale = Vector2(0.7, 0.7)
+	icon.create_tween().tween_property(icon, "scale", Vector2.ONE, 0.15)
+
+
 func _amount(icon_tex: Texture2D, x: float, color: Color) -> Label:
 	var icon := TextureRect.new()
 	icon.texture = icon_tex

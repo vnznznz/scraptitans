@@ -18,8 +18,8 @@ func _ready() -> void:
 	toggle.set_anchors_and_offsets_preset(PRESET_BOTTOM_LEFT)
 	toggle.offset_left = 4
 	toggle.offset_right = 60
-	toggle.offset_top = -42
-	toggle.offset_bottom = -14
+	toggle.offset_top = -138
+	toggle.offset_bottom = -106
 	toggle.modulate = Color(1, 1, 1, 0.6)
 	toggle.pressed.connect(func() -> void:
 		_panel.visible = not _panel.visible

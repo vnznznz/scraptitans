@@ -440,6 +440,7 @@ func _try_assemble(s: SegmentState, spawn: bool) -> void:
 		next_mech_id += 1
 	s.mech.scrap_cost += cost
 	s.work = 0.0
+	s.assemblies += 1
 	s.assembling = true
 	s.assemble_t = Data.econ("assembly_time")
 

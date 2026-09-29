@@ -14,6 +14,7 @@ var workers := 0
 var worker_t := 0.0
 var stall := Stall.NONE
 var chunks := 0
+var assemblies := 0
 
 
 func _init(p_type_id: String = "") -> void:
