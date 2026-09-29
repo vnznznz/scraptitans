@@ -47,9 +47,7 @@
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
 - Placeholders: `python3 tools/gen_placeholders.py`
 - Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel
-- Serve: `tools/serve_web.sh` → Caddy, `tls internal`, `https://localhost:8443`, `https://<lan-ip>:8443`, `Cache-Control: no-cache`; `LAN_IP` overrides detection
-- iPhone: open `http://<lan-ip>:8080/root.crt`, install profile, enable in Settings → General → About → Certificate Trust Settings
-- Local browser: `sudo caddy trust` once, or accept the warning
+- Serve: `tools/serve_web.sh` → Caddy, `tls internal` (cert generated on the fly, untrusted: accept the browser warning), `https://localhost:8443`, `https://<lan-ip>:8443`, `Cache-Control: no-cache`; `LAN_IP` overrides detection
 
 ## Web gotchas
 - Secure context required (HTTPS or localhost)

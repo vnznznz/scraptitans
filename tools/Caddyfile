@@ -1,7 +1,6 @@
 {
 	skip_install_trust
-	http_port 8080
-	https_port 8443
+	auto_https disable_redirects
 }
 
 https://localhost:8443, https://{$LAN_IP}:8443 {
@@ -9,15 +8,4 @@ https://localhost:8443, https://{$LAN_IP}:8443 {
 	root * {$WEB_ROOT}
 	file_server
 	header Cache-Control "no-cache"
-}
-
-http://{$LAN_IP}:8080 {
-	handle /root.crt {
-		root * {$CA_DIR}
-		header Content-Type application/x-x509-ca-cert
-		file_server
-	}
-	handle {
-		redir https://{$LAN_IP}:8443{uri}
-	}
 }

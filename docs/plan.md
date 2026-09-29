@@ -20,7 +20,7 @@ Build: layout skeleton; tapping the pile raises scrap, and it survives a reload.
 - [x] `Main`: HUD, battlefield (fixed, ~25%), ScrollContainer → VBox (line 1 placeholder, scrapyard), fixed UPGRADES button; starts scrolled to the bottom
 - [x] Autoloads: `GameState` (resources, fixed-step tick), `Save` (JSON in `user://`, `version` field)
 - [x] Web export preset (thread support off, the default), `tools/export_web.sh` → `build/web/`
-- [x] Caddy with a self-signed cert (`tls internal`) serves `build/web/` on localhost and the LAN IP, with `Cache-Control: no-cache`; the iPhone trusts Caddy's root CA (install it as a profile, then enable it in Certificate Trust Settings)
+- [x] Caddy with a self-signed cert (`tls internal`) serves `build/web/` on localhost and the LAN IP, with `Cache-Control: no-cache`; browsers accept the cert warning
 - [x] Instrumentation: `godot --headless -- --scenario <name>` drives the game (taps, fast-forward), prints state and exits non-zero on failure; windowed runs can save viewport screenshots
 - [x] Start `docs/tech.md`
 
