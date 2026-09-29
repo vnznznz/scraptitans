@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dau0es1a3th8m"
-path="res://.godot/imported/enemy_drone.png-5afd8caccaf5f18106feb41f260e9ada.ctex"
+uid="uid://cidh6n3xiil45"
+path="res://.godot/imported/disc_scrap_2.png-031dbccb0fcb1eda0e5d4a0c5f2a5f03.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/battlefield/enemy_drone.png"
-dest_files=["res://.godot/imported/enemy_drone.png-5afd8caccaf5f18106feb41f260e9ada.ctex"]
+source_file="res://art/fx/disc_scrap_2.png"
+dest_files=["res://.godot/imported/disc_scrap_2.png-031dbccb0fcb1eda0e5d4a0c5f2a5f03.ctex"]
 
 [params]
 

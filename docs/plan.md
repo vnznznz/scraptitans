@@ -157,20 +157,20 @@ Test:
 
 Build: a cleaner screen, a reworked upgrade set, a tuned run.
 
-- [ ] Layout pass: fewer buttons per segment (no ⬆ jump button; hire and apply tier share one row), segments visually shorter
-- [ ] Remove the bottleneck highlight (orange pulsing box)
-- [ ] Progressive reveal: UNLOCK LINE, YARD WORKER and UPGRADES hidden until line 1 has deployed its first mech
-- [ ] HUD: scrap left, credits right
-- [ ] Scrap +/s is net: scrap spent by the lines counts against it
-- [ ] Salvage starts at 0%, upgrades raise it to 40% (cap)
-- [ ] Payout starts flat (no steps); upgrades add steps and shorten the interval
-- [ ] Work bar size grows with the segment's tier (`bar_size` per tier), so max workers don't fill it instantly
-- [ ] Upgrade pass: clearer names, drop low-impact rows, more yard slot levels; each row has an info button with a plain description (`desc` in `upgrades.json`)
-- [ ] Late-game upgrade: scrap per enemy killed (each enemy pop pays scrap)
-- [ ] Waves: more enemies per wave, mixed types in later waves, colored variants (tinted, tougher) as waves climb
-- [ ] Battlefield enemies smoke and spark as the wave's HP drops
-- [ ] Income discs: three color tiers by payout size instead of scaled discs, for credits and scrap
-- [ ] Tune: first worker within a few minutes, nuke at 30–60 min
+- [x] Layout pass: fewer buttons per segment (no ⬆ jump button; hire and apply tier share one row), segments visually shorter
+- [x] Remove the bottleneck highlight (orange pulsing box)
+- [x] Progressive reveal: UNLOCK LINE, YARD WORKER and UPGRADES hidden until line 1 has deployed its first mech
+- [x] HUD: scrap left, credits right
+- [x] Scrap +/s is net: scrap spent by the lines counts against it
+- [x] Salvage starts at 0%, upgrades raise it to 40% (cap)
+- [x] Payout starts flat (no steps); upgrades add steps and shorten the interval
+- [x] Work bar size grows with the segment's tier (`bar_size` per tier), so max workers don't fill it instantly
+- [x] Upgrade pass: clearer names, drop low-impact rows, more yard slot levels; each row has an info button with a plain description (`desc` in `upgrades.json`)
+- [x] Late-game upgrade: scrap per enemy killed (each enemy pop pays scrap)
+- [x] Waves: more enemies per wave, mixed types in later waves, colored variants (tinted, tougher) as waves climb
+- [x] Battlefield enemies smoke and spark as the wave's HP drops
+- [x] Income discs: three color tiers by payout size instead of scaled discs, for credits and scrap
+- [x] Tune: first worker within a few minutes, nuke at 30–60 min
 
 Test:
 - Fresh game shows only the pile and line 1 pads; the other buttons appear after the first mech deploys.

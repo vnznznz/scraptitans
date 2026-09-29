@@ -21,10 +21,10 @@ func _ready() -> void:
 	bg.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(bg)
 
-	_credits = _amount(preload("res://art/ui/credits.png"), 8, Color(1.0, 0.83, 0.3))
-	_credits_rate = _rate(8)
-	_scrap = _amount(preload("res://art/ui/scrap.png"), 168, Color(0.86, 0.86, 0.82))
-	_scrap_rate = _rate(168)
+	_credits = _amount(preload("res://art/ui/credits.png"), 168, Color(1.0, 0.83, 0.3))
+	_credits_rate = _rate(168)
+	_scrap = _amount(preload("res://art/ui/scrap.png"), 8, Color(0.86, 0.86, 0.82))
+	_scrap_rate = _rate(8)
 
 	var gear := Button.new()
 	gear.name = "SettingsButton"

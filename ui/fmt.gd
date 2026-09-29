@@ -14,6 +14,8 @@ static func num(x: float) -> String:
 
 
 static func rate(x: float) -> String:
+	var sign := "-" if x <= -0.1 else "+"
+	x = absf(x)
 	if x < 10.0:
-		return "+%.1f/S" % (floor(x * 10.0) / 10.0)
-	return "+%s/S" % num(x)
+		return "%s%.1f/S" % [sign, floor(x * 10.0) / 10.0]
+	return "%s%s/S" % [sign, num(x)]

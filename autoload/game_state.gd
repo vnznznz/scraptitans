@@ -5,6 +5,7 @@ signal mech_deployed(mech: MechState)
 signal mech_income(mech: MechState, credits: float)
 signal mech_died(mech: MechState, salvage: float)
 signal wave_cleared(bounty: float)
+signal enemy_killed(index: int, scrap: float)
 signal line_added(index: int)
 signal segment_added(line_index: int)
 signal nuke_launched(mech: MechState)
@@ -29,6 +30,7 @@ var levels := {}
 var run_over := false
 var credits_rate := 0.0
 var scrap_rate := 0.0
+var scrap_gain_rate := 0.0
 var time_scale := 1.0
 var yard_chunks := 0
 
@@ -37,8 +39,12 @@ var _acc := 0.0
 var _rate_t := 0.0
 var _credits_bucket := 0.0
 var _scrap_bucket := 0.0
+var _scrap_gain_bucket := 0.0
 var _credits_history: Array[float] = []
 var _scrap_history: Array[float] = []
+var _scrap_gain_history: Array[float] = []
+var _wave_list: Array[Dictionary] = []
+var _wave_listed := -1
 
 
 func _process(delta: float) -> void:
@@ -125,6 +131,10 @@ func starved() -> bool:
 	return false
 
 
+func revealed() -> bool:
+	return mechs_built > 0
+
+
 func aging() -> float:
 	return 1.0 + float(Data.enemies.wave_damage) * wave
 
@@ -177,6 +187,10 @@ func yard_slots() -> int:
 	return int(stat("yard_slots"))
 
 
+func yard_chunk() -> float:
+	return stat("yard_chunk") * stat("worker_chunk")
+
+
 func yard_worker_cost() -> float:
 	return Data.econ("yard_worker_base") * pow(Data.econ("yard_worker_growth"), yard_workers)
 
@@ -196,25 +210,6 @@ func toggle_pause(line_index: int) -> void:
 	purchased.emit()
 
 
-func segment_rate(s: SegmentState) -> float:
-	return s.workers * stat("worker_chunk") / stat("worker_interval") / s.bar_size()
-
-
-func bottlenecks(line_index: int) -> Array[int]:
-	var line := lines[line_index]
-	var result: Array[int] = []
-	if not line.is_complete():
-		return result
-	var rates := line.segments.map(segment_rate)
-	var lo: float = rates.min()
-	if is_equal_approx(lo, rates.max()):
-		return result
-	for i in rates.size():
-		if is_equal_approx(rates[i], lo):
-			result.append(i)
-	return result
-
-
 func level(id: String) -> int:
 	return int(levels.get(id, 0))
 
@@ -226,7 +221,7 @@ func upgrade_cost(id: String) -> float:
 			return float(Data.tier(row.type, mini(unlocked_tier(row.type) + 1, Data.segment_type(row.type).tiers.size() - 1)).unlock_cost)
 		"final":
 			return float(Data.segment_type(row.type).tiers[-1].unlock_cost)
-	return float(row.base_cost) * pow(Data.econ("upgrade_cost_growth"), level(id))
+	return float(row.base_cost) * pow(float(row.get("cost_growth", Data.econ("upgrade_cost_growth"))), level(id))
 
 
 func upgrade_maxed(id: String) -> bool:
@@ -274,6 +269,34 @@ func wave_max_hp() -> float:
 
 func wave_bounty() -> float:
 	return float(Data.enemies.base_bounty) * pow(float(Data.enemies.bounty_growth), wave)
+
+
+func wave_enemies() -> Array[Dictionary]:
+	if _wave_listed != wave:
+		_wave_list = Data.wave_enemies(wave)
+		_wave_listed = wave
+	return _wave_list
+
+
+func wave_alive() -> int:
+	var list := wave_enemies()
+	var total := 0.0
+	for e in list:
+		total += e.weight
+	var drained := (1.0 - wave_hp / wave_max_hp()) * total + 1e-6
+	var cum := 0.0
+	for i in list.size():
+		cum += list[i].weight
+		if cum > drained:
+			return list.size() - i
+	return 0
+
+
+func kill_scrap(e: Dictionary) -> float:
+	var total := 0.0
+	for other in wave_enemies():
+		total += other.weight
+	return stat("kill_scrap") * wave_max_hp() * e.weight / total
 
 
 func field_dps() -> float:
@@ -364,7 +387,7 @@ func _step_yard(dt: float) -> void:
 	yard_t += dt * yard_workers
 	while yard_t >= interval:
 		yard_t -= interval
-		_gain_scrap(stat("yard_chunk"))
+		_gain_scrap(yard_chunk())
 		yard_chunks += 1
 
 
@@ -410,6 +433,7 @@ func _try_assemble(s: SegmentState, spawn: bool) -> void:
 		s.stall = SegmentState.Stall.NO_SCRAP
 		return
 	scrap -= cost
+	_scrap_bucket -= cost
 	if spawn:
 		s.mech = MechState.new()
 		s.mech.id = next_mech_id
@@ -475,12 +499,29 @@ func _step_field(dt: float) -> void:
 
 
 func _step_wave(dt: float) -> void:
-	wave_hp -= field_dps() * dt
+	var dps := field_dps()
+	if dps <= 0.0:
+		return
+	var alive := wave_alive()
+	wave_hp -= dps * dt
 	if wave_hp <= 0.0:
 		_clear_wave()
+		return
+	_pay_kills(alive, wave_alive())
+
+
+func _pay_kills(alive_before: int, alive_after: int) -> void:
+	if stat("kill_scrap") <= 0.0:
+		return
+	var list := wave_enemies()
+	for i in range(list.size() - alive_before, list.size() - alive_after):
+		var amount := kill_scrap(list[i])
+		_gain_scrap(amount)
+		enemy_killed.emit(i, amount)
 
 
 func _clear_wave() -> void:
+	_pay_kills(wave_alive(), 0)
 	var bounty := wave_bounty()
 	_gain_credits(bounty)
 	wave += 1
@@ -497,6 +538,7 @@ func _gain_credits(amount: float) -> void:
 func _gain_scrap(amount: float) -> void:
 	scrap += amount
 	_scrap_bucket += amount
+	_scrap_gain_bucket += amount
 
 
 func _step_rates(dt: float) -> void:
@@ -506,13 +548,17 @@ func _step_rates(dt: float) -> void:
 	_rate_t -= 1.0
 	_credits_history.append(_credits_bucket)
 	_scrap_history.append(_scrap_bucket)
+	_scrap_gain_history.append(_scrap_gain_bucket)
 	_credits_bucket = 0.0
 	_scrap_bucket = 0.0
+	_scrap_gain_bucket = 0.0
 	if _credits_history.size() > RATE_WINDOW:
 		_credits_history.pop_front()
 		_scrap_history.pop_front()
+		_scrap_gain_history.pop_front()
 	credits_rate = _average(_credits_history)
 	scrap_rate = _average(_scrap_history)
+	scrap_gain_rate = _average(_scrap_gain_history)
 
 
 func _average(values: Array[float]) -> float:
@@ -526,7 +572,10 @@ func _reset_rates() -> void:
 	_rate_t = 0.0
 	_credits_bucket = 0.0
 	_scrap_bucket = 0.0
+	_scrap_gain_bucket = 0.0
 	_credits_history = []
 	_scrap_history = []
+	_scrap_gain_history = []
 	credits_rate = 0.0
 	scrap_rate = 0.0
+	scrap_gain_rate = 0.0

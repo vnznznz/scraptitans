@@ -48,16 +48,38 @@ func tier(type_id: String, tier_index: int) -> Dictionary:
 	return segments.types[type_id].tiers[tier_index]
 
 
-func wave_type(wave: int) -> Dictionary:
-	return enemies.types[wave % enemies.types.size()]
+func wave_enemies(wave: int) -> Array[Dictionary]:
+	var e := enemies
+	var types: Array = e.types
+	var kinds := 1 + int(wave >= int(e.mix_from)) + int(wave >= int(e.mix_all_from))
+	var base := 0.0
+	for k in kinds:
+		base += float(types[(wave + k) % types.size()].count)
+	var mult := minf((1.0 + wave * float(e.count_growth)) / kinds, float(e.max_enemies) / base)
+	var list: Array[Dictionary] = []
+	for k in kinds:
+		var type: Dictionary = types[(wave + k) % types.size()]
+		for i in maxi(1, roundi(float(type.count) * mult)):
+			list.append({"sprite": type.sprite, "flying": type.flying, "weight": float(type.weight), "variant": 0})
+	list.resize(mini(list.size(), int(e.max_enemies)))
+	var band := float(wave) / float(e.variant_every)
+	var top := mini(int(band), int(e.variants) - 1)
+	var elites := 0 if top == int(e.variants) - 1 else roundi(fmod(band, 1.0) * list.size())
+	for i in list.size():
+		var en := list[i]
+		en.variant = top + (1 if i >= list.size() - elites else 0)
+		en.weight *= pow(float(e.variant_tough), en.variant)
+	var order := range(list.size())
+	order.sort_custom(func(a: int, b: int) -> bool:
+		return list[a].weight < list[b].weight or (list[a].weight == list[b].weight and a < b))
+	var sorted: Array[Dictionary] = []
+	for i: int in order:
+		sorted.append(list[i])
+	return sorted
 
 
 func upgrade_row(id: String) -> Dictionary:
 	return _rows_by_id[id]
-
-
-func tier_row_id(type_id: String) -> String:
-	return "tier_" + type_id
 
 
 func rows_for_stat(stat: String) -> Array:

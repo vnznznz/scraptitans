@@ -10,7 +10,7 @@ const SLOT_X0 := 214.0
 const SLOT_DX := 24.0
 const WALK_SPEED := 40.0
 const ENTRY_X := -16.0
-const ENEMY_X0 := 258.0
+const ENEMY_X0 := 250.0
 const ENEMY_X1 := 346.0
 const ENEMY_WALK_IN := 1.2
 const BAR_RECT := Rect2(4, 4, 352, 20)
@@ -41,6 +41,7 @@ func _ready() -> void:
 	add_child(_bg)
 
 	_enemy_layer = Node2D.new()
+	_enemy_layer.y_sort_enabled = true
 	add_child(_enemy_layer)
 	_mechs = Node2D.new()
 	add_child(_mechs)
@@ -66,6 +67,7 @@ func _ready() -> void:
 	GameState.mech_income.connect(_on_income)
 	GameState.mech_died.connect(_on_died)
 	GameState.wave_cleared.connect(_on_wave_cleared)
+	GameState.enemy_killed.connect(_on_enemy_killed)
 	if GameState.run_over:
 		scorch()
 		return
@@ -104,15 +106,18 @@ func _process(delta: float) -> void:
 	_bar.value = GameState.wave_hp
 	_hp_label.text = "W%d  %s/%s" % [GameState.wave + 1, Fmt.num(GameState.wave_hp), Fmt.num(max_hp)]
 	_dps_label.text = "%s DPS" % Fmt.num(GameState.field_dps())
-	var alive := ceili(GameState.wave_hp / max_hp * _enemies.size())
+	var alive := GameState.wave_alive()
 	while _enemy_count > alive:
-		_pop_enemy(_enemies[_enemies.size() - _enemy_count])
+		_pop_enemy(_enemies.size() - _enemy_count)
 		_enemy_count -= 1
 	var t := Time.get_ticks_msec() / 1000.0
+	var remaining := GameState.wave_hp / max_hp
 	for i in _enemies.size():
 		var e := _enemies[i]
 		if e.get_meta("flying"):
 			e.offset.y = -e.texture.get_height() + roundf(sin(t * 3.0 + i) * 2.0)
+		if e.visible:
+			(e.get_node("Damage") as DamageFx).set_remaining(remaining)
 		if e.visible and not _views.is_empty():
 			var ft: float = e.get_meta("fire_t", randf_range(0.0, ENEMY_FIRE.y)) - delta * GameState.time_scale
 			if ft <= 0.0:
@@ -172,17 +177,27 @@ func _show_wave(walk_in: bool) -> void:
 		e.queue_free()
 	_enemies.clear()
 	_wave_shown = GameState.wave
-	var type := Data.wave_type(GameState.wave)
-	var tex: Texture2D = load("res://art/battlefield/enemy_%s.png" % type.sprite)
-	var n := int(type.count)
-	for i in n:
+	var list := GameState.wave_enemies()
+	var n := list.size()
+	var layer_sizes := {true: 0, false: 0}
+	for en in list:
+		layer_sizes[en.flying] += 1
+	var layer_i := {true: 0, false: 0}
+	for en in list:
 		var e := Sprite2D.new()
-		e.texture = tex
-		e.offset = Vector2(0, -tex.get_height())
-		e.set_meta("flying", type.flying)
-		var x := (ENEMY_X0 + ENEMY_X1) / 2.0 if n == 1 else lerpf(ENEMY_X0, ENEMY_X1, float(i) / (n - 1))
-		var y := (AIR_Y + (i % 2) * 20.0) if type.flying else GROUND_Y - (i % 2) * 6.0
+		e.texture = load("res://art/battlefield/enemy_%s_%d.png" % [en.sprite, en.variant + 1])
+		e.offset = Vector2(0, -e.texture.get_height())
+		e.set_meta("flying", en.flying)
+		var i: int = layer_i[en.flying]
+		var count: int = layer_sizes[en.flying]
+		layer_i[en.flying] += 1
+		var x := (ENEMY_X0 + ENEMY_X1) / 2.0 if count == 1 else lerpf(ENEMY_X0, ENEMY_X1, float(i) / (count - 1))
+		var y := (AIR_Y + (i % 2) * 20.0) if en.flying else GROUND_Y - (i % 2) * 6.0
 		e.position = Vector2(x, y)
+		var fx := DamageFx.new()
+		fx.name = "Damage"
+		fx.position = Vector2(0, -e.texture.get_height() / 2.0)
+		e.add_child(fx)
 		_enemy_layer.add_child(e)
 		_enemies.append(e)
 		if walk_in:
@@ -191,27 +206,33 @@ func _show_wave(walk_in: bool) -> void:
 					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_enemy_count = n
 	if not walk_in:
-		var alive := ceili(GameState.wave_hp / GameState.wave_max_hp() * n)
+		var alive := GameState.wave_alive()
 		for i in n - alive:
 			_enemies[i].visible = false
 		_enemy_count = alive
 
 
-func _pop_enemy(e: Sprite2D) -> void:
+func _pop_enemy(i: int) -> void:
+	var e := _enemies[i]
 	if not e.visible:
 		return
 	_puff(_enemy_center(e), 1.0, Color(1, 0.8, 0.6))
 	e.visible = false
 
 
-func _on_wave_cleared(_bounty: float) -> void:
+func _on_enemy_killed(i: int, scrap: float) -> void:
+	if i < _enemies.size():
+		Flyers.spawn(Flyers.Kind.SCRAP, global_position + _enemy_center(_enemies[i]), scrap, 2)
+
+
+func _on_wave_cleared(bounty: float) -> void:
 	var center := Vector2((ENEMY_X0 + ENEMY_X1) / 2.0, GROUND_Y - 24.0)
 	for e in _enemies:
 		if e.visible:
 			_puff(_enemy_center(e), 1.4, Color(1, 0.6, 0.3))
 	_puff(center, 2.5, Color(1, 0.7, 0.3))
 	_sparks(center)
-	Flyers.spawn(Flyers.Kind.CREDITS, global_position + center, clampi(8 + GameState.wave, 8, 20))
+	Flyers.spawn(Flyers.Kind.CREDITS, global_position + center, bounty, clampi(8 + GameState.wave, 8, 20))
 	shake()
 	_show_wave(true)
 
@@ -363,10 +384,10 @@ func _slot_pos(slot: int) -> Vector2:
 	return Vector2(SLOT_X0 - col * SLOT_DX - row * SLOT_DX / 2.0, GROUND_Y - row * ROW_DY)
 
 
-func _fly(m: MechState, kind: Flyers.Kind, count: int, disc_scale: float = 1.0) -> void:
+func _fly(m: MechState, kind: Flyers.Kind, amount: float, count: int) -> void:
 	var view: MechView = _views.get(m.id)
 	if view:
-		Flyers.spawn(kind, view.global_position + Vector2(0, -34), count, disc_scale)
+		Flyers.spawn(kind, view.global_position + Vector2(0, -34), amount, count)
 
 
 func _on_deployed(m: MechState) -> void:
@@ -377,14 +398,13 @@ func _on_deployed(m: MechState) -> void:
 		_slots.erase(evict)
 	var view := _add_view(m)
 	if view:
-		_fly(m, Flyers.Kind.CREDITS, clampi(2 + int(log(maxf(m.deploy_fee, 1.0)) / log(10.0)), 2, 6))
+		_fly(m, Flyers.Kind.CREDITS, m.deploy_fee, clampi(2 + int(log(maxf(m.deploy_fee, 1.0)) / log(10.0)), 2, 6))
 
 
 func _on_income(m: MechState, credits: float) -> void:
 	if credits <= 0.0 or randf() > INCOME_DISCS_PER_S / maxf(_views.size(), 1.0):
 		return
-	var average := GameState.credits_rate / maxf(GameState.field.size(), 1.0)
-	_fly(m, Flyers.Kind.CREDITS, 1, 2.0 if average > 0.0 and credits >= 2.0 * average else 1.0)
+	_fly(m, Flyers.Kind.CREDITS, credits, 1)
 
 
 func _on_died(m: MechState, salvage: float) -> void:
@@ -392,7 +412,7 @@ func _on_died(m: MechState, salvage: float) -> void:
 	if view == null:
 		return
 	if salvage > 0.0:
-		_fly(m, Flyers.Kind.SCRAP, 2)
+		_fly(m, Flyers.Kind.SCRAP, salvage, 2)
 	_views.erase(m.id)
 	_slots.erase(m.id)
 	_states.erase(m.id)

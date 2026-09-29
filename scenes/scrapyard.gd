@@ -80,15 +80,16 @@ func _process(_delta: float) -> void:
 		_workers.append(w)
 	var n := GameState.yard_workers
 	for i in _workers.size():
-		_workers[i].visible = i < slots
+		_workers[i].visible = i < slots and GameState.revealed()
 		_workers[i].modulate = Color.WHITE if i < n else Color(0.4, 0.4, 0.45, 0.5)
 	if GameState.yard_chunks != _chunks_seen and n > 0:
 		var w := _workers[(GameState.yard_chunks - 1) % n]
 		var tw := w.create_tween()
 		tw.tween_property(w, "position:y", WORKERS_Y - 4, 0.08)
 		tw.tween_property(w, "position:y", WORKERS_Y, 0.1)
-		Flyers.spawn(Flyers.Kind.SCRAP, w.global_position + Vector2(5, -4))
+		Flyers.spawn(Flyers.Kind.SCRAP, w.global_position + Vector2(5, -4), GameState.yard_chunk())
 	_chunks_seen = GameState.yard_chunks
+	_hire.visible = GameState.revealed()
 	var maxed := n >= slots
 	var cost := GameState.yard_worker_cost()
 	_hire.text = "YARD WORKER  " + ("MAX" if maxed else Fmt.num(cost))
@@ -97,7 +98,7 @@ func _process(_delta: float) -> void:
 
 func _on_tap(at: Vector2) -> void:
 	GameState.tap_pile()
-	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28))
+	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), GameState.stat("scrap_per_tap"))
 	var tw := _pile.create_tween()
 	_pile.scale = Vector2(1.06, 0.92)
 	tw.tween_property(_pile, "scale", Vector2.ONE, 0.12)

@@ -2,7 +2,6 @@ class_name UpgradeMenu
 extends Control
 
 const GREY := Color(0.55, 0.55, 0.6)
-const FLASH := Color(1.6, 1.5, 0.8)
 
 var _scroll: ScrollContainer
 var _rows: VBoxContainer
@@ -12,7 +11,6 @@ var _confirm: Control
 
 func _ready() -> void:
 	visible = false
-	add_to_group("upgrade_menu")
 	var bg := ColorRect.new()
 	bg.color = Color(0.1, 0.09, 0.12)
 	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
@@ -48,22 +46,13 @@ func close() -> void:
 	visible = false
 
 
-func open_row(id: String) -> void:
-	open()
-	var panel: Control = _row_nodes[id][0]
-	await get_tree().process_frame
-	_scroll.ensure_control_visible(panel)
-	panel.modulate = FLASH
-	panel.set_meta("flash_t", 0.6)
-
-
 func row(id: String) -> Control:
 	return _row_nodes[id][0]
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if visible:
-		_refresh(delta)
+		_refresh()
 
 
 func _add_row(r: Dictionary) -> void:
@@ -71,8 +60,10 @@ func _add_row(r: Dictionary) -> void:
 	panel.name = "Row_" + r.id
 	panel.mouse_filter = MOUSE_FILTER_PASS
 	_rows.add_child(panel)
+	var box := VBoxContainer.new()
+	panel.add_child(box)
 	var h := HBoxContainer.new()
-	panel.add_child(h)
+	box.add_child(h)
 	var v := VBoxContainer.new()
 	v.size_flags_horizontal = SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 0)
@@ -82,6 +73,22 @@ func _add_row(r: Dictionary) -> void:
 	var effect := Label.new()
 	effect.modulate = Color(1, 1, 1, 0.7)
 	v.add_child(effect)
+	var desc := Label.new()
+	desc.name = "Desc"
+	desc.text = _desc(r).to_upper()
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
+	desc.visible = false
+	box.add_child(desc)
+	var info := Button.new()
+	info.name = "Info"
+	info.icon = preload("res://art/ui/info.png")
+	info.flat = true
+	info.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info.custom_minimum_size = Vector2(32, 44)
+	info.mouse_filter = MOUSE_FILTER_PASS
+	info.pressed.connect(func() -> void: desc.visible = not desc.visible)
+	h.add_child(info)
 	var buy := Button.new()
 	buy.name = "Buy"
 	buy.icon = preload("res://art/ui/credits.png")
@@ -100,7 +107,7 @@ func _on_buy(id: String) -> void:
 	GameState.buy_upgrade(id)
 
 
-func _refresh(delta: float = 0.0) -> void:
+func _refresh() -> void:
 	var order := []
 	for id: String in _row_nodes:
 		var r := Data.upgrade_row(id)
@@ -113,11 +120,7 @@ func _refresh(delta: float = 0.0) -> void:
 		_describe(r, nodes[1], nodes[2])
 		buy.text = "MAX" if maxed else Fmt.num(cost)
 		buy.disabled = maxed or GameState.upgrade_locked(id) or GameState.credits < cost
-		var flash_t: float = panel.get_meta("flash_t", 0.0)
-		if flash_t > 0.0:
-			panel.set_meta("flash_t", flash_t - delta)
-		else:
-			panel.modulate = Color.WHITE if not buy.disabled else GREY
+		panel.modulate = Color.WHITE if not buy.disabled else GREY
 		order.append([1 if maxed else 0, cost, panel.get_index(), panel])
 	order.sort_custom(func(a: Array, b: Array) -> bool:
 		if a[0] != b[0]:
@@ -161,6 +164,18 @@ func _describe(r: Dictionary, title: Label, effect: Label) -> void:
 				effect.text = lv + _fmt(r, value)
 			else:
 				effect.text = lv + "%s > %s" % [_fmt(r, value), _fmt(r, value + float(r.delta))]
+
+
+func _desc(r: Dictionary) -> String:
+	match r.get("kind", ""):
+		"tier":
+			var type := Data.segment_type(r.type)
+			var first := "The first level adds a %s pad to every line. " % type.name if type.get("optional", false) else ""
+			return "%sUnlocks the next %s part. Then tap the green arrow on each %s segment to fit it for scrap. %s" \
+					% [first, type.name, type.name, type.desc]
+		"final":
+			return Data.segment_type(r.type).tiers[-1].desc
+	return r.desc
 
 
 func _fmt(r: Dictionary, v: float) -> String:

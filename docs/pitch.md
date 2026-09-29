@@ -74,7 +74,7 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 - **Deploy fee:** paid to the player on arrival, scales with Core tier.
 - **Wave HP and bounty:** `hp = base_hp * hp_growth^wave`, `bounty = base_bounty * bounty_growth^wave`. DPS = sum of Arms DPS on the field.
 - **Salvage:** starts at 0% of the mech's scrap cost. Upgrades raise it, hard cap 40%.
-- **Cost curve for credit purchases:** `cost = base * 1.15^level`.
+- **Cost curve for credit purchases:** `cost = base * 1.4^level`; lines ×8 per line.
 - **Tier upgrades cost a fixed scrap amount** per tier (rising per tier, not per line). Cheap enough to feel good, expensive enough that pausing a line matters.
 - Run length target: 30–60 min active play. No offline progress.
 
@@ -83,8 +83,8 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**, cheapest first. Everything here costs credits. Rows the player can't afford are greyed.
 
 - **Tiers:** unlock the next tier of each segment type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
-- **Segments:** smaller work bar, more worker slots, per segment type.
-- **Workers:** bigger work chunks, shorter chunk interval.
+- **Segments:** more worker slots, per segment type.
+- **Workers:** bigger work chunks (line and yard workers), shorter chunk interval, lighter work bars (all segments).
 - **Yard:** scrap per tap, yard slots.
 - **Payout:** step cap, step interval, deploy fee.
 - **Salvage:** 0% → 40%.
@@ -103,7 +103,7 @@ Every row has an info button with a plain description. Tapping the segment body 
 |---|---|---|---|---|
 | 1 | Scrap Frame | Junk Brain | Pipe Gun | Tin Sheets |
 | 2 | Bolted Frame | Relay Box | Bolt Cannon | Boiler Plate |
-| 3 | Steel Walker | Tube Core | Autocannon | Steel Plating |
+| 3 | Steel Walker | Tube Core | Auto Cannon | Steel Plating |
 | 4 | Composite Strider | Silicon Mind | Rocket Pod | Ceramic Armor |
 | 5 | Titan Chassis | Quantum Core | Railgun | Reactive Armor |
 | 6 | Atomic Colossus | Doom Core | **Atomic Missile** | Lead-Lined Hull |

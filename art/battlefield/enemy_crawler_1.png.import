@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://wrunwra2ys7n"
-path="res://.godot/imported/enemy_brute.png-22b42abc4e5d130226dc6aa0897e1707.ctex"
+uid="uid://gfv23wso0bh"
+path="res://.godot/imported/enemy_crawler_1.png-794d18595e730e65e7410011e1d5c58f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/battlefield/enemy_brute.png"
-dest_files=["res://.godot/imported/enemy_brute.png-22b42abc4e5d130226dc6aa0897e1707.ctex"]
+source_file="res://art/battlefield/enemy_crawler_1.png"
+dest_files=["res://.godot/imported/enemy_crawler_1.png-794d18595e730e65e7410011e1d5c58f.ctex"]
 
 [params]
 

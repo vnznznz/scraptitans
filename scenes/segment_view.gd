@@ -2,14 +2,16 @@ class_name SegmentView
 extends Control
 
 const WIDTH := 80.0
-const HEIGHT := 212.0
-const NAME_H := 36.0
-const MACHINE_Y := 38.0
-const BELT_Y := 94.0
-const WORKERS_Y := 120.0
+const HEIGHT := 156.0
+const NAME_H := 32.0
+const MACHINE_Y := 32.0
+const BELT_Y := 88.0
+const BAR_Y := 98.0
+const WORKERS_Y := 108.0
 const WORKER_DX := 10.0
-const HIRE_Y := 138.0
-const TIER_Y := 176.0
+const ROW_Y := 124.0
+const ROW_H := 32.0
+const APPLY_W := 26.0
 const WORKER_TEX := preload("res://art/line/worker.png")
 
 var line_index := 0
@@ -23,9 +25,7 @@ var _bar: TextureProgressBar
 var _stall: TextureRect
 var _tap: TapArea
 var _hire: Button
-var _jump: Button
 var _apply: Button
-var _slow: ReferenceRect
 var _workers: Array[TextureRect] = []
 var _chunks_seen := 0
 var _bump_t := 0.0
@@ -38,12 +38,13 @@ func _ready() -> void:
 	var type_id := _state().type_id
 
 	_name = Label.new()
-	_name.position = Vector2(-4, 0)
-	_name.size = Vector2(WIDTH + 8, NAME_H)
+	_name.position = Vector2(-8, 0)
+	_name.size = Vector2(WIDTH + 16, NAME_H)
 	_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_name.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_name.add_theme_constant_override("line_spacing", -4)
+	_name.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
 	add_child(_name)
 
 	_machine = TextureRect.new()
@@ -76,7 +77,7 @@ func _ready() -> void:
 	_bar.stretch_margin_top = 2
 	_bar.stretch_margin_right = 2
 	_bar.stretch_margin_bottom = 2
-	_bar.position = Vector2(4, BELT_Y + 14)
+	_bar.position = Vector2(4, BAR_Y)
 	_bar.size = Vector2(72, 8)
 	_bar.step = 0.0
 	_bar.mouse_filter = MOUSE_FILTER_IGNORE
@@ -88,53 +89,20 @@ func _ready() -> void:
 	_stall.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_stall)
 
-	_slow = ReferenceRect.new()
-	_slow.name = "Bottleneck"
-	_slow.editor_only = false
-	_slow.border_color = Color(1.0, 0.55, 0.15)
-	_slow.border_width = 2.0
-	_slow.position = Vector2(-2, MACHINE_Y - 2)
-	_slow.size = Vector2(WIDTH + 4, BELT_Y + 24 - MACHINE_Y)
-	_slow.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(_slow)
-
 	_tap = TapArea.new()
 	_tap.name = "Tap"
 	_tap.position = Vector2(0, MACHINE_Y)
-	_tap.size = Vector2(WIDTH, BELT_Y + 22 - MACHINE_Y)
+	_tap.size = Vector2(WIDTH, BAR_Y + 8 - MACHINE_Y)
 	_tap.tapped.connect(_on_tap)
 	add_child(_tap)
 
-	_hire = Button.new()
-	_hire.name = "Hire"
-	_hire.icon = preload("res://art/ui/worker.png")
-	_hire.position = Vector2(4, HIRE_Y)
-	_hire.size = Vector2(72, 34)
-	_hire.mouse_filter = MOUSE_FILTER_PASS
+	_hire = _row_button("Hire", WORKER_TEX)
 	_hire.pressed.connect(_on_hire)
-	add_child(_hire)
 
-	_jump = Button.new()
-	_jump.name = "Jump"
-	_jump.icon = preload("res://art/ui/up.png")
-	_jump.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_jump.position = Vector2(4, TIER_Y)
-	_jump.size = Vector2(28, 34)
-	_jump.mouse_filter = MOUSE_FILTER_PASS
-	_jump.pressed.connect(func() -> void:
-		get_tree().call_group("upgrade_menu", "open_row", Data.tier_row_id(_state().type_id)))
-	add_child(_jump)
-
-	_apply = Button.new()
-	_apply.name = "Apply"
-	_apply.icon = preload("res://art/ui/scrap.png")
-	_apply.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_apply.position = Vector2(34, TIER_Y)
-	_apply.size = Vector2(42, 34)
+	_apply = _row_button("Apply", preload("res://art/ui/up.png"))
 	_apply.add_theme_color_override("font_color", Color(0.6, 1.0, 0.5))
-	_apply.mouse_filter = MOUSE_FILTER_PASS
+	_apply.add_theme_color_override("font_disabled_color", Color(0.6, 1.0, 0.5, 0.5))
 	_apply.pressed.connect(func() -> void: GameState.apply_tier(line_index, seg_index))
-	add_child(_apply)
 	_chunks_seen = _state().chunks
 
 
@@ -147,13 +115,9 @@ func _process(delta: float) -> void:
 	_bar.visible = built
 	_tap.visible = built
 	_hire.visible = built
-	_jump.visible = built
 	_apply.visible = built and GameState.can_apply_tier(line_index, seg_index)
 	if _apply.visible:
-		var apply_cost := GameState.tier_apply_cost(line_index, seg_index)
-		_apply.text = Fmt.num(apply_cost)
-		_apply.disabled = GameState.scrap < apply_cost
-	_slow.visible = false
+		_apply.disabled = GameState.scrap < GameState.tier_apply_cost(line_index, seg_index)
 	_pad.visible = not built
 	_build.visible = not built
 	if not built:
@@ -163,8 +127,7 @@ func _process(delta: float) -> void:
 		_stall.visible = false
 		return
 	_update_workers(s)
-	_slow.visible = GameState.bottlenecks(line_index).has(seg_index)
-	_slow.modulate.a = 0.6 + 0.4 * sin(Time.get_ticks_msec() / 150.0)
+	_layout_row()
 	_bar.max_value = s.bar_size()
 	_bar.value = s.work
 	_bar.modulate = Color(1.4, 1.4, 1.0) if s.bar_full() else Color.WHITE
@@ -206,6 +169,32 @@ func _update_workers(s: SegmentState) -> void:
 	var cost := GameState.worker_cost(line_index, seg_index)
 	_hire.text = Fmt.num(cost)
 	_hire.disabled = GameState.credits < cost
+
+
+func _row_button(node_name: String, icon: Texture2D) -> Button:
+	var b := Button.new()
+	b.name = node_name
+	b.icon = icon
+	b.add_theme_constant_override("h_separation", 2)
+	b.mouse_filter = MOUSE_FILTER_PASS
+	add_child(b)
+	return b
+
+
+func _layout_row() -> void:
+	var both := _hire.visible and _apply.visible
+	var cost := GameState.tier_apply_cost(line_index, seg_index) if _apply.visible else 0.0
+	_apply.text = "" if both else Fmt.num(cost)
+	_apply.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER if both else HORIZONTAL_ALIGNMENT_LEFT
+	if both:
+		_hire.position = Vector2(-2, ROW_Y)
+		_hire.size = Vector2(WIDTH + 4 - APPLY_W - 2, ROW_H)
+		_apply.position = Vector2(WIDTH + 2 - APPLY_W, ROW_Y)
+		_apply.size = Vector2(APPLY_W, ROW_H)
+	else:
+		for b in [_hire, _apply]:
+			b.position = Vector2(4, ROW_Y)
+			b.size = Vector2(WIDTH - 8, ROW_H)
 
 
 func _state() -> SegmentState:

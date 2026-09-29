@@ -29,8 +29,9 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	_upgrades.visible = GameState.revealed()
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
-	_unlock.visible = not GameState.upgrade_maxed("lines") and not GameState.run_over
+	_unlock.visible = GameState.revealed() and not GameState.upgrade_maxed("lines") and not GameState.run_over
 	if _unlock.visible:
 		var cost := GameState.upgrade_cost("lines")
 		_unlock.text = "+ UNLOCK LINE %d  %s" % [GameState.lines.size() + 1, Fmt.num(cost)]

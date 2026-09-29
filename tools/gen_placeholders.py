@@ -43,23 +43,37 @@ def save(img, path):
     img.save(full)
 
 
+CREDIT_TIERS = [(GOLD_D, GOLD), ((30, 120, 70, 255), (100, 220, 140, 255)), ((130, 50, 190, 255), (220, 140, 255, 255))]
+SCRAP_TIERS = [METAL_L, (90, 200, 230, 255), (240, 120, 50, 255)]
+
+
 def ui():
-    for name, size in [("ui/credits.png", 16), ("fx/disc_credits.png", 10)]:
+    for name, size, (dark, light) in [("ui/credits.png", 16, CREDIT_TIERS[0])] + [
+        (f"fx/disc_credits_{i + 1}.png", 10, c) for i, c in enumerate(CREDIT_TIERS)
+    ]:
         img, d = new(size, size)
-        d.ellipse([0, 0, size - 1, size - 1], fill=GOLD_D, outline=INK)
-        d.ellipse([1, 1, size - 3, size - 3], fill=GOLD)
+        d.ellipse([0, 0, size - 1, size - 1], fill=dark, outline=INK)
+        d.ellipse([1, 1, size - 3, size - 3], fill=light)
         m = size // 2
-        d.rectangle([m - 1, 3, m, size - 4], fill=GOLD_D)
+        d.rectangle([m - 1, 3, m, size - 4], fill=dark)
         save(img, name)
 
-    for name, size in [("ui/scrap.png", 16), ("fx/disc_scrap.png", 10)]:
+    for name, size, fill in [("ui/scrap.png", 16, SCRAP_TIERS[0])] + [
+        (f"fx/disc_scrap_{i + 1}.png", 10, c) for i, c in enumerate(SCRAP_TIERS)
+    ]:
         img, d = new(size, size)
         c = size // 3
         e = size - 1
-        d.polygon([(c, 0), (e - c, 0), (e, c), (e, e - c), (e - c, e), (c, e), (0, e - c), (0, c)], fill=METAL_L, outline=INK)
+        d.polygon([(c, 0), (e - c, 0), (e, c), (e, e - c), (e - c, e), (c, e), (0, e - c), (0, c)], fill=fill, outline=INK)
         m = size // 2
         d.rectangle([m - 2, m - 2, m + 1, m + 1], fill=INK)
         save(img, name)
+
+    img, d = new(16, 16)
+    d.ellipse([1, 1, 14, 14], fill=METAL_L, outline=INK)
+    d.rectangle([7, 4, 8, 5], fill=INK)
+    d.rectangle([7, 7, 8, 11], fill=INK)
+    save(img, "ui/info.png")
 
     img, d = new(16, 16)
     for x, y in [(7, 1), (7, 13), (1, 7), (13, 7), (3, 3), (11, 3), (3, 11), (11, 11)]:
@@ -234,6 +248,47 @@ def yard():
     save(img, "yard/pile.png")
 
 
+ENEMY_COL = [
+    (RED, (170, 50, 44, 255), (230, 110, 96, 255)),
+    ((90, 170, 70, 255), (56, 116, 48, 255), (150, 214, 120, 255)),
+    ((70, 120, 210, 255), (48, 84, 158, 255), (130, 170, 240, 255)),
+    ((150, 80, 200, 255), (106, 54, 146, 255), (204, 144, 240, 255)),
+    ((64, 60, 70, 255), (36, 34, 40, 255), (236, 196, 70, 255)),
+]
+
+
+def enemies(v, body, dark, hi):
+    img, d = new(14, 10)
+    box(d, 3, 2, 10, 7, body)
+    d.rectangle([5, 4, 6, 5], fill=GOLD)
+    d.line([0, 1, 13, 1], fill=METAL_L)
+    d.line([6, 0, 7, 0], fill=INK)
+    d.line([1, 8, 1, 9], fill=METAL_D)
+    save(img, f"battlefield/enemy_drone_{v}.png")
+
+    img, d = new(22, 16)
+    box(d, 1, 10, 20, 15, METAL_D)
+    for x in range(3, 20, 4):
+        d.rectangle([x, 12, x + 1, 13], fill=METAL)
+    box(d, 4, 4, 17, 10, body)
+    box(d, 7, 1, 13, 4, dark)
+    box(d, 0, 2, 7, 3, METAL)
+    save(img, f"battlefield/enemy_crawler_{v}.png")
+
+    img, d = new(36, 44)
+    box(d, 8, 30, 14, 43, METAL_D)
+    box(d, 22, 30, 28, 43, METAL_D)
+    box(d, 4, 12, 31, 31, body)
+    d.line([5, 13, 30, 13], fill=hi)
+    box(d, 12, 2, 24, 12, dark)
+    d.rectangle([13, 6, 16, 8], fill=GOLD)
+    box(d, 0, 16, 8, 20, METAL)
+    box(d, 0, 22, 4, 34, METAL_D)
+    for x, y in [(10, 18), (20, 24), (26, 16)]:
+        box(d, x, y, x + 3, y + 3, RUST_L)
+    save(img, f"battlefield/enemy_brute_{v}.png")
+
+
 def battlefield():
     img, d = new(360, 160)
     top, bottom = (34, 36, 60), (104, 84, 112)
@@ -256,35 +311,8 @@ def battlefield():
         d.point((px, py), fill=(56, 46, 40, 255))
     save(img, "battlefield/bg.png")
 
-    img, d = new(14, 10)
-    box(d, 3, 2, 10, 7, RED)
-    d.rectangle([5, 4, 6, 5], fill=GOLD)
-    d.line([0, 1, 13, 1], fill=METAL_L)
-    d.line([6, 0, 7, 0], fill=INK)
-    d.line([1, 8, 1, 9], fill=METAL_D)
-    save(img, "battlefield/enemy_drone.png")
-
-    img, d = new(22, 16)
-    box(d, 1, 10, 20, 15, METAL_D)
-    for x in range(3, 20, 4):
-        d.rectangle([x, 12, x + 1, 13], fill=METAL)
-    box(d, 4, 4, 17, 10, RED)
-    box(d, 7, 1, 13, 4, (170, 50, 44, 255))
-    box(d, 0, 2, 7, 3, METAL)
-    save(img, "battlefield/enemy_crawler.png")
-
-    img, d = new(36, 44)
-    box(d, 8, 30, 14, 43, METAL_D)
-    box(d, 22, 30, 28, 43, METAL_D)
-    box(d, 4, 12, 31, 31, RED)
-    d.line([5, 13, 30, 13], fill=(230, 110, 96, 255))
-    box(d, 12, 2, 24, 12, (170, 50, 44, 255))
-    d.rectangle([13, 6, 16, 8], fill=GOLD)
-    box(d, 0, 16, 8, 20, METAL)
-    box(d, 0, 22, 4, 34, METAL_D)
-    for x, y in [(10, 18), (20, 24), (26, 16)]:
-        box(d, x, y, x + 3, y + 3, RUST_L)
-    save(img, "battlefield/enemy_brute.png")
+    for v, (body, dark, hi) in enumerate(ENEMY_COL):
+        enemies(v + 1, body, dark, hi)
 
 
 def fx():

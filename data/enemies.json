@@ -4,9 +4,16 @@
 	"base_bounty": 30,
 	"bounty_growth": 1.4,
 	"wave_damage": 0.05,
+	"count_growth": 0.15,
+	"max_enemies": 14,
+	"mix_from": 6,
+	"mix_all_from": 12,
+	"variants": 5,
+	"variant_every": 6,
+	"variant_tough": 1.5,
 	"types": [
-		{"name": "Scrap Drones", "sprite": "drone", "count": 6, "flying": true},
-		{"name": "Crawler Tanks", "sprite": "crawler", "count": 3, "flying": false},
-		{"name": "Junk Brute", "sprite": "brute", "count": 1, "flying": false}
+		{"name": "Scrap Drones", "sprite": "drone", "count": 6, "weight": 1, "flying": true},
+		{"name": "Crawler Tanks", "sprite": "crawler", "count": 3, "weight": 2, "flying": false},
+		{"name": "Junk Brute", "sprite": "brute", "count": 1, "weight": 6, "flying": false}
 	]
 }

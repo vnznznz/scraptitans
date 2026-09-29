@@ -21,7 +21,7 @@ func _init(p_type_id: String = "") -> void:
 
 
 func bar_size() -> float:
-	return GameState.stat(type_id + ".bar_size")
+	return float(tier_data().bar_size) * GameState.stat("bar_mult")
 
 
 func bar_full() -> bool:

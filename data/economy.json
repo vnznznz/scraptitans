@@ -5,12 +5,14 @@
 	"work_per_tap": 1,
 	"assembly_time": 0.5,
 	"belt_time": 0.6,
+	"bar_mult": 1,
 	"payout_step": 1.5,
 	"payout_interval": 5.0,
-	"payout_cap": 6,
+	"payout_cap": 0,
 	"deploy_fee_mult": 1,
-	"salvage": 0.2,
-	"salvage_cap": 0.9,
+	"salvage": 0,
+	"salvage_cap": 0.4,
+	"kill_scrap": 0,
 	"worker_chunk": 1,
 	"worker_interval": 2.0,
 	"yard_chunk": 2,
@@ -18,5 +20,5 @@
 	"yard_worker_base": 40,
 	"yard_worker_growth": 1.35,
 	"lines": 1,
-	"upgrade_cost_growth": 1.15
+	"upgrade_cost_growth": 1.4
 }
