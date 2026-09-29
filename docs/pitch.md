@@ -28,11 +28,11 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
   - **Core** → credit payout.
   - **Arms** → damage per second against the enemy wave, so bounty rate.
   - **Plating** → lifetime.
-- **Work bar:** the only throughput gate. Fills from player taps (tap the segment) and from the segment's workers. It fills **even when no mech is present**, so work is banked. When full and a mech is waiting: deduct scrap, play the assembly animation (~0.5 s), attach the part, send the mech down the belt. Frame spawns the mech.
+- **Work bar:** the only throughput gate. Fills from player taps (tap the segment) and from the segment's workers. It fills **even when no mech is present**, so work is banked. When full and a mech is waiting: deduct scrap, play the assembly animation (~0.5 s), attach the part, send the mech down the belt. Frame spawns the mech. The bar grows with the segment's tier.
 - A segment holds one mech. If the next segment is busy, the mech waits on the belt and blocks upstream.
 - **Stalls must be visible:** bar full but no scrap (segment flashes the scrap icon and waits), or downstream blocked.
 - Segments are **connected by a conveyor belt**. The mech gains parts as it moves and walks off the right edge at the end.
-- Throughput = slowest segment. Show the bottleneck.
+- Throughput = slowest segment.
 - **Pause button per line** so the player can stop burning scrap while saving for a tier upgrade.
 - More lines are **unlocked with credits**. Line N unlock cost follows the cost curve below.
 
@@ -52,27 +52,28 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 
 ## Enemy waves
 
-- One **wave** at a time: a set of enemies of one type, standing on the right.
+- One **wave** at a time: a set of enemies standing on the right (one type early, mixed later).
 - The wave has one **healthbar**, full layout width, at the top of the battlefield. It shows HP left / total and the current **damage per second** (sum of the Arms DPS of all mechs on the field).
 - The bar drains slowly while mechs are alive and stops when the field is empty.
 - **Drained:** big **credit bounty** (disc burst), explosion animation and particle effects, then the next wave walks in from the right.
-- Each wave has more HP and a bigger bounty than the last. Wave types cycle.
+- Each wave has more HP and a bigger bounty than the last. Wave types cycle; later waves mix types and bring colored, tougher variants.
+- Enemies smoke and spark as the wave's HP drops.
 - Three enemy types to start (placeholder names): **Scrap Drones** (small, flying, many), **Crawler Tanks** (medium), **Junk Brute** (one big walker). Data-driven, more types later.
 - Individual enemies pop as the bar passes their share of the wave's HP, so the set thins out as it drains.
 
 ## Income discs
 
-- No floating numbers. Every gain launches small **discs**: gold for credits, grey for scrap.
+- No floating numbers. Every gain launches small **discs**: gold for credits, grey for scrap. Three color tiers per resource mark bigger payouts.
 - A disc bursts up from its source (mech, pile, wave), then flies into the matching HUD counter, which pulses on arrival. Bursting up first keeps it clear of the thumb on the pile.
 - Counts: pile tap 1 scrap; mech deployed 3 credits; each second alive 1 credit; salvage 2 scrap; wave bounty a big burst.
 - Cap on discs in flight. Big numbers in the HUD use short suffixes (1.2K, 3.4M).
 
 ## Economy defaults (tune later)
 
-- **Payout while alive:** `rate = base_rate(Core) * step^min(floor(t / interval), cap)` with `step = 1.5`, `interval = 5 s`, `cap = 6`. The Payout upgrade chain raises `cap` and lowers `interval`. Bounded, so lifetime is strong but not the whole game.
+- **Payout while alive:** `rate = base_rate(Core) * step^min(floor(t / interval), cap)` with `step = 1.5`, `interval = 5 s`. `cap` starts at 0 (flat payout); the Payout upgrade chain raises `cap` and lowers `interval`. Bounded, so lifetime is strong but not the whole game.
 - **Deploy fee:** paid to the player on arrival, scales with Core tier.
 - **Wave HP and bounty:** `hp = base_hp * hp_growth^wave`, `bounty = base_bounty * bounty_growth^wave`. DPS = sum of Arms DPS on the field.
-- **Salvage:** 20% of the mech's scrap cost. Upgrades raise it, hard cap 90%.
+- **Salvage:** starts at 0% of the mech's scrap cost. Upgrades raise it, hard cap 40%.
 - **Cost curve for credit purchases:** `cost = base * 1.15^level`.
 - **Tier upgrades cost a fixed scrap amount** per tier (rising per tier, not per line). Cheap enough to feel good, expensive enough that pausing a line matters.
 - Run length target: 30–60 min active play. No offline progress.
@@ -86,10 +87,11 @@ A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**
 - **Workers:** bigger work chunks, shorter chunk interval.
 - **Yard:** scrap per tap, yard slots.
 - **Payout:** step cap, step interval, deploy fee.
-- **Salvage:** 20% → 90%.
+- **Salvage:** 0% → 40%.
+- **Scrap per kill (late game):** each enemy destroyed pays scrap.
 - **Lines:** unlock line 2, 3, …
 
-Each segment has a small ⬆ icon that jumps to its tier row. Tapping the segment body only fills the work bar.
+Every row has an info button with a plain description. Tapping the segment body only fills the work bar.
 
 ## Segment tiers (scrap, per segment, per line)
 
@@ -122,7 +124,7 @@ Each segment has a small ⬆ icon that jumps to its tier row. Tapping the segmen
 
 ```
 ┌──────────────────────────────┐
-│ HUD: credits +/s  scrap +/s ⚙│  fixed
+│ HUD: scrap +/s  credits +/s ⚙│  fixed
 ├──────────────────────────────┤
 │ BATTLEFIELD (fixed, ~25%)    │  fixed, visuals only
 │ ▓▓▓▓▓▓▓▓░░░ 1.2K/3K  45 DPS  │  wave healthbar, full width

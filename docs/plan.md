@@ -153,19 +153,35 @@ Test:
 - Reload after launch shows the card, not the old run.
 - Start again gives a fresh game.
 
-## M8 · Poki and tuning
+## M8 · Layout, upgrades and tuning
 
-Build: Poki integration, tuned run.
+Build: a cleaner screen, a reworked upgrade set, a tuned run.
 
-- [ ] `html/head_include` loads the Poki SDK; `Poki` autoload wraps it via `JavaScriptBridge`, no-op off web
-- [ ] `gameLoadingFinished`; `gameplayStart` on first tap and when menus close, `gameplayStop` while the menu or end card is open
-- [ ] `commercialBreak` before Start again; game paused during ads
-- [ ] Rewarded: 2× payout for 5 min (HUD timer, saved), fill all work bars
+- [ ] Layout pass: fewer buttons per segment (no ⬆ jump button; hire and apply tier share one row), segments visually shorter
+- [ ] Remove the bottleneck highlight (orange pulsing box)
+- [ ] Progressive reveal: UNLOCK LINE, YARD WORKER and UPGRADES hidden until line 1 has deployed its first mech
+- [ ] HUD: scrap left, credits right
+- [ ] Scrap +/s is net: scrap spent by the lines counts against it
+- [ ] Salvage starts at 0%, upgrades raise it to 40% (cap)
+- [ ] Payout starts flat (no steps); upgrades add steps and shorten the interval
+- [ ] Work bar size grows with the segment's tier (`bar_size` per tier), so max workers don't fill it instantly
+- [ ] Upgrade pass: clearer names, drop low-impact rows, more yard slot levels; each row has an info button with a plain description (`desc` in `upgrades.json`)
+- [ ] Late-game upgrade: scrap per enemy killed (each enemy pop pays scrap)
+- [ ] Waves: more enemies per wave, mixed types in later waves, colored variants (tinted, tougher) as waves climb
+- [ ] Battlefield enemies smoke and spark as the wave's HP drops
+- [ ] Income discs: three color tiers by payout size instead of scaled discs, for credits and scrap
 - [ ] Tune: first worker within a few minutes, nuke at 30–60 min
 
 Test:
-- SDK calls fire in order (log them); rewards only on success.
-- Game still runs with the SDK blocked (ad blocker).
+- Fresh game shows only the pile and line 1 pads; the other buttons appear after the first mech deploys.
+- A segment has at most one row of buttons; a line takes visibly less height than in M7; no orange bottleneck box.
+- Scrap left, credits right; scrap +/s drops (or goes negative) while lines consume scrap.
+- First mechs pay no salvage and flat credits/s; buying the upgrades changes both; salvage stops at 40%.
+- Applying a tier grows the bar; max workers no longer fill it every chunk.
+- Every upgrade row's info button explains it.
+- Later waves mix enemy types and show tinted variants; damaged enemies smoke.
+- Big payouts fly as a different disc color.
+- With the scrap-per-kill upgrade, each popped enemy sends scrap discs.
 - 3 fresh players reach the nuke in 30–60 min.
 
 ## M9 · Art
@@ -180,6 +196,19 @@ Build: release candidate. Claude refines the placeholder art.
 
 Test:
 - Every sprite reads at phone size; part tiers are distinguishable at a glance.
+
+## M10 · Poki
+
+Build: Poki integration.
+
+- [ ] `html/head_include` loads the Poki SDK; `Poki` autoload wraps it via `JavaScriptBridge`, no-op off web
+- [ ] `gameLoadingFinished`; `gameplayStart` on first tap and when menus close, `gameplayStop` while the menu or end card is open
+- [ ] `commercialBreak` before Start again; game paused during ads
+- [ ] Rewarded: 2× payout for 5 min (HUD timer, saved), fill all work bars
+
+Test:
+- SDK calls fire in order (log them); rewards only on success.
+- Game still runs with the SDK blocked (ad blocker).
 
 ## Not in the prototype
 
