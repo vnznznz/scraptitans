@@ -3,9 +3,15 @@ extends Control
 
 signal tapped(at: Vector2)
 
+var highlight: CanvasItem
+
 
 func _init() -> void:
 	mouse_filter = MOUSE_FILTER_PASS
+
+
+func _ready() -> void:
+	Hover.add(self, highlight)
 
 
 func _gui_input(event: InputEvent) -> void:

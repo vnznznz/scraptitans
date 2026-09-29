@@ -8,19 +8,19 @@
 - Viewport 360×640, stretch `canvas_items`, aspect `keep_width`
 - Texture filter Nearest (project default)
 - Font: Silkscreen (OFL), `fonts/`; import antialiasing/hinting/subpixel off; size 16 everywhere (2× pixel grid), 8 is illegible
-- `fonts/silkscreen_condensed.tres`: glyph spacing −1, segment names only (long part names fit the 88 px column)
+- `fonts/silkscreen_condensed.tres`: glyph spacing −1, segment names only (82 px label, wraps; long single words spill into the gutter)
 - Theme `ui/theme.tres`: buttons/panels are nine-patch PNGs from `art/ui/`
 
 ## Layout
 - `scenes/main.tscn`: `Hud` (48) / `Battlefield` (160) / `Scroll` → `Content` (lines, `UnlockLine`) / `BottomBar` (100: `Scrapyard` left, `Upgrades` bottom-right); overlays `UpgradeMenu` (between HUD and bottom bar), `Flyers`, `Debug`, `Settings`, `Nuke` (topmost, blocks input)
-- Scrapyard always visible in the bottom bar: pile (tap), yard workers on both sides, hire button (icon + cost, hidden when full) above UPGRADES; pane starts at the top
+- Scrapyard always visible in the bottom bar; pile/workers/tap in child `Yard`, centered until reveal, then slides left (0.4 s): pile (tap), yard workers on both sides, hire button (icon + cost, hidden when full) above UPGRADES; pane starts at the top
 - Views build their children in code; main adds one `LineView` per line, more on `line_added`
-- UPGRADES button toggles the menu (reads CLOSE while open)
+- UPGRADES button toggles the menu (reads CLOSE while open); red badge = `GameState.affordable_upgrades()` (visible, unmaxed, unlocked, affordable rows), hidden at 0 or while open
 - Progressive reveal: UPGRADES, UNLOCK LINE, YARD WORKER (+ yard slots) hidden until `GameState.revealed()` (`mechs_built > 0`)
 - HUD: scrap left, credits right
 - Upgrade menu: one list, re-sorted every frame (unmaxed by cost, maxed last); each row: title / effect, info button toggles the `desc` label
-- Line: pause button left of the header; segments centered by count (step 88), re-laid out when a segment is appended; 158 px tall
-- Segment rows: name / machine (tap; work bar overlays its top beam, hired workers stand inside behind the mech, empty slots not drawn) / belt / one button row: hire (hidden when full) + apply-tier ⬆ (scrap, only when a higher tier is unlocked); both shown → hire narrows, ⬆ icon-only (no cost), row spans 84 px
+- Line: no header row; pause strip (24 px: line number + ⏸/▶) left of the machine row; segments centered by count in the rest (step 84, 4 columns fit), re-laid out when a segment is appended; 136 px tall; paused → orange number, machines dimmed
+- Segment rows: name / machine (tap; work bar overlays its top beam, hired workers stand inside behind the mech, empty slots not drawn) / belt / one button row: hire (hidden when full) + apply-tier ⬆ (scrap, only when a higher tier is unlocked); both shown → hire narrows, ⬆ icon-only (no cost), row spans 82 px (2 px gap at step 84)
 - DBG toggle bottom-left just above the bottom bar, panel opens upward: time scale, +scrap/credits, kill wave, +50 mechs
 - Positions hardcoded in base pixels
 
@@ -45,6 +45,7 @@
 - Field mech: payout `base·step^min(floor(age/interval), cap)` by `age`; death by `wear`, which grows `1 + wave_damage·wave` per s; income batched to `mech_income` once per second, salvage on death
 - Payout `cap` starts 0 (flat), Pay raises add steps
 - Rates over 5 s: `credits_rate`; `scrap_rate` net (assembly spend subtracts; HUD); `scrap_gain_rate` gross (disc tiers)
+- Stall icon: NO_SCRAP at once, BLOCKED only after 3 s of game time in that state (view-side timer)
 - `starved()`: any segment stalled NO_SCRAP → HUD scrap +/s red
 - Wave: `wave`, `wave_hp`; drains by summed mech `dps`; ≤0 → bounty, `wave += 1`, full HP. `hp = base_hp·hp_growth^wave`, bounty likewise
 - Wave enemies `Data.wave_enemies(wave)` (cached in `GameState.wave_enemies()`): type `types[wave % n]`, + next type from `mix_from`, + third from `mix_all_from`; count `type.count·(1 + count_growth·wave)/kinds`, scaled to ≤ `max_enemies`; variant `wave / variant_every` (fraction → that share already next variant), capped `variants − 1`; weight `type.weight·variant_tough^variant`; sorted by weight (weakest pops first)
@@ -81,6 +82,8 @@
 - Pile tap: 1 scrap disc; yard chunk: the worker runs into the pile, pile squashes, 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap; bounty 8–20 credits
 
 ## Input
+- Hand cursor on every button (via `Main` `node_added` hook → `Hover.button`; arrow while disabled) and tap area (`Hover.add`)
+- Hover: theme `hover` style (`button_hover.png`), flat buttons and tap areas tint (`self_modulate`, tap area lights its `highlight`: machine, pile); all hover off on touchscreens (emulated mouse would leave it stuck)
 - Taps: `TapArea` (`ui/tap_area.gd`): fires on `ScreenTouch` press (multi-touch) or real mouse press; ignores touch-emulated mouse; `MOUSE_FILTER_PASS` so drags reach `ScrollContainer`
 - Buttons in the scroll pane use `MOUSE_FILTER_PASS`; scroll deadzone 8
 

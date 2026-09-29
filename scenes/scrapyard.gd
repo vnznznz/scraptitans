@@ -8,7 +8,9 @@ const PILE_EDGES := Vector2(75, 163)
 const GROUND_Y := 96.0
 const WORKER_DX := 7.0
 const HIRE_RECT := Rect2(240, 6, 114, 40)
+const SLIDE_TIME := 0.4
 
+var _yard: Control
 var _pile: TextureRect
 var _tap: TapArea
 var _hire: Button
@@ -20,19 +22,27 @@ var _collapsed := false
 func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 
+	_yard = Control.new()
+	_yard.name = "Yard"
+	_yard.mouse_filter = MOUSE_FILTER_IGNORE
+	_yard.position.x = _yard_x()
+	add_child(_yard)
+
 	_pile = TextureRect.new()
+	_pile.name = "PileSprite"
 	_pile.texture = PILE_TEX
 	_pile.position = PILE_POS
 	_pile.pivot_offset = Vector2(PILE_TEX.get_width() / 2.0, PILE_TEX.get_height())
 	_pile.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(_pile)
+	_yard.add_child(_pile)
 
 	_tap = TapArea.new()
 	_tap.name = "Pile"
 	_tap.position = Vector2(40, 8)
 	_tap.size = Vector2(160, 92)
+	_tap.highlight = _pile
 	_tap.tapped.connect(_on_tap)
-	add_child(_tap)
+	_yard.add_child(_tap)
 
 	_hire = Button.new()
 	_hire.name = "HireYard"
@@ -68,9 +78,16 @@ func _process(_delta: float) -> void:
 		w.flip_h = i % 2 == 1
 		w.position = _home(i)
 		w.modulate = Color.WHITE.darkened(0.25) if j % 2 == 1 else Color.WHITE
-		add_child(w)
-		move_child(w, _pile.get_index())
+		_yard.add_child(w)
+		_yard.move_child(w, _pile.get_index())
 		_workers.append(w)
+	if not GameState.revealed():
+		_yard.position.x = _yard_x()
+	elif _yard.position.x != 0.0 and not _yard.has_meta("sliding"):
+		_yard.set_meta("sliding", true)
+		var tw := _yard.create_tween()
+		tw.tween_property(_yard, "position:x", _yard_x(), SLIDE_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_callback(_yard.remove_meta.bind("sliding"))
 	var n := GameState.yard_workers
 	for i in _workers.size():
 		_workers[i].visible = i < n
@@ -81,6 +98,12 @@ func _process(_delta: float) -> void:
 	_hire.visible = GameState.revealed() and n < slots
 	_hire.text = Fmt.num(cost)
 	_hire.disabled = GameState.credits < cost
+
+
+func _yard_x() -> float:
+	if GameState.revealed():
+		return 0.0
+	return size.x / 2.0 - (PILE_POS.x + PILE_TEX.get_width() / 2.0)
 
 
 func _home(i: int) -> Vector2:

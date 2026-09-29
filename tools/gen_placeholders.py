@@ -108,6 +108,7 @@ def ui():
 
     for name, face, hi in [
         ("button", METAL, METAL_L),
+        ("button_hover", (112, 121, 138, 255), (172, 180, 194, 255)),
         ("button_pressed", METAL_D, METAL),
         ("button_disabled", (60, 60, 66, 255), (76, 76, 82, 255)),
     ]:

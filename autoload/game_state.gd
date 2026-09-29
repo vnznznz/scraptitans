@@ -240,6 +240,14 @@ func upgrade_visible(id: String) -> bool:
 	return dot == -1 or unlocked_tier(stat_key.left(dot)) >= 0
 
 
+func affordable_upgrades() -> int:
+	var n := 0
+	for r: Dictionary in Data.upgrade_list:
+		if upgrade_visible(r.id) and not upgrade_maxed(r.id) and not upgrade_locked(r.id) and credits >= upgrade_cost(r.id):
+			n += 1
+	return n
+
+
 func buy_upgrade(id: String) -> bool:
 	var cost := upgrade_cost(id)
 	if upgrade_maxed(id) or upgrade_locked(id) or credits < cost:

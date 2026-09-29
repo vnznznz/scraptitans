@@ -11,9 +11,11 @@ const WORKERS_Y := 42.0
 const WORKER_DX := 6.0
 const ROW_Y := 100.0
 const ROW_H := 32.0
-const APPLY_W := 26.0
+const APPLY_W := 24.0
+const PAUSED := Color(0.55, 0.55, 0.6)
 const WORKER_TEX := preload("res://art/line/worker.png")
 const TOOL_HEAD := Vector2(40, 56)
+const BLOCKED_DELAY := 3.0
 
 var line_index := 0
 var seg_index := 0
@@ -32,6 +34,7 @@ var _chunks_seen := 0
 var _assemblies_seen := 0
 var _scroll: ScrollContainer
 var _bump_t := 0.0
+var _blocked_t := 0.0
 
 
 func _ready() -> void:
@@ -41,8 +44,8 @@ func _ready() -> void:
 	var type_id := _state().type_id
 
 	_name = Label.new()
-	_name.position = Vector2(-8, 0)
-	_name.size = Vector2(WIDTH + 16, NAME_H)
+	_name.position = Vector2(-1, 0)
+	_name.size = Vector2(WIDTH + 2, NAME_H)
 	_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_name.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -96,6 +99,7 @@ func _ready() -> void:
 	_tap.name = "Tap"
 	_tap.position = Vector2(0, MACHINE_Y)
 	_tap.size = Vector2(WIDTH, BELT_Y + 8 - MACHINE_Y)
+	_tap.highlight = _machine
 	_tap.tapped.connect(_on_tap)
 	add_child(_tap)
 
@@ -133,6 +137,7 @@ func _process(delta: float) -> void:
 		return
 	_update_workers(s)
 	_layout_row()
+	_machine.modulate = PAUSED if GameState.lines[line_index].paused else Color.WHITE
 	if s.assemblies != _assemblies_seen:
 		_assemblies_seen = s.assemblies
 		_consume(s)
@@ -143,7 +148,8 @@ func _process(delta: float) -> void:
 	_machine.position = Vector2(0, MACHINE_Y + (1.0 if _bump_t > 0.0 else 0.0))
 	if s.assembling:
 		_machine.position += Vector2(randf_range(-1, 1), randf_range(-1, 1)).round()
-	_stall.visible = s.stall != SegmentState.Stall.NONE
+	_blocked_t = _blocked_t + delta * GameState.time_scale if s.stall == SegmentState.Stall.BLOCKED else 0.0
+	_stall.visible = s.stall == SegmentState.Stall.NO_SCRAP or _blocked_t >= BLOCKED_DELAY
 	if _stall.visible:
 		_stall.texture = preload("res://art/ui/stall_scrap.png") if s.stall == SegmentState.Stall.NO_SCRAP \
 				else preload("res://art/ui/stall_blocked.png")
@@ -193,9 +199,9 @@ func _layout_row() -> void:
 	_apply.text = "" if both else Fmt.num(cost)
 	_apply.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER if both else HORIZONTAL_ALIGNMENT_LEFT
 	if both:
-		_hire.position = Vector2(-2, ROW_Y)
-		_hire.size = Vector2(WIDTH + 4 - APPLY_W - 2, ROW_H)
-		_apply.position = Vector2(WIDTH + 2 - APPLY_W, ROW_Y)
+		_hire.position = Vector2(-1, ROW_Y)
+		_hire.size = Vector2(WIDTH + 2 - APPLY_W - 2, ROW_H)
+		_apply.position = Vector2(WIDTH + 1 - APPLY_W, ROW_Y)
 		_apply.size = Vector2(APPLY_W, ROW_H)
 	else:
 		for b in [_hire, _apply]:

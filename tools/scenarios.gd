@@ -338,7 +338,9 @@ func m5() -> void:
 	var line: LineView = main.line_view(0)
 	var segs := GameState.lines[0].segments
 	t.check(line.get_node("Pause").position.x < 20, "pause sits at the left of the line")
-	t.check(absf(line.segment_view(0).position.x - 52.0) < 1.0 and absf(line.segment_view(2).position.x + 80.0 + 52.0 - 360.0) < 1.0, "3 segments centered (x %d)" % line.segment_view(0).position.x)
+	t.check(_centered(line, 3), "3 segments centered right of the pause strip (x %d)" % line.segment_view(0).position.x)
+	var pause_rect: Rect2 = line.get_node("Pause").get_rect()
+	t.check(is_equal_approx(pause_rect.position.y, SegmentView.MACHINE_Y) and pause_rect.end.x <= line.segment_view(0).position.x, "pause sits in the machine row, left of the segments")
 
 	GameState.mechs_built = 1
 	await t.frames(1)
@@ -403,7 +405,9 @@ func m5() -> void:
 	GameState.buy_upgrade("tier_plating")
 	await t.frames(2)
 	t.check(segs.size() == 4 and line.segment_view(3) != null, "plating unlock adds a 4th pad")
-	t.check(absf(line.segment_view(0).position.x - 8.0) < 1.0, "4 segments re-centered (x %d)" % line.segment_view(0).position.x)
+	t.check(_centered(line, 4), "4 segments re-centered (x %d)" % line.segment_view(0).position.x)
+	t.check(pause_rect.end.x <= line.segment_view(0).position.x and line.segment_view(3).position.x + SegmentView.WIDTH <= 360.0, "4 columns fit beside the pause strip")
+	t.check(SegmentView.WIDTH + 2.0 < LineView.SEG_STEP, "shared button rows (82 px) leave a gap at step %d" % LineView.SEG_STEP)
 	await t.click(_build_button(line, 3))
 	t.check(segs[3].built, "plating built on line 1")
 	GameState.field.clear()
@@ -700,6 +704,48 @@ func m8() -> void:
 	await t.wait(0.2)
 	await t.shot("m8_consume")
 
+	GameState.advance(1.0)
+	await _fill_bar(line, 0)
+	GameState.advance(1.0)
+	await t.frames(1)
+	var stall: Control = line.segment_view(0).get_node("Stall")
+	t.check(GameState.lines[0].segments[0].stall == SegmentState.Stall.BLOCKED and not stall.visible, "blocked: no icon yet")
+	GameState.time_scale = 10.0
+	await t.wait(0.1)
+	t.check(not stall.visible, "still hidden after 1 s")
+	await t.wait(0.25)
+	t.check(stall.visible, "blocked icon after 3 s")
+	GameState.time_scale = 0.0
+
+	await _fresh()
+	main = t.get_tree().current_scene
+	var yard: Control = main.find_child("Yard", true, false)
+	var bar_center: float = main.find_child("BottomBar", true, false).get_global_rect().get_center().x
+	var pile_x := func() -> float: return yard.get_node("PileSprite").get_global_rect().get_center().x
+	t.check(absf(pile_x.call() - bar_center) < 2.0, "scrapyard starts centered (%d vs %d)" % [pile_x.call(), bar_center])
+	await t.shot("m8_yard_centered")
+	GameState.credits = 100.0
+	GameState.mechs_built = 1
+	await t.wait(0.6)
+	t.check(pile_x.call() < bar_center - 50.0, "it moves left when the buttons appear (%d)" % pile_x.call())
+	var badge: Label = main.get_node("%Upgrades").get_node("Badge")
+	t.check(badge.visible and badge.text == str(GameState.affordable_upgrades()) and GameState.affordable_upgrades() > 0, "UPGRADES shows %s affordable" % badge.text)
+	await t.shot("m8_badge")
+	GameState.credits = 0.0
+	await t.frames(2)
+	t.check(not badge.visible, "no badge when nothing is affordable")
+
+	var pile: Control = main.find_child("Pile", true, false)
+	var motion := InputEventMouseMotion.new()
+	motion.position = pile.get_global_rect().get_center()
+	motion.global_position = motion.position
+	t.get_viewport().push_input(motion, true)
+	await t.frames(2)
+	t.check(pile.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND, "pile shows a hand cursor")
+	t.check(not Hover.enabled() or yard.get_node("PileSprite").self_modulate == Hover.TINT, "hovering the pile lights it up")
+	var gear: Button = main.find_child("SettingsButton", true, false)
+	t.check(gear.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND and main.get_node("%Upgrades").mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND, "buttons show a hand cursor")
+
 
 func tune() -> void:
 	t.get_tree().current_scene.free()
@@ -844,6 +890,12 @@ func _fresh(frozen := true) -> void:
 	await t.frames(3)
 
 
+func _centered(line: LineView, n: int) -> bool:
+	var left := line.segment_view(0).position.x - LineView.PAUSE_W
+	var right := 360.0 - line.segment_view(n - 1).position.x - SegmentView.WIDTH
+	return absf(left - right) < 1.0 and left >= 0.0
+
+
 func _build_button(line: LineView, i: int) -> Button:
 	return line.segment_view(i).get_node("Build")
 
@@ -890,3 +942,6 @@ func _fill_bar(line: LineView, i: int) -> void:
 	var tap: Control = line.segment_view(i).get_node("Tap")
 	for k in 8:
 		await t.click(tap)
+
+
+

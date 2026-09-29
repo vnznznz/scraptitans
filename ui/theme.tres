@@ -3,11 +3,23 @@
 [ext_resource type="FontFile" path="res://fonts/silkscreen.ttf" id="font"]
 [ext_resource type="Texture2D" path="res://art/ui/button.png" id="button"]
 [ext_resource type="Texture2D" path="res://art/ui/button_pressed.png" id="button_pressed"]
+[ext_resource type="Texture2D" path="res://art/ui/button_hover.png" id="button_hover"]
 [ext_resource type="Texture2D" path="res://art/ui/button_disabled.png" id="button_disabled"]
 [ext_resource type="Texture2D" path="res://art/ui/panel.png" id="panel"]
 
 [sub_resource type="StyleBoxTexture" id="button_normal"]
 texture = ExtResource("button")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxTexture" id="button_lit"]
+texture = ExtResource("button_hover")
 texture_margin_left = 4.0
 texture_margin_top = 4.0
 texture_margin_right = 4.0
@@ -62,7 +74,7 @@ Button/colors/font_focus_color = Color(0.94, 0.94, 0.9, 1)
 Button/colors/font_hover_pressed_color = Color(0.94, 0.94, 0.9, 1)
 Button/colors/font_disabled_color = Color(0.55, 0.55, 0.58, 1)
 Button/styles/normal = SubResource("button_normal")
-Button/styles/hover = SubResource("button_normal")
+Button/styles/hover = SubResource("button_lit")
 Button/styles/pressed = SubResource("button_down")
 Button/styles/hover_pressed = SubResource("button_down")
 Button/styles/disabled = SubResource("button_off")

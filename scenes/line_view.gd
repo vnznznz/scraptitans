@@ -1,15 +1,15 @@
 class_name LineView
 extends Control
 
-const SEG_Y := 22.0
-const SEG_STEP := 88.0
+const SEG_Y := 0.0
+const SEG_STEP := 84.0
+const PAUSE_W := 24.0
 const BELT_TEX := preload("res://art/line/belt.png")
 const PAUSE_TEX := preload("res://art/ui/pause.png")
 const PLAY_TEX := preload("res://art/ui/play.png")
 
 var line_index := 0
 
-var _header: Label
 var _pause: Button
 var _segments: Array[SegmentView] = []
 var _mechs: Node2D
@@ -25,17 +25,15 @@ func _ready() -> void:
 
 	_pause = Button.new()
 	_pause.name = "Pause"
-	_pause.flat = true
+	_pause.text = str(line_index + 1)
 	_pause.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_pause.position = Vector2(2, -6)
-	_pause.size = Vector2(40, 32)
+	_pause.vertical_icon_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_pause.add_theme_constant_override("h_separation", 6)
+	_pause.position = Vector2(0, SEG_Y + SegmentView.MACHINE_Y)
+	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0 - SegmentView.MACHINE_Y)
 	_pause.mouse_filter = MOUSE_FILTER_PASS
 	_pause.pressed.connect(GameState.toggle_pause.bind(line_index))
 	add_child(_pause)
-
-	_header = Label.new()
-	_header.position = Vector2(42, 2)
-	add_child(_header)
 
 	_mechs = Node2D.new()
 	add_child(_mechs)
@@ -135,9 +133,8 @@ func _process(delta: float) -> void:
 	if _segments.size() != _line().segments.size():
 		_sync_segments()
 	var paused := _line().paused
-	_header.text = "LINE %d%s" % [line_index + 1, "  PAUSED" if paused else ""]
-	_header.modulate = Color(1, 0.6, 0.4) if paused else Color.WHITE
 	_pause.icon = PLAY_TEX if paused else PAUSE_TEX
+	_pause.add_theme_color_override("font_color", Color(1, 0.6, 0.4) if paused else Color.WHITE)
 	var belt_y := SEG_Y + SegmentView.BELT_Y
 	var belt_time := Data.econ("belt_time")
 	var moving := false
@@ -176,7 +173,7 @@ func _draw() -> void:
 		return
 	var y := SEG_Y + SegmentView.BELT_Y
 	var w := BELT_TEX.get_width()
-	var x := -w + _belt_offset
+	var x := PAUSE_W - w + _belt_offset
 	while x < size.x:
 		draw_texture(BELT_TEX, Vector2(x, y))
 		x += w
@@ -194,7 +191,7 @@ func _line() -> LineState:
 
 func _seg_x(i: int) -> float:
 	var n := _segments.size()
-	return (size.x - (n - 1) * SEG_STEP - SegmentView.WIDTH) / 2.0 + i * SEG_STEP
+	return PAUSE_W + (size.x - PAUSE_W - (n - 1) * SEG_STEP - SegmentView.WIDTH) / 2.0 + i * SEG_STEP
 
 
 func _center(i: int) -> float:
