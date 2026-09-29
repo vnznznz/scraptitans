@@ -120,6 +120,7 @@ def ui():
         ("button_hover", (112, 121, 138, 255), (172, 180, 194, 255)),
         ("button_pressed", METAL_D, METAL),
         ("button_disabled", (60, 60, 66, 255), (76, 76, 82, 255)),
+        ("button_lit", GREEN_D, GREEN),
     ]:
         img, d = new(12, 12)
         box(d, 0, 0, 11, 11, face)
@@ -127,6 +128,18 @@ def ui():
         for x, y in [(2, 2), (9, 2), (2, 9), (9, 9)]:
             d.point((x, y), fill=INK)
         save(img, f"ui/{name}.png")
+
+    img, d = new(16, 16)
+    box(d, 3, 1, 12, 2, METAL_L)
+    box(d, 3, 13, 12, 14, METAL_L)
+    d.polygon([(4, 3), (11, 3), (8, 7), (8, 8), (11, 12), (4, 12), (7, 8), (7, 7)], fill=(170, 210, 240, 255), outline=INK)
+    d.rectangle([5, 10, 10, 11], fill=GOLD)
+    d.point((7, 9), fill=GOLD)
+    save(img, "ui/life.png")
+
+    img, d = new(16, 16)
+    d.polygon([(9, 0), (3, 9), (7, 9), (5, 15), (13, 5), (9, 5), (11, 0)], fill=(255, 150, 60, 255), outline=INK)
+    save(img, "ui/damage.png")
 
     img, d = new(12, 12)
     box(d, 0, 0, 11, 11, (36, 34, 44, 255))

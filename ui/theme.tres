@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://art/ui/button_hover.png" id="button_hover"]
 [ext_resource type="Texture2D" path="res://art/ui/button_disabled.png" id="button_disabled"]
 [ext_resource type="Texture2D" path="res://art/ui/panel.png" id="panel"]
+[ext_resource type="Texture2D" path="res://art/ui/button_lit.png" id="button_lit_tex"]
 
 [sub_resource type="StyleBoxTexture" id="button_normal"]
 texture = ExtResource("button")
@@ -20,6 +21,17 @@ content_margin_bottom = 2.0
 
 [sub_resource type="StyleBoxTexture" id="button_lit"]
 texture = ExtResource("button_hover")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxTexture" id="button_afford"]
+texture = ExtResource("button_lit_tex")
 texture_margin_left = 4.0
 texture_margin_top = 4.0
 texture_margin_right = 4.0
@@ -62,6 +74,50 @@ content_margin_top = 8.0
 content_margin_right = 8.0
 content_margin_bottom = 8.0
 
+[sub_resource type="StyleBoxTexture" id="row_normal"]
+texture = ExtResource("button")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxTexture" id="row_hover"]
+texture = ExtResource("button_hover")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxTexture" id="row_afford"]
+texture = ExtResource("button_lit_tex")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxTexture" id="row_down"]
+texture = ExtResource("button_pressed")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 2.0
+content_margin_top = 3.0
+content_margin_right = 2.0
+content_margin_bottom = 1.0
+
 [sub_resource type="StyleBoxEmpty" id="empty"]
 
 [resource]
@@ -82,3 +138,20 @@ Button/styles/focus = SubResource("empty")
 Label/colors/font_color = Color(0.86, 0.86, 0.82, 1)
 Panel/styles/panel = SubResource("panel_box")
 PanelContainer/styles/panel = SubResource("panel_box")
+LitButton/base_type = &"Button"
+LitButton/styles/normal = SubResource("button_afford")
+LitButton/styles/hover = SubResource("button_afford")
+PriceButton/base_type = &"Button"
+PriceButton/styles/disabled = SubResource("button_normal")
+PriceRow/base_type = &"Button"
+PriceRow/styles/normal = SubResource("row_normal")
+PriceRow/styles/hover = SubResource("row_hover")
+PriceRow/styles/pressed = SubResource("row_down")
+PriceRow/styles/hover_pressed = SubResource("row_down")
+PriceRow/styles/disabled = SubResource("row_normal")
+LitRow/base_type = &"Button"
+LitRow/styles/normal = SubResource("row_afford")
+LitRow/styles/hover = SubResource("row_afford")
+LitRow/styles/pressed = SubResource("row_down")
+LitRow/styles/hover_pressed = SubResource("row_down")
+LitRow/styles/disabled = SubResource("row_normal")

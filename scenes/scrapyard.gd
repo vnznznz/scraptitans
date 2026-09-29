@@ -49,6 +49,7 @@ func _ready() -> void:
 	_hire.icon = preload("res://art/ui/worker.png")
 	_hire.position = HIRE_RECT.position
 	_hire.size = HIRE_RECT.size
+	Price.setup(_hire, Flyers.Kind.CREDITS)
 	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
 	_chunks_seen = GameState.yard_chunks
@@ -95,10 +96,8 @@ func _process(_delta: float) -> void:
 		_dig((GameState.yard_chunks - 1) % n)
 	_chunks_seen = GameState.yard_chunks
 	var cost := GameState.yard_worker_cost()
-	var full := n >= slots
-	_hire.visible = GameState.revealed()
-	_hire.text = "MAX" if full else Fmt.num(cost)
-	_hire.disabled = full or GameState.credits < cost
+	_hire.visible = GameState.revealed() and n < slots
+	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
 
 
 func _yard_x() -> float:
@@ -157,6 +156,7 @@ func _on_hire() -> void:
 
 
 func _on_tap(at: Vector2) -> void:
+	var amount := GameState.tap_scrap()
 	GameState.tap_pile()
-	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), GameState.stat("scrap_per_tap"))
+	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), amount)
 	_squash(0.92, 2.0)

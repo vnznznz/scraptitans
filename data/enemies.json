@@ -1,9 +1,9 @@
 {
 	"base_hp": 40,
 	"hp_growth": 1.45,
-	"base_bounty": 30,
-	"bounty_growth": 1.4,
-	"wave_damage": 0.05,
+	"base_bounty": 35,
+	"bounty_growth": 1.6,
+	"wave_damage": 0.02,
 	"count_growth": 0.15,
 	"max_enemies": 14,
 	"mix_from": 6,
@@ -11,6 +11,7 @@
 	"variants": 5,
 	"variant_every": 6,
 	"variant_tough": 1.5,
+	"variant_scrap": 2,
 	"types": [
 		{"name": "Scrap Drones", "sprite": "drone", "count": 6, "weight": 1, "flying": true},
 		{"name": "Crawler Tanks", "sprite": "crawler", "count": 3, "weight": 2, "flying": false},

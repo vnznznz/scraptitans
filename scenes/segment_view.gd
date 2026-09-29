@@ -11,9 +11,12 @@ const WORKERS_Y := 42.0
 const WORKER_DX := 6.0
 const ROW_Y := 100.0
 const ROW_H := 32.0
-const APPLY_W := 24.0
-const NO_TIER := Color(0.3, 0.3, 0.33, 0.3)
-const TIER_WAITING := Color(1, 1, 1, 0.8)
+const APPLY_W := 20.0
+const STAT_ICONS := {
+	"lifetime": preload("res://art/ui/life.png"),
+	"credits_per_sec": preload("res://art/ui/credits.png"),
+	"dps": preload("res://art/ui/damage.png"),
+}
 const PAUSED := Color(0.55, 0.55, 0.6)
 const WORKER_TEX := preload("res://art/line/worker.png")
 const TOOL_HEAD := Vector2(40, 56)
@@ -45,15 +48,25 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_PASS
 	var type_id := _state().type_id
 
+	var header := HBoxContainer.new()
+	header.name = "Header"
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
+	header.add_theme_constant_override("separation", 1)
+	header.position = Vector2(-8, NAME_H - 22)
+	header.size = Vector2(WIDTH + 16, 20)
+	header.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(header)
 	_name = Label.new()
-	_name.position = Vector2(-1, 0)
-	_name.size = Vector2(WIDTH + 2, NAME_H)
-	_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_name.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	_name.autowrap_mode = TextServer.AUTOWRAP_WORD
-	_name.add_theme_constant_override("line_spacing", -4)
+	_name.name = "Name"
+	_name.text = str(Data.segment_type(type_id).name).to_upper()
 	_name.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
-	add_child(_name)
+	header.add_child(_name)
+	var stat := TextureRect.new()
+	stat.name = "Stat"
+	stat.texture = STAT_ICONS[_stat_key(type_id)]
+	stat.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	stat.custom_minimum_size = Vector2(12, 20)
+	header.add_child(stat)
 
 	_machine = TextureRect.new()
 	_machine.texture = load("res://art/line/machine_%s.png" % type_id)
@@ -71,6 +84,7 @@ func _ready() -> void:
 	_build.name = "Build"
 	_build.icon = preload("res://art/ui/scrap.png")
 	_build.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	Price.setup(_build, Flyers.Kind.SCRAP)
 	_build.position = Vector2(4, MACHINE_Y + 4)
 	_build.size = Vector2(72, 44)
 	_build.mouse_filter = MOUSE_FILTER_PASS
@@ -105,16 +119,9 @@ func _ready() -> void:
 	_tap.tapped.connect(_on_tap)
 	add_child(_tap)
 
-	_hire = _row_button("Hire", WORKER_TEX)
+	_hire = _row_button("Hire", WORKER_TEX, Flyers.Kind.CREDITS)
 	_hire.pressed.connect(_on_hire)
-
-	_hire.position = Vector2(-1, ROW_Y)
-	_hire.size = Vector2(WIDTH + 2 - APPLY_W - 2, ROW_H)
-
-	_apply = _row_button("Apply", preload("res://art/ui/up.png"))
-	_apply.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply.position = Vector2(WIDTH + 1 - APPLY_W, ROW_Y)
-	_apply.size = Vector2(APPLY_W, ROW_H)
+	_apply = _row_button("Apply", preload("res://art/ui/up.png"), Flyers.Kind.SCRAP)
 	_apply.pressed.connect(_on_apply)
 	_chunks_seen = _state().chunks
 	_assemblies_seen = _state().assemblies
@@ -124,24 +131,19 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var s := _state()
 	var built := s.built
-	var type := Data.segment_type(s.type_id)
-	_name.text = s.tier_data().part if built else type.name
 	_machine.visible = built
 	_bar.visible = built
 	_tap.visible = built
-	_hire.visible = built
-	_apply.visible = built
-	var can_apply := built and GameState.can_apply_tier(line_index, seg_index)
-	_apply.disabled = not can_apply or GameState.scrap < GameState.tier_apply_cost(line_index, seg_index)
-	_apply.add_theme_color_override("icon_disabled_color", TIER_WAITING if can_apply else NO_TIER)
 	_pad.visible = not built
 	_build.visible = not built
 	if not built:
+		_hire.visible = false
+		_apply.visible = false
 		var cost := GameState.build_cost(line_index, seg_index)
-		_build.text = Fmt.num(cost)
-		_build.disabled = GameState.scrap < cost
+		Price.show(_build, Fmt.num(cost), GameState.scrap >= cost)
 		_stall.visible = false
 		return
+	_update_row(s)
 	_update_workers(s)
 	_machine.modulate = PAUSED if GameState.lines[line_index].paused else Color.WHITE
 	if s.assemblies != _assemblies_seen:
@@ -183,22 +185,44 @@ func _update_workers(s: SegmentState) -> void:
 		tw.tween_property(w, "position:y", WORKERS_Y, 0.1)
 		_bump_t = 0.06
 	_chunks_seen = s.chunks
-	var full := s.workers >= slots
-	var cost := GameState.worker_cost(line_index, seg_index)
-	_hire.text = "MAX" if full else Fmt.num(cost)
-	_hire.icon = null if full else WORKER_TEX
-	_hire.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER if full else HORIZONTAL_ALIGNMENT_LEFT
-	_hire.disabled = full or GameState.credits < cost
 
 
-func _row_button(node_name: String, icon: Texture2D) -> Button:
+func _update_row(s: SegmentState) -> void:
+	var hire := s.workers < s.worker_slots()
+	var fit := GameState.can_apply_tier(line_index, seg_index)
+	_hire.visible = hire
+	_apply.visible = fit
+	var row := Rect2(-1, ROW_Y, WIDTH + 2, ROW_H)
+	if hire:
+		var cost := GameState.worker_cost(line_index, seg_index)
+		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
+		_hire.position = row.position
+		_hire.size = Vector2(row.size.x - (APPLY_W + 2.0 if fit else 0.0), ROW_H)
+	if fit:
+		var cost := GameState.tier_apply_cost(line_index, seg_index)
+		Price.show(_apply, "" if hire else Fmt.num(cost), GameState.scrap >= cost)
+		_apply.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER if hire else HORIZONTAL_ALIGNMENT_LEFT
+		_apply.position = Vector2(row.end.x - APPLY_W, ROW_Y) if hire else row.position
+		_apply.size = Vector2(APPLY_W, ROW_H) if hire else row.size
+
+
+func _row_button(node_name: String, icon: Texture2D, kind: Flyers.Kind) -> Button:
 	var b := Button.new()
 	b.name = node_name
 	b.icon = icon
 	b.add_theme_constant_override("h_separation", 2)
 	b.mouse_filter = MOUSE_FILTER_PASS
+	Price.setup(b, kind, true)
 	add_child(b)
 	return b
+
+
+static func _stat_key(type_id: String) -> String:
+	var tier := Data.tier(type_id, 0)
+	for key: String in STAT_ICONS:
+		if tier.has(key):
+			return key
+	return "lifetime"
 
 
 func _consume(s: SegmentState) -> void:
