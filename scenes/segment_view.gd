@@ -85,7 +85,6 @@ func _ready() -> void:
 	_build = Button.new()
 	_build.name = "Build"
 	_build.icon = preload("res://art/ui/scrap.png")
-	_build.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	Price.setup(_build, Flyers.Kind.SCRAP)
 	_build.position = Vector2(4, MACHINE_Y + 4)
 	_build.size = Vector2(72, 44)

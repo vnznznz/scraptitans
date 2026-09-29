@@ -113,7 +113,7 @@ Every row has an info button with a plain description. Tapping the station body 
 
 ## Endgame: the nuke
 
-- The **Atomic Missile** is the final unlock in the menu, locked until every other part tier is unlocked. Unlocking it (credits) shows a confirmation: "This ends everything. Unlock?"
+- The **Atomic Missile** is the final unlock in the menu, locked until every other part tier is unlocked. No confirmation: its row reads "Ends the war" and its info text says so.
 - It can only be fitted on the Arms station of a **fully upgraded line**: every station built and carrying its best part.
 - Applying it to an Arms station (scrap) turns that line's next mech into the **Nuclear Mech**.
 - **Sequence:**

@@ -4,6 +4,9 @@ extends Control
 signal settings_pressed
 
 const ICON_Y := 6.0
+const GEAR_W := 44.0
+const COLUMN_W := 105.0
+const LEFT := 6.0
 const RATE_Y := 26.0
 const RATE_COLOR := Color(1, 1, 1, 0.7)
 const STARVED := Pal.RED
@@ -24,14 +27,14 @@ func _ready() -> void:
 	bg.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(bg)
 
-	_credits = _amount(preload("res://art/ui/credits.png"), 214, Price.COLORS[Flyers.Kind.CREDITS])
-	_credits_rate = _rate(214)
-	_scrap = _amount(preload("res://art/ui/scrap.png"), 6, Price.COLORS[Flyers.Kind.SCRAP])
-	_scrap_rate = _rate(6)
-	_mechs = _amount(preload("res://art/ui/mech.png"), 112, Pal.CYAN)
+	_credits = _amount(preload("res://art/ui/credits.png"), _column(2), Price.COLORS[Flyers.Kind.CREDITS])
+	_credits_rate = _rate(_column(2))
+	_scrap = _amount(preload("res://art/ui/scrap.png"), _column(0), Price.COLORS[Flyers.Kind.SCRAP])
+	_scrap_rate = _rate(_column(0))
+	_mechs = _amount(preload("res://art/ui/mech.png"), _column(1), Pal.CYAN)
 	_mechs.name = "Mechs"
 	_mech_icon = _icons.pop_back()
-	_mechs_rate = _rate(112)
+	_mechs_rate = _rate(_column(1))
 	_mechs_rate.name = "MechsRate"
 	GameState.mech_deployed.connect(_on_deployed)
 
@@ -41,7 +44,7 @@ func _ready() -> void:
 	gear.flat = true
 	gear.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	gear.set_anchors_and_offsets_preset(PRESET_RIGHT_WIDE)
-	gear.offset_left = -44
+	gear.offset_left = -GEAR_W
 	gear.pressed.connect(settings_pressed.emit)
 	add_child(gear)
 
@@ -54,6 +57,10 @@ func _process(_delta: float) -> void:
 	_scrap_rate.modulate = STARVED if GameState.starved() else RATE_COLOR
 	_mechs.text = Fmt.num(GameState.mechs_built)
 	_mechs_rate.text = "%d/MIN" % GameState.mechs_per_min
+
+
+func _column(i: int) -> float:
+	return LEFT + i * COLUMN_W
 
 
 func target(kind: Flyers.Kind) -> Vector2:
@@ -86,7 +93,7 @@ func _amount(icon_tex: Texture2D, x: float, color: Color) -> Label:
 	add_child(icon)
 	_icons.append(icon)
 	var label := Label.new()
-	label.position = Vector2(x + 22, ICON_Y - 4)
+	label.position = Vector2(x + 22, ICON_Y - 2)
 	label.add_theme_color_override("font_color", color)
 	label.z_index = Main.TEXT_Z
 	add_child(label)

@@ -2,6 +2,8 @@ class_name UpgradeMenu
 extends Control
 
 const PANEL_ALPHA := 0.85
+const MARGIN := 6
+const FOOTER_H := 54
 const TIER_STATS := {
 	"lifetime": "LIFE %s » %s S",
 	"credits_per_sec": "PAY %s » %s/S",
@@ -11,7 +13,6 @@ const TIER_STATS := {
 var _scroll: ScrollContainer
 var _rows: VBoxContainer
 var _row_nodes := {}
-var _confirm: Control
 var _maxed: PanelContainer
 var _maxed_list: Label
 
@@ -51,9 +52,16 @@ func _ready() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 6)
+	for side in ["left", "right", "top"]:
+		margin.add_theme_constant_override("margin_" + side, MARGIN)
+	margin.add_theme_constant_override("margin_bottom", FOOTER_H + MARGIN)
 	add_child(margin)
+
+	var footer := Panel.new()
+	footer.name = "Footer"
+	footer.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
+	footer.offset_top = -FOOTER_H
+	add_child(footer)
 
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -83,12 +91,9 @@ func _ready() -> void:
 	_maxed_list.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
 	maxed_box.add_child(_maxed_list)
 
-	_confirm = _build_confirm()
-
 
 func open() -> void:
 	visible = true
-	_confirm.visible = false
 	_refresh()
 
 
@@ -170,17 +175,9 @@ func _add_row(r: Dictionary) -> void:
 
 
 func _on_buy(id: String) -> void:
-	if Data.upgrade_row(id).get("kind", "") == "final":
-		_confirm.set_meta("id", id)
-		_confirm.visible = true
-		return
-	_buy(id, _row_nodes[id][3])
-
-
-func _buy(id: String, button: Control) -> void:
 	var cost := GameState.upgrade_cost(id)
 	if GameState.buy_upgrade(id):
-		Flyers.pay(Flyers.Kind.CREDITS, button, cost)
+		Flyers.pay(Flyers.Kind.CREDITS, _row_nodes[id][3], cost)
 
 
 func _refresh() -> void:
@@ -267,43 +264,3 @@ func _fmt(r: Dictionary, v: float) -> String:
 	var s := str(int(v)) if is_equal_approx(v, roundf(v)) else str(snappedf(v, 0.01))
 	return s + unit.to_upper()
 
-
-func _build_confirm() -> Control:
-	var root := Control.new()
-	root.name = "Confirm"
-	root.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	root.visible = false
-	add_child(root)
-	var dim := ColorRect.new()
-	dim.color = Color(Pal.INK, 0.8)
-	dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	root.add_child(dim)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(280, 0)
-	panel.set_anchors_and_offsets_preset(PRESET_CENTER)
-	panel.grow_horizontal = GROW_DIRECTION_BOTH
-	panel.grow_vertical = GROW_DIRECTION_BOTH
-	root.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	panel.add_child(box)
-	var label := Label.new()
-	label.text = "THIS ENDS\nEVERYTHING.\nUNLOCK?"
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_color_override("font_color", Pal.RED)
-	box.add_child(label)
-	var yes := Button.new()
-	yes.name = "Yes"
-	yes.text = "UNLOCK"
-	yes.custom_minimum_size = Vector2(0, 44)
-	yes.pressed.connect(func() -> void:
-		_buy(root.get_meta("id"), yes)
-		root.visible = false)
-	box.add_child(yes)
-	var no := Button.new()
-	no.name = "No"
-	no.text = "CANCEL"
-	no.custom_minimum_size = Vector2(0, 44)
-	no.pressed.connect(func() -> void: root.visible = false)
-	box.add_child(no)
-	return root

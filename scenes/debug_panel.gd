@@ -2,6 +2,7 @@ class_name DebugPanel
 extends Control
 
 var _panel: PanelContainer
+var _toggle: Button
 var _speed: Label
 
 
@@ -13,17 +14,15 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 
 	var toggle := Button.new()
+	_toggle = toggle
 	toggle.name = "DebugToggle"
 	toggle.text = "DBG"
-	toggle.set_anchors_and_offsets_preset(PRESET_BOTTOM_LEFT)
-	toggle.offset_left = 4
-	toggle.offset_right = 60
-	toggle.offset_top = -138
-	toggle.offset_bottom = -106
+	toggle.position = Vector2(4, 76)
+	toggle.size = Vector2(56, 32)
 	toggle.modulate = Color(1, 1, 1, 0.6)
 	toggle.pressed.connect(func() -> void:
 		_panel.visible = not _panel.visible
-		_panel.position.y = toggle.position.y - _panel.get_combined_minimum_size().y - 4)
+		_panel.position.y = toggle.get_rect().end.y + 4)
 	add_child(toggle)
 
 	_panel = PanelContainer.new()
@@ -55,6 +54,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	_toggle.visible = not get_tree().get_first_node_in_group("upgrade_menu").visible
 	if _panel.visible:
 		_speed.text = "X%d  MECHS %d" % [GameState.time_scale, GameState.field.size()]
 

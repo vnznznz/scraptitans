@@ -566,11 +566,11 @@ func m7() -> void:
 				t.check(GameState.upgrade_locked("final_arms"), "missile locked while %s isn't maxed" % id)
 	await t.frames(2)
 	t.check(not GameState.upgrade_locked("final_arms") and not _buy(menu, "final_arms").disabled, "every part unlocked: missile can be bought")
+	var final_desc: Label = menu.row("final_arms").find_child("Desc", true, false)
+	t.check(final_effect.text == "ENDS THE WAR" and final_desc.text.begins_with("ENDS THE WAR"), "missile row and help say it ends the war")
+	await t.shot("m7_final")
 	await t.click(_buy(menu, "final_arms"))
-	t.check(menu.get_node("Confirm").visible and GameState.level("final_arms") == 0, "Atomic Missile asks to confirm")
-	await t.shot("m7_confirm")
-	await t.click(menu.find_child("Yes", true, false))
-	t.check(GameState.unlocked_tier("arms") == 5, "Atomic Missile unlocked")
+	t.check(GameState.unlocked_tier("arms") == 5 and menu.find_child("Confirm", true, false) == null, "Atomic Missile unlocked at once, no confirm")
 	await t.click(main.get_node("%Upgrades"))
 	var segs := GameState.lines[0].segments
 	t.check(segs.size() == 4, "plating pad added")
@@ -984,7 +984,7 @@ func m9() -> void:
 	t.check(build.disabled and build.theme_type_variation == &"PriceButton", "unaffordable build: normal button, dim price")
 	GameState.scrap = 100.0
 	await t.frames(2)
-	t.check(not build.disabled and build.theme_type_variation == &"LitButton" and build.get_theme_color("font_color") == Price.COLORS[Flyers.Kind.SCRAP], "affordable build: lit, scrap-colored price")
+	t.check(not build.disabled and build.theme_type_variation == &"LitButton" and Price.color(build) == Price.COLORS[Flyers.Kind.SCRAP], "affordable build: lit, scrap-colored price")
 	for i in 3:
 		await t.click(_build_button(line, i))
 
@@ -1006,7 +1006,7 @@ func m9() -> void:
 	GameState.credits = 0.0
 	await t.frames(1)
 	var apply: Button = line.segment_view(0).get_node("Apply")
-	t.check(apply.visible and apply.text == Fmt.num(cost) and apply.size.x > 80.0, "fit takes the header, shows %s" % apply.text)
+	t.check(apply.visible and Price.text(apply) == Fmt.num(cost) and apply.size.x > 80.0, "fit takes the header, shows %s" % Price.text(apply))
 	t.check(apply.theme_type_variation == &"LitRow", "affordable fit is lit")
 	await t.shot("m9_fit")
 	await t.click(apply)
@@ -1070,7 +1070,7 @@ func m9() -> void:
 	var unlock: Button = main.find_child("UnlockLine", true, false)
 	GameState.credits = 0.0
 	await t.frames(2)
-	t.check(unlock.size.y <= 32.0, "UNLOCK LINE compact while unaffordable (%d)" % unlock.size.y)
+	t.check(unlock.size.y == Main.UNLOCK_SMALL.y, "UNLOCK LINE compact while unaffordable (%d)" % unlock.size.y)
 	GameState.credits = 1e9
 	await t.frames(2)
 	t.check(unlock.size.y >= 44.0 and unlock.theme_type_variation == &"LitButton", "full size and lit when affordable")
@@ -1404,6 +1404,55 @@ func shots() -> void:
 	await t.shot("settings")
 
 
+func ui() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var font: Font = ThemeDB.get_project_theme().default_font
+	t.check(absf(font.get_ascent(16) - 5.0 - font.get_height(16) / 2.0) < 0.5, "caps centered in the line box (ascent %d, height %d)" % [font.get_ascent(16), font.get_height(16)])
+	GameState.mechs_built = 1
+	GameState.stalled_once = true
+	GameState.credits = 5000.0
+	GameState.scrap = 60.0
+	GameState.buy_upgrade("lines")
+	GameState.credits = 5000.0
+	GameState.build_segment(0, 0)
+	await t.frames(3)
+	var buttons := main.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
+		return b.has_node("Price") and b.is_visible_in_tree())
+	t.check(buttons.size() >= 6, "price buttons on screen (%d)" % buttons.size())
+	for b: Button in buttons:
+		var box: HBoxContainer = b.get_node("Price")
+		var first: Control = box.get_child(0)
+		var last: Control = box.get_child(-1)
+		var group_x := (first.get_global_rect().position.x + last.get_global_rect().end.x) / 2.0
+		var label: Label = box.get_node("Text")
+		var center := b.get_global_rect().get_center()
+		t.check(absf(group_x - center.x) <= 1.0 and absf(label.get_global_rect().get_center().y - center.y) <= 1.0,
+				"%s: icon + price centered (dx %.1f, dy %.1f)" % [b.name, group_x - center.x, label.get_global_rect().get_center().y - center.y])
+	var yard_hire: Button = main.find_child("HireYard", true, false)
+	var upgrades: Button = main.get_node("%Upgrades")
+	t.check(yard_hire.size == upgrades.size and upgrades.get_global_rect().position.y - yard_hire.get_global_rect().end.y == 4.0, "bottom bar buttons: same size, 4 px apart")
+	await t.shot("ui_lines")
+
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	var pile: Control = main.find_child("Pile", true, false)
+	await t.click(upgrades)
+	t.check(menu.visible and is_equal_approx(menu.get_global_rect().end.y, 640.0), "menu reaches the bottom of the screen")
+	var footer: Control = menu.get_node("Footer")
+	var list: ScrollContainer = menu.get_child(1).get_child(0)
+	t.check(footer.get_global_rect().has_point(upgrades.get_global_rect().get_center()) and footer.size.y == UpgradeMenu.FOOTER_H, "CLOSE sits in the footer strip")
+	t.check(list.get_global_rect().end.y <= footer.get_global_rect().position.y - UpgradeMenu.MARGIN, "rows end above the footer")
+	var scrap := GameState.scrap
+	await t.click(pile)
+	t.check(GameState.scrap == scrap, "footer blocks the pile")
+	await t.shot("ui_menu")
+	list.scroll_vertical = 100000
+	await t.frames(2)
+	await t.shot("ui_menu_end")
+	await t.click(upgrades)
+	t.check(not menu.visible, "CLOSE on top of the menu closes it")
+
+
 func art() -> void:
 	await _fresh()
 	var main := t.get_tree().current_scene
@@ -1517,7 +1566,7 @@ func intro() -> void:
 	GameState.advance(4.0)
 	await t.frames(2)
 	var field: Control = main.get_node("%Battlefield")
-	t.check(GameState.mechs_built == 1 and guide.text() == "TAP THE BATTLEFIELD TO HIT THE WAVE", "first mech deployed: tap the battlefield (%s)" % guide.text())
+	t.check(GameState.mechs_built == 1 and guide.text() == "TAP THE FIELD TO HIT THE WAVE", "first mech deployed: tap the battlefield (%s)" % guide.text())
 	var anchor: Control = field.hint_anchor()
 	t.check(absf(arrow_x.call() - anchor.get_global_rect().get_center().x) < 1.0 and guide.get("_down"), "arrow points down at the enemies")
 	await t.shot("intro_field")

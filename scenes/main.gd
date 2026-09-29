@@ -3,7 +3,7 @@ extends Control
 
 const BADGE_ON := Pal.RED
 const FIELD_MAX := 2.0
-const UNLOCK_SMALL := Vector2(220, 32)
+const UNLOCK_SMALL := Vector2(220, 36)
 const UNLOCK_BIG := Vector2(300, 44)
 const UNLOCK_GAP := 8.0
 const FLYERS_Z := 1
@@ -76,6 +76,7 @@ func _ready() -> void:
 	guide.z_index = OVERLAY_Z
 	_flyers.z_index = FLYERS_Z
 	_menu.z_index = TEXT_Z
+	_upgrades.z_index = TEXT_Z
 	for overlay: Control in [%Debug, %Settings, %Nuke]:
 		overlay.z_index = OVERLAY_Z + 1
 	%Hud.settings_pressed.connect(_settings.open)

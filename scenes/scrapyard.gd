@@ -9,7 +9,7 @@ const PILE_POS := Vector2(62, 32)
 const PILE_EDGES := Vector2(75, 163)
 const GROUND_Y := 96.0
 const WORKER_DX := 7.0
-const HIRE_RECT := Rect2(240, 6, 114, 40)
+const HIRE_RECT := Rect2(240, 6, 114, 42)
 const SLIDE_TIME := 0.4
 const SQUASH_TIME := 0.12
 

@@ -73,7 +73,6 @@ func _ready() -> void:
 	_hire = Button.new()
 	_hire.name = "Hire"
 	_hire.icon = preload("res://art/line/worker.png")
-	_hire.add_theme_constant_override("h_separation", 4)
 	_hire.mouse_filter = MOUSE_FILTER_PASS
 	Price.setup(_hire, Flyers.Kind.CREDITS, true)
 	_hire.pressed.connect(_on_hire)
@@ -196,7 +195,8 @@ func _process(delta: float) -> void:
 	var line := _line()
 	var slots := line.worker_slots()
 	_crew.text = "CREW %d/%d" % [line.workers, slots]
-	_crew.visible = _bar and slots > 0
+	_crew.visible = _bar
+	_crew.modulate.a = 1.0 if slots > 0 else 0.5
 	_hire.visible = _bar and line.workers < slots
 	if _hire.visible:
 		var cost := GameState.worker_cost(line_index)
