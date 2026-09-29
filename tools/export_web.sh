@@ -4,4 +4,5 @@ cd "$(dirname "$0")/.."
 mode="${1:-debug}"
 rm -rf build/web
 mkdir -p build/web
+touch build/.gdignore
 godot --headless --path . --export-"$mode" "Web" build/web/index.html

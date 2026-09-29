@@ -107,7 +107,8 @@
 - Tuning: `godot --headless --path . -- --scenario tune`: bot plays a run (3 taps/s, builds, buys cheapest, applies tiers, pauses lines to save for applies); prints per-minute economy + purchase timeline; checks first worker < 4 min, nuke 30–60 min. Now: first worker 1.4 min, nuke ~33 min (1.5 taps/s: 2.5 / 36 min); the bot never taps the battlefield
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
 - Placeholders: `uv run --with pillow python3 tools/gen_placeholders.py`
-- Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel
+- Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel; `build/.gdignore` keeps the editor from importing the exported PNGs
+- Deploy: `tools/deploy_web.sh` → release build, `lftp` FTPS mirror (`--delete`, temp file + rename per file, `index.html` put last) via `www161.your-server.de` to `https://distco.de/games/scraptitans/`; credentials in gitignored `tools/deploy.env` (`FTP_HOST/USER/PASS/DIR`, FTP user chrooted to the game folder, so `FTP_DIR=/`); `FTP_VERIFY_CERT=false` if the host cert doesn't match
 - Serve: `tools/serve_web.sh` → Caddy, `tls internal` (cert generated on the fly, untrusted: accept the browser warning), `https://localhost:8443`, `https://<lan-ip>:8443`, `Cache-Control: no-cache`; `LAN_IP` overrides detection
 
 ## Web gotchas
