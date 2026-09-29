@@ -3,6 +3,7 @@
 	"hp_growth": 1.45,
 	"base_bounty": 30,
 	"bounty_growth": 1.4,
+	"wave_damage": 0.05,
 	"types": [
 		{"name": "Scrap Drones", "sprite": "drone", "count": 6, "flying": true},
 		{"name": "Crawler Tanks", "sprite": "crawler", "count": 3, "flying": false},

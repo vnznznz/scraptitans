@@ -32,6 +32,10 @@ func worker_slots() -> int:
 	return int(GameState.stat(type_id + ".worker_slots"))
 
 
+func optional() -> bool:
+	return Data.segment_type(type_id).get("optional", false)
+
+
 func tier_data() -> Dictionary:
 	return Data.tier(type_id, tier)
 

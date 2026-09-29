@@ -43,12 +43,15 @@ func _ready() -> void:
 	var grants := HBoxContainer.new()
 	box.add_child(grants)
 	_button(grants, "+100 SCRAP", func() -> void: GameState.scrap += 100)
-	_button(grants, "+10K SCRAP", func() -> void: GameState.scrap += 10000)
+	_button(grants, "+100K SCRAP", func() -> void: GameState.scrap += 100000)
 	var more := HBoxContainer.new()
 	box.add_child(more)
 	_button(more, "+1K CR", func() -> void: GameState.credits += 1000)
-	_button(more, "+100K CR", func() -> void: GameState.credits += 100000)
-	_button(box, "KILL WAVE", GameState.kill_wave)
+	_button(more, "+1M CR", func() -> void: GameState.credits += 1000000)
+	var field := HBoxContainer.new()
+	box.add_child(field)
+	_button(field, "KILL WAVE", GameState.kill_wave)
+	_button(field, "+50 MECHS", GameState.debug_spawn_mechs.bind(50))
 
 
 func _process(_delta: float) -> void:

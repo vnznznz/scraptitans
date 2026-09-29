@@ -2,7 +2,6 @@ class_name LineView
 extends Control
 
 const SEG_Y := 22.0
-const SEG_X0 := 8.0
 const SEG_STEP := 88.0
 const BELT_TEX := preload("res://art/line/belt.png")
 const PAUSE_TEX := preload("res://art/ui/pause.png")
@@ -16,37 +15,74 @@ var _segments: Array[SegmentView] = []
 var _mechs: Node2D
 var _views := {}
 var _belt_offset := 0.0
+var _collapsed := false
 
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(0, SEG_Y + SegmentView.HEIGHT + 4)
 	mouse_filter = MOUSE_FILTER_PASS
 
-	_header = Label.new()
-	_header.position = Vector2(8, 2)
-	add_child(_header)
-
 	_pause = Button.new()
 	_pause.name = "Pause"
 	_pause.flat = true
 	_pause.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_pause.position = Vector2(308, -4)
-	_pause.size = Vector2(44, 32)
+	_pause.position = Vector2(2, -6)
+	_pause.size = Vector2(40, 32)
 	_pause.mouse_filter = MOUSE_FILTER_PASS
 	_pause.pressed.connect(GameState.toggle_pause.bind(line_index))
 	add_child(_pause)
 
-	for i in _line().segments.size():
+	_header = Label.new()
+	_header.position = Vector2(42, 2)
+	add_child(_header)
+
+	_mechs = Node2D.new()
+	add_child(_mechs)
+	_sync_segments()
+	resized.connect(_layout)
+
+
+func collapse() -> void:
+	_collapsed = true
+	for c in get_children():
+		if c is CanvasItem:
+			c.visible = false
+	queue_redraw()
+	for i in _segments.size():
+		var p := CPUParticles2D.new()
+		p.texture = preload("res://art/fx/debris.png")
+		p.position = Vector2(_seg_x(i) + SegmentView.WIDTH / 2.0, SEG_Y + SegmentView.BELT_Y - 30)
+		p.amount = 16
+		p.one_shot = true
+		p.explosiveness = 0.9
+		p.lifetime = 0.9
+		p.direction = Vector2.UP
+		p.spread = 60.0
+		p.initial_velocity_min = 40.0
+		p.initial_velocity_max = 120.0
+		p.gravity = Vector2(0, 400)
+		p.angular_velocity_min = -300.0
+		p.angular_velocity_max = 300.0
+		p.emitting = true
+		add_child(p)
+		p.finished.connect(p.queue_free)
+
+
+func _sync_segments() -> void:
+	for i in range(_segments.size(), _line().segments.size()):
 		var v := SegmentView.new()
 		v.name = "Segment%d" % i
 		v.line_index = line_index
 		v.seg_index = i
-		v.position = Vector2(_seg_x(i), SEG_Y)
 		add_child(v)
+		move_child(v, _mechs.get_index())
 		_segments.append(v)
+	_layout()
 
-	_mechs = Node2D.new()
-	add_child(_mechs)
+
+func _layout() -> void:
+	for i in _segments.size():
+		_segments[i].position = Vector2(_seg_x(i), SEG_Y)
 
 
 func segment_view(i: int) -> SegmentView:
@@ -54,6 +90,10 @@ func segment_view(i: int) -> SegmentView:
 
 
 func _process(delta: float) -> void:
+	if _collapsed:
+		return
+	if _segments.size() != _line().segments.size():
+		_sync_segments()
 	var paused := _line().paused
 	_header.text = "LINE %d%s" % [line_index + 1, "  PAUSED" if paused else ""]
 	_header.modulate = Color(1, 0.6, 0.4) if paused else Color.WHITE
@@ -89,6 +129,11 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	if _collapsed:
+		var rubble := preload("res://art/line/rubble.png")
+		for i in _segments.size():
+			draw_texture(rubble, Vector2(_seg_x(i), SEG_Y + SegmentView.BELT_Y - 12))
+		return
 	var y := SEG_Y + SegmentView.BELT_Y
 	var w := BELT_TEX.get_width()
 	var x := -w + _belt_offset
@@ -108,7 +153,8 @@ func _line() -> LineState:
 
 
 func _seg_x(i: int) -> float:
-	return SEG_X0 + i * SEG_STEP
+	var n := _segments.size()
+	return (size.x - (n - 1) * SEG_STEP - SegmentView.WIDTH) / 2.0 + i * SEG_STEP
 
 
 func _center(i: int) -> float:

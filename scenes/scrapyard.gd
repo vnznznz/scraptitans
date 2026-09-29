@@ -12,6 +12,7 @@ var _tap: TapArea
 var _hire: Button
 var _workers: Array[TextureRect] = []
 var _chunks_seen := 0
+var _collapsed := false
 
 
 func _ready() -> void:
@@ -59,7 +60,16 @@ func _layout() -> void:
 	_hire.position = Vector2(cx - _hire.size.x / 2.0, 124)
 
 
+func collapse() -> void:
+	_collapsed = true
+	_hire.visible = false
+	for w in _workers:
+		w.visible = false
+
+
 func _process(_delta: float) -> void:
+	if _collapsed:
+		return
 	var slots := GameState.yard_slots()
 	while _workers.size() < slots:
 		var w := TextureRect.new()

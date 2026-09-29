@@ -102,18 +102,18 @@ Test:
 
 Build: unlock better parts, apply them per segment, see mechs change.
 
-- [ ] Feedback from M2–M4 testing:
-  - [ ] Pause button at the front (left) of the assembly line, not the header's right end
-  - [ ] Worker hire button disappears when the segment's slots are full (no MAX button)
-  - [ ] Upgrade menu: one list, no tabs, sorted by current price (cheapest first); maxed rows at the bottom
-  - [ ] Segments centered in the line by count, no space kept for a 4th column; re-spaced when Plating appears
-  - [ ] Wave level damages mechs: they age faster, `1 + wave_damage·wave` (`enemies.json`), so higher waves shorten lifetime
-  - [ ] HUD scrap +/s turns red while any line is starved (a segment stalled on no scrap)
-- [ ] Tiers in `data/segments.json`: 6 × Frame/Core/Arms/Plating (part name, stat, scrap per mech, apply cost)
-- [ ] Tier rows in the upgrade list: unlock the next tier per type (credits, global); Atomic Missile row visible and locked
-- [ ] Segment tier button applies the next unlocked tier for scrap; ⬆ jumps to that type's tier row
-- [ ] Plating on the `[+]` pad after Arms, unlocked by its tier 1 row (the pitch doesn't say how Plating unlocks)
-- [ ] Layered mech sprites by part tier; an applied tier affects parts attached afterwards
+- [x] Feedback from M2–M4 testing:
+  - [x] Pause button at the front (left) of the assembly line, not the header's right end
+  - [x] Worker hire button disappears when the segment's slots are full (no MAX button)
+  - [x] Upgrade menu: one list, no tabs, sorted by current price (cheapest first); maxed rows at the bottom
+  - [x] Segments centered in the line by count, no space kept for a 4th column; re-spaced when Plating appears
+  - [x] Wave level damages mechs: they age faster, `1 + wave_damage·wave` (`enemies.json`), so higher waves shorten lifetime
+  - [x] HUD scrap +/s turns red while any line is starved (a segment stalled on no scrap)
+- [x] Tiers in `data/segments.json`: 6 × Frame/Core/Arms/Plating (part name, stat, scrap per mech, apply cost)
+- [x] Tier rows in the upgrade list: unlock the next tier per type (credits, global); Atomic Missile row visible and locked
+- [x] Segment tier button applies the next unlocked tier for scrap; ⬆ jumps to that type's tier row
+- [x] Plating on the `[+]` pad after Arms, unlocked by its tier 1 row (the pitch doesn't say how Plating unlocks)
+- [x] Layered mech sprites by part tier; an applied tier affects parts attached afterwards
 
 Test:
 - Unlock Frame tier 2, pause to save scrap, apply → new mechs look different and live longer, scrap per mech rises.
@@ -128,11 +128,11 @@ Test:
 
 Build: the battlefield reads without UI.
 
-- [ ] Mechs walk in (4 frames), hold a slot, fire with muzzle flash at the wave; enemies fire back
-- [ ] Damage by remaining lifetime: smoke ×3 → sparks → explosion + debris
-- [ ] Income discs scale with amount (more or bigger discs for bigger payouts), readable at 50 mechs
-- [ ] Draw at most N mechs (the pitch doesn't cap it); the rest are simulated only
-- [ ] Debug: spawn 50 mechs
+- [x] Mechs walk in (4 frames), hold a slot, fire with muzzle flash at the wave; enemies fire back
+- [x] Damage by remaining lifetime: smoke ×3 → sparks → explosion + debris
+- [x] Income discs scale with amount (more or bigger discs for bigger payouts), readable at 50 mechs
+- [x] Draw at most N mechs (the pitch doesn't cap it); the rest are simulated only
+- [x] Debug: spawn 50 mechs
 
 Test:
 - 2 min of play shows who fires, who's hurt and what each mech earns.
@@ -142,11 +142,11 @@ Test:
 
 Build: a run can be finished and restarted.
 
-- [ ] Atomic Missile unlock asks "This ends everything. Unlock?"
-- [ ] Applied to an Arms segment (scrap), that line's next mech is the Nuclear Mech
-- [ ] Sequence: fire, missile arcs off-screen, white flash, mushroom cloud, shockwave sweeps down the pane with auto-scroll, factory collapses to debris, scrap pile remains
-- [ ] Run stats card (time, mechs built, credits earned) → Start again = fresh save
-- [ ] Input locked during the sequence; the save marks the run as over
+- [x] Atomic Missile unlock asks "This ends everything. Unlock?"
+- [x] Applied to an Arms segment (scrap), that line's next mech is the Nuclear Mech
+- [x] Sequence: fire, missile arcs off-screen, white flash, mushroom cloud, shockwave sweeps down the pane with auto-scroll, factory collapses to debris, scrap pile remains
+- [x] Run stats card (time, mechs built, credits earned) → Start again = fresh save
+- [x] Input locked during the sequence; the save marks the run as over
 
 Test:
 - With debug resources, the nuke is reachable in a few minutes and plays through to the card.

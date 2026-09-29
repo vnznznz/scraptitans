@@ -24,6 +24,7 @@ ACCENT = {
     "frame": (80, 150, 220, 255),
     "core": (150, 100, 200, 255),
     "arms": (230, 140, 50, 255),
+    "plating": (120, 190, 110, 255),
 }
 
 
@@ -139,26 +140,82 @@ def line():
         save(img, f"line/machine_{kind}.png")
 
 
+TIER_COL = [
+    (RUST, RUST_L),
+    ((96, 104, 120, 255), (130, 138, 152, 255)),
+    ((140, 150, 166, 255), (190, 198, 210, 255)),
+    ((200, 206, 214, 255), (238, 240, 244, 255)),
+    ((206, 156, 48, 255), (250, 210, 90, 255)),
+    ((56, 140, 76, 255), (120, 210, 120, 255)),
+]
+HAZARD = (240, 210, 40, 255)
+
+
 def mech():
-    img, d = new(24, 32)
-    box(d, 7, 21, 10, 31, METAL)
-    box(d, 13, 21, 16, 31, METAL)
-    box(d, 5, 30, 11, 31, METAL_D)
-    box(d, 12, 30, 18, 31, METAL_D)
-    box(d, 5, 12, 18, 22, RUST)
-    d.line([6, 13, 17, 13], fill=RUST_L)
-    save(img, "mech/frame_1.png")
+    legs = [(0, 0, 0, 0), (-1, -1, 1, 0), (0, 0, 0, 0), (1, 0, -1, -1)]
+    for t in range(6):
+        col, hi = TIER_COL[t]
+        sheet = Image.new("RGBA", (96, 32), CLEAR)
+        for f, (lx, ly, rx, ry) in enumerate(legs):
+            img, d = new(24, 32)
+            bob = 1 if f in (1, 3) else 0
+            lw = 3 + t // 2
+            box(d, 9 - lw + lx, 21 + ly, 9 + lx, 31 + ly, METAL_D if t < 3 else METAL)
+            box(d, 13 + rx, 21 + ry, 13 + lw + rx, 31 + ry, METAL_D if t < 3 else METAL)
+            box(d, 6 - lw + lx, 30 + ly, 11 + lx, 31 + ly, INK)
+            box(d, 12 + rx, 30 + ry, 17 + lw + rx, 31 + ry, INK)
+            top = 13 - t // 2 - bob
+            box(d, 5 - t // 3, top, 18 + t // 3, 22 - bob, col)
+            d.line([6 - t // 3, top + 1, 17 + t // 3, top + 1], fill=hi)
+            if t >= 2:
+                d.rectangle([8, top + 4, 15, top + 5], fill=METAL_D)
+            if t == 5:
+                d.rectangle([10, top + 3, 13, top + 6], fill=HAZARD)
+            sheet.paste(img, (f * 24, 0))
+        save(sheet, f"mech/frame_{t + 1}.png")
 
-    img, d = new(24, 32)
-    box(d, 8, 4, 16, 12, METAL_L)
-    d.rectangle([13, 7, 15, 8], fill=RED)
-    d.line([10, 1, 10, 3], fill=INK)
-    save(img, "mech/core_1.png")
+        img, d = new(24, 32)
+        w = 8 + t // 2
+        box(d, 12 - w // 2, 4 - t // 3, 12 + w // 2, 12, hi if t >= 3 else METAL_L)
+        eye = [RED, RED, (80, 200, 240, 255), (80, 200, 240, 255), (200, 120, 255, 255), HAZARD][t]
+        d.rectangle([13, 7, 12 + w // 2 - 1, 8], fill=eye)
+        if t in (0, 2, 4):
+            d.line([10, 0, 10, 3 - t // 3], fill=INK)
+        if t >= 3:
+            d.rectangle([12 - w // 2 + 1, 10, 12 + w // 2 - 1, 11], fill=col)
+        save(img, f"mech/core_{t + 1}.png")
 
-    img, d = new(24, 32)
-    box(d, 12, 13, 16, 18, METAL_D)
-    box(d, 16, 15, 23, 17, METAL)
-    save(img, "mech/arms_1.png")
+        img, d = new(24, 32)
+        if t == 5:
+            box(d, 2, 2, 6, 22, WHITE)
+            d.polygon([(2, 2), (4, -1), (6, 2)], fill=RED, outline=INK)
+            for y in range(6, 20, 4):
+                d.rectangle([3, y, 5, y + 1], fill=INK)
+            box(d, 1, 20, 7, 23, METAL_D)
+            box(d, 12, 13, 16, 18, METAL_D)
+        else:
+            box(d, 11, 13, 16, 19, METAL_D)
+            length = 7 + t
+            if t == 3:
+                box(d, 14, 11, 22, 18, col)
+                for y in (12, 15):
+                    d.point((22, y + 1), fill=INK)
+            else:
+                box(d, 16, 15, min(16 + length, 23), 17, col)
+                if t == 2:
+                    box(d, 16, 12, min(16 + length, 23), 13, col)
+                if t == 4:
+                    d.line([17, 16, 23, 16], fill=(120, 220, 255, 255))
+        save(img, f"mech/arms_{t + 1}.png")
+
+        img, d = new(24, 32)
+        box(d, 4, 14, 8, 21, col)
+        box(d, 15, 14, 19, 21, col)
+        box(d, 4, 11 - t // 3, 19, 13, hi)
+        if t >= 2:
+            for x in (5, 17):
+                d.point((x, 17), fill=INK)
+        save(img, f"mech/plating_{t + 1}.png")
 
 
 def yard():
@@ -241,6 +298,59 @@ def fx():
     save(img, "fx/spark.png")
 
 
+def fx_extra():
+    img, d = new(8, 8)
+    d.polygon([(0, 2), (4, 0), (7, 3), (4, 7), (0, 5)], fill=HAZARD)
+    d.rectangle([1, 3, 3, 4], fill=WHITE)
+    save(img, "fx/muzzle.png")
+
+    img, d = new(4, 2)
+    d.rectangle([0, 0, 3, 1], fill=HAZARD)
+    save(img, "fx/bullet.png")
+
+    img, d = new(3, 3)
+    d.rectangle([0, 0, 2, 2], fill=(255, 90, 70, 255))
+    save(img, "fx/enemy_bullet.png")
+
+    img, d = new(4, 4)
+    box(d, 0, 0, 3, 3, METAL, outline=INK)
+    save(img, "fx/debris.png")
+
+    img, d = new(8, 20)
+    box(d, 2, 3, 5, 16, WHITE)
+    d.polygon([(2, 3), (3, 0), (4, 0), (5, 3)], fill=RED)
+    for y in (6, 10):
+        d.rectangle([2, y, 5, y + 1], fill=HAZARD)
+    d.polygon([(0, 17), (2, 13), (2, 17)], fill=METAL_D)
+    d.polygon([(7, 17), (5, 13), (5, 17)], fill=METAL_D)
+    d.rectangle([3, 17, 4, 19], fill=(255, 160, 40, 255))
+    save(img, "fx/missile.png")
+
+    img, d = new(64, 72)
+    d.rectangle([26, 28, 37, 71], fill=(200, 110, 60, 255))
+    d.rectangle([29, 28, 34, 71], fill=(240, 170, 80, 255))
+    d.ellipse([10, 58, 53, 71], fill=(160, 90, 60, 255))
+    d.ellipse([2, 2, 61, 36], fill=(220, 110, 50, 255))
+    d.ellipse([8, 4, 55, 26], fill=(250, 180, 80, 255))
+    d.ellipse([18, 6, 45, 18], fill=(255, 235, 170, 255))
+    d.ellipse([12, 28, 51, 38], fill=(180, 90, 50, 255))
+    save(img, "fx/mushroom.png")
+
+    img, d = new(80, 20)
+    rnd = random.Random(11)
+    d.polygon([(0, 19), (12, 8), (30, 12), (46, 4), (62, 10), (79, 19)], fill=(56, 54, 62, 255), outline=INK)
+    for _ in range(30):
+        x = rnd.randint(8, 70)
+        y = rnd.randint(9, 17)
+        if img.getpixel((x, y))[3]:
+            d.rectangle([x, y, x + rnd.randint(2, 5), y + rnd.randint(1, 3)], fill=rnd.choice([METAL, METAL_D, RUST]), outline=INK)
+    save(img, "line/rubble.png")
+
+    img, d = new(16, 16)
+    d.polygon([(8, 1), (14, 8), (10, 8), (10, 14), (6, 14), (6, 8), (2, 8)], fill=GREEN, outline=INK)
+    save(img, "ui/up.png")
+
+
 def workers():
     for name, shovel in [("line/worker.png", False), ("yard/worker.png", True)]:
         img, d = new(10, 14)
@@ -280,3 +390,4 @@ if __name__ == "__main__":
     battlefield()
     fx()
     workers()
+    fx_extra()

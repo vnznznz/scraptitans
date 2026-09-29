@@ -2,16 +2,17 @@ class_name UpgradeMenu
 extends Control
 
 const GREY := Color(0.55, 0.55, 0.6)
-const SELECTED := Color(1.0, 0.83, 0.3)
+const FLASH := Color(1.6, 1.5, 0.8)
 
-var _tab := ""
-var _tabs := {}
+var _scroll: ScrollContainer
 var _rows: VBoxContainer
 var _row_nodes := {}
+var _confirm: Control
 
 
 func _ready() -> void:
 	visible = false
+	add_to_group("upgrade_menu")
 	var bg := ColorRect.new()
 	bg.color = Color(0.1, 0.09, 0.12)
 	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
@@ -22,70 +23,52 @@ func _ready() -> void:
 	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 6)
 	add_child(margin)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	margin.add_child(box)
 
-	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 4)
-	grid.add_theme_constant_override("v_separation", 4)
-	box.add_child(grid)
-	var group := ButtonGroup.new()
-	for tab: Dictionary in Data.upgrades.tabs:
-		var b := Button.new()
-		b.name = "Tab_" + tab.id
-		b.text = tab.name
-		b.toggle_mode = true
-		b.button_group = group
-		b.custom_minimum_size = Vector2(0, 36)
-		b.add_theme_color_override("font_pressed_color", SELECTED)
-		b.add_theme_color_override("font_hover_pressed_color", SELECTED)
-		b.size_flags_horizontal = SIZE_EXPAND_FILL
-		b.pressed.connect(show_tab.bind(tab.id))
-		grid.add_child(b)
-		_tabs[tab.id] = b
-
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.scroll_deadzone = 8
-	box.add_child(scroll)
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.scroll_deadzone = 8
+	margin.add_child(_scroll)
 	_rows = VBoxContainer.new()
 	_rows.size_flags_horizontal = SIZE_EXPAND_FILL
 	_rows.add_theme_constant_override("separation", 4)
-	scroll.add_child(_rows)
+	_scroll.add_child(_rows)
+	for r: Dictionary in Data.upgrade_list:
+		_add_row(r)
+
+	_confirm = _build_confirm()
 
 
-func open(tab: String = "") -> void:
+func open() -> void:
 	visible = true
-	show_tab(tab if tab else (_tab if _tab else str(Data.upgrades.tabs[0].id)))
+	_confirm.visible = false
+	_refresh()
 
 
 func close() -> void:
 	visible = false
 
 
-func show_tab(tab: String) -> void:
-	_tab = tab
-	_tabs[tab].button_pressed = true
-	for c in _rows.get_children():
-		_rows.remove_child(c)
-		c.queue_free()
-	_row_nodes = {}
-	for row: Dictionary in Data.upgrade_rows(tab):
-		_add_row(row)
-	_refresh()
+func open_row(id: String) -> void:
+	open()
+	var panel: Control = _row_nodes[id][0]
+	await get_tree().process_frame
+	_scroll.ensure_control_visible(panel)
+	panel.modulate = FLASH
+	panel.set_meta("flash_t", 0.6)
 
 
-func _process(_delta: float) -> void:
+func row(id: String) -> Control:
+	return _row_nodes[id][0]
+
+
+func _process(delta: float) -> void:
 	if visible:
-		_refresh()
+		_refresh(delta)
 
 
-func _add_row(row: Dictionary) -> void:
+func _add_row(r: Dictionary) -> void:
 	var panel := PanelContainer.new()
-	panel.name = "Row_" + row.id
+	panel.name = "Row_" + r.id
 	panel.mouse_filter = MOUSE_FILTER_PASS
 	_rows.add_child(panel)
 	var h := HBoxContainer.new()
@@ -95,7 +78,6 @@ func _add_row(row: Dictionary) -> void:
 	v.add_theme_constant_override("separation", 0)
 	h.add_child(v)
 	var title := Label.new()
-	title.text = str(row.name).to_upper()
 	v.add_child(title)
 	var effect := Label.new()
 	effect.modulate = Color(1, 1, 1, 0.7)
@@ -105,35 +87,126 @@ func _add_row(row: Dictionary) -> void:
 	buy.icon = preload("res://art/ui/credits.png")
 	buy.custom_minimum_size = Vector2(104, 44)
 	buy.mouse_filter = MOUSE_FILTER_PASS
-	buy.pressed.connect(func() -> void: GameState.buy_upgrade(row.id))
+	buy.pressed.connect(_on_buy.bind(r.id))
 	h.add_child(buy)
-	_row_nodes[row.id] = [panel, effect, buy]
+	_row_nodes[r.id] = [panel, title, effect, buy]
 
 
-func _refresh() -> void:
+func _on_buy(id: String) -> void:
+	if Data.upgrade_row(id).get("kind", "") == "final":
+		_confirm.set_meta("id", id)
+		_confirm.visible = true
+		return
+	GameState.buy_upgrade(id)
+
+
+func _refresh(delta: float = 0.0) -> void:
+	var order := []
 	for id: String in _row_nodes:
-		var row := Data.upgrade_row(id)
+		var r := Data.upgrade_row(id)
 		var nodes: Array = _row_nodes[id]
-		var effect: Label = nodes[1]
-		var buy: Button = nodes[2]
-		var value := GameState.stat(row.stat)
-		var lv := "LV %d/%d  " % [GameState.level(id), int(row.max_level)]
+		var panel: Control = nodes[0]
+		var buy: Button = nodes[3]
+		panel.visible = GameState.upgrade_visible(id)
 		var maxed := GameState.upgrade_maxed(id)
-		if maxed:
-			effect.text = lv + _fmt(row, value)
-			buy.text = "MAX"
-			buy.disabled = true
+		var cost := GameState.upgrade_cost(id)
+		_describe(r, nodes[1], nodes[2])
+		buy.text = "MAX" if maxed else Fmt.num(cost)
+		buy.disabled = maxed or GameState.upgrade_locked(id) or GameState.credits < cost
+		var flash_t: float = panel.get_meta("flash_t", 0.0)
+		if flash_t > 0.0:
+			panel.set_meta("flash_t", flash_t - delta)
 		else:
-			effect.text = lv + "%s > %s" % [_fmt(row, value), _fmt(row, value + float(row.delta))]
-			var cost := GameState.upgrade_cost(id)
-			buy.text = Fmt.num(cost)
-			buy.disabled = GameState.credits < cost
-		nodes[0].modulate = Color.WHITE if not buy.disabled else GREY
+			panel.modulate = Color.WHITE if not buy.disabled else GREY
+		order.append([1 if maxed else 0, cost, panel.get_index(), panel])
+	order.sort_custom(func(a: Array, b: Array) -> bool:
+		if a[0] != b[0]:
+			return a[0] < b[0]
+		if a[1] != b[1]:
+			return a[1] < b[1]
+		return a[2] < b[2])
+	for i in order.size():
+		if order[i][3].get_index() != i:
+			_rows.move_child(order[i][3], i)
 
 
-func _fmt(row: Dictionary, v: float) -> String:
-	var unit: String = row.get("unit", "")
+func _describe(r: Dictionary, title: Label, effect: Label) -> void:
+	var id: String = r.id
+	var maxed := GameState.upgrade_maxed(id)
+	match r.get("kind", ""):
+		"tier":
+			var type := Data.segment_type(r.type)
+			var tiers: Array = type.tiers
+			var unlocked := GameState.unlocked_tier(r.type)
+			var shown := unlocked if maxed else unlocked + 1
+			title.text = str(tiers[shown].part).to_upper()
+			if unlocked < 0:
+				effect.text = "UNLOCKS %s" % str(type.name).to_upper()
+			else:
+				effect.text = "%s TIER %s" % [str(type.name).to_upper(), "MAX" if maxed else str(shown + 1)]
+		"final":
+			var tiers: Array = Data.segment_type(r.type).tiers
+			title.text = str(tiers[-1].part).to_upper()
+			if maxed:
+				effect.text = "UNLOCKED"
+			elif GameState.upgrade_locked(id):
+				effect.text = "NEEDS %s" % str(tiers[-2].part).to_upper()
+			else:
+				effect.text = "ENDS THE RUN"
+		_:
+			title.text = str(r.name).to_upper()
+			var lv := "LV %d/%d  " % [GameState.level(id), int(r.max_level)]
+			var value := GameState.stat(r.stat)
+			if maxed:
+				effect.text = lv + _fmt(r, value)
+			else:
+				effect.text = lv + "%s > %s" % [_fmt(r, value), _fmt(r, value + float(r.delta))]
+
+
+func _fmt(r: Dictionary, v: float) -> String:
+	var unit: String = r.get("unit", "")
 	if unit == "%":
 		return "%d%%" % roundi(v * 100.0)
 	var s := str(int(v)) if is_equal_approx(v, roundf(v)) else str(snappedf(v, 0.01))
 	return s + unit.to_upper()
+
+
+func _build_confirm() -> Control:
+	var root := Control.new()
+	root.name = "Confirm"
+	root.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	root.visible = false
+	add_child(root)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.7)
+	dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	root.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(280, 0)
+	panel.set_anchors_and_offsets_preset(PRESET_CENTER)
+	panel.grow_horizontal = GROW_DIRECTION_BOTH
+	panel.grow_vertical = GROW_DIRECTION_BOTH
+	root.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	panel.add_child(box)
+	var label := Label.new()
+	label.text = "THIS ENDS\nEVERYTHING.\nUNLOCK?"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+	box.add_child(label)
+	var yes := Button.new()
+	yes.name = "Yes"
+	yes.text = "UNLOCK"
+	yes.custom_minimum_size = Vector2(0, 44)
+	yes.pressed.connect(func() -> void:
+		GameState.buy_upgrade(root.get_meta("id"))
+		root.visible = false)
+	box.add_child(yes)
+	var no := Button.new()
+	no.name = "No"
+	no.text = "CANCEL"
+	no.custom_minimum_size = Vector2(0, 44)
+	no.pressed.connect(func() -> void: root.visible = false)
+	box.add_child(no)
+	return root

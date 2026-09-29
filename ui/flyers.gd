@@ -21,18 +21,18 @@ func _exit_tree() -> void:
 		_instance = null
 
 
-static func spawn(kind: Kind, from: Vector2, count: int = 1) -> void:
+static func spawn(kind: Kind, from: Vector2, count: int = 1, disc_scale: float = 1.0) -> void:
 	if _instance:
-		_instance._spawn(kind, from, count)
+		_instance._spawn(kind, from, count, disc_scale)
 
 
 func in_flight() -> int:
 	return get_child_count()
 
 
-func _spawn(kind: Kind, from: Vector2, count: int) -> void:
+func _spawn(kind: Kind, from: Vector2, count: int, disc_scale: float) -> void:
 	var tex: Texture2D = TEXTURES[kind]
-	var half := tex.get_size() / 2.0
+	var half := tex.get_size() * disc_scale / 2.0
 	var target := hud.target(kind)
 	for i in count:
 		if get_child_count() >= MAX_IN_FLIGHT:
@@ -40,6 +40,7 @@ func _spawn(kind: Kind, from: Vector2, count: int) -> void:
 		var disc := TextureRect.new()
 		disc.texture = tex
 		disc.mouse_filter = MOUSE_FILTER_IGNORE
+		disc.scale = Vector2.ONE * disc_scale
 		disc.position = from - half
 		add_child(disc)
 		var burst := from + Vector2(randf_range(-20, 20), randf_range(-36, -18))

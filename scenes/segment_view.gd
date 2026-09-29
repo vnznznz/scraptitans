@@ -2,13 +2,14 @@ class_name SegmentView
 extends Control
 
 const WIDTH := 80.0
-const HEIGHT := 174.0
+const HEIGHT := 212.0
 const NAME_H := 36.0
 const MACHINE_Y := 38.0
 const BELT_Y := 94.0
 const WORKERS_Y := 120.0
 const WORKER_DX := 10.0
 const HIRE_Y := 138.0
+const TIER_Y := 176.0
 const WORKER_TEX := preload("res://art/line/worker.png")
 
 var line_index := 0
@@ -22,6 +23,8 @@ var _bar: TextureProgressBar
 var _stall: TextureRect
 var _tap: TapArea
 var _hire: Button
+var _jump: Button
+var _apply: Button
 var _slow: ReferenceRect
 var _workers: Array[TextureRect] = []
 var _chunks_seen := 0
@@ -110,6 +113,28 @@ func _ready() -> void:
 	_hire.mouse_filter = MOUSE_FILTER_PASS
 	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
+
+	_jump = Button.new()
+	_jump.name = "Jump"
+	_jump.icon = preload("res://art/ui/up.png")
+	_jump.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_jump.position = Vector2(4, TIER_Y)
+	_jump.size = Vector2(28, 34)
+	_jump.mouse_filter = MOUSE_FILTER_PASS
+	_jump.pressed.connect(func() -> void:
+		get_tree().call_group("upgrade_menu", "open_row", Data.tier_row_id(_state().type_id)))
+	add_child(_jump)
+
+	_apply = Button.new()
+	_apply.name = "Apply"
+	_apply.icon = preload("res://art/ui/scrap.png")
+	_apply.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_apply.position = Vector2(34, TIER_Y)
+	_apply.size = Vector2(42, 34)
+	_apply.add_theme_color_override("font_color", Color(0.6, 1.0, 0.5))
+	_apply.mouse_filter = MOUSE_FILTER_PASS
+	_apply.pressed.connect(func() -> void: GameState.apply_tier(line_index, seg_index))
+	add_child(_apply)
 	_chunks_seen = _state().chunks
 
 
@@ -122,6 +147,12 @@ func _process(delta: float) -> void:
 	_bar.visible = built
 	_tap.visible = built
 	_hire.visible = built
+	_jump.visible = built
+	_apply.visible = built and GameState.can_apply_tier(line_index, seg_index)
+	if _apply.visible:
+		var apply_cost := GameState.tier_apply_cost(line_index, seg_index)
+		_apply.text = Fmt.num(apply_cost)
+		_apply.disabled = GameState.scrap < apply_cost
 	_slow.visible = false
 	_pad.visible = not built
 	_build.visible = not built
@@ -171,10 +202,10 @@ func _update_workers(s: SegmentState) -> void:
 		tw.tween_property(w, "position:y", WORKERS_Y, 0.1)
 		_bump_t = 0.06
 	_chunks_seen = s.chunks
-	var maxed := s.workers >= slots
+	_hire.visible = s.workers < slots
 	var cost := GameState.worker_cost(line_index, seg_index)
-	_hire.text = "MAX" if maxed else Fmt.num(cost)
-	_hire.disabled = maxed or GameState.credits < cost
+	_hire.text = Fmt.num(cost)
+	_hire.disabled = GameState.credits < cost
 
 
 func _state() -> SegmentState:

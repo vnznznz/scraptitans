@@ -4,6 +4,7 @@ var economy: Dictionary
 var segments: Dictionary
 var enemies: Dictionary
 var upgrades: Dictionary
+var upgrade_list: Array[Dictionary] = []
 
 var _rows_by_id := {}
 var _rows_by_stat := {}
@@ -15,10 +16,20 @@ func _init() -> void:
 	enemies = _load("res://data/enemies.json")
 	upgrades = _load("res://data/upgrades.json")
 	for row: Dictionary in upgrades.rows:
-		_rows_by_id[row.id] = row
+		upgrade_list.append(row)
 		if not _rows_by_stat.has(row.stat):
 			_rows_by_stat[row.stat] = []
 		_rows_by_stat[row.stat].append(row)
+	for type_id: String in line_slots():
+		var t := segment_type(type_id)
+		var tiers: Array = t.tiers
+		var final: bool = tiers[-1].get("final", false)
+		var count := tiers.size() - (0 if t.get("optional", false) else 1) - (1 if final else 0)
+		upgrade_list.append({"id": "tier_" + type_id, "kind": "tier", "type": type_id, "max_level": count})
+		if final:
+			upgrade_list.append({"id": "final_" + type_id, "kind": "final", "type": type_id, "max_level": 1})
+	for row in upgrade_list:
+		_rows_by_id[row.id] = row
 
 
 func econ(key: String) -> float:
@@ -45,8 +56,8 @@ func upgrade_row(id: String) -> Dictionary:
 	return _rows_by_id[id]
 
 
-func upgrade_rows(tab: String) -> Array:
-	return upgrades.rows.filter(func(r: Dictionary) -> bool: return r.tab == tab)
+func tier_row_id(type_id: String) -> String:
+	return "tier_" + type_id
 
 
 func rows_for_stat(stat: String) -> Array:

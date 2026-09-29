@@ -5,6 +5,8 @@ signal settings_pressed
 
 const ICON_Y := 6.0
 const RATE_Y := 26.0
+const RATE_COLOR := Color(1, 1, 1, 0.7)
+const STARVED := Color(1.0, 0.3, 0.25)
 
 var _icons: Array[TextureRect] = []
 var _credits: Label
@@ -40,6 +42,7 @@ func _process(_delta: float) -> void:
 	_credits_rate.text = Fmt.rate(GameState.credits_rate)
 	_scrap.text = Fmt.num(GameState.scrap)
 	_scrap_rate.text = Fmt.rate(GameState.scrap_rate)
+	_scrap_rate.modulate = STARVED if GameState.starved() else RATE_COLOR
 
 
 func target(kind: Flyers.Kind) -> Vector2:
@@ -70,6 +73,6 @@ func _amount(icon_tex: Texture2D, x: float, color: Color) -> Label:
 func _rate(x: float) -> Label:
 	var label := Label.new()
 	label.position = Vector2(x, RATE_Y)
-	label.modulate = Color(1, 1, 1, 0.7)
+	label.modulate = RATE_COLOR
 	add_child(label)
 	return label

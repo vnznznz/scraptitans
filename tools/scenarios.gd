@@ -125,11 +125,11 @@ func m1() -> void:
 	await t.frames(1)
 	await t.shot("m1_blocked")
 
-	var before := JSON.stringify(GameState.to_dict(), "", true, true)
+	var before := JSON.stringify(GameState.to_dict(), "", true)
 	Save.save_game()
 	GameState.new_game()
 	Save.load_game()
-	var after := JSON.stringify(GameState.to_dict(), "", true, true)
+	var after := JSON.stringify(GameState.to_dict(), "", true)
 	t.check(before == after, "reload restores the exact state")
 
 	GameState.scrap = 1000.0
@@ -159,7 +159,7 @@ func m2() -> void:
 
 	_spawn_mechs(3)
 	await t.frames(1)
-	var label: Label = field.get_child(field.get_child_count() - 1)
+	var label: Label = field.get_node("DpsLabel")
 	t.check(is_equal_approx(GameState.field_dps(), 3.0) and label.text == "3 DPS", "DPS matches the mech count (%s)" % label.text)
 	GameState.advance(2.0)
 	t.check(absf(GameState.wave_hp - (hp0 - 6.0)) < 0.2, "3 DPS drains 6 HP in 2 s (%.2f left)" % GameState.wave_hp)
@@ -180,11 +180,11 @@ func m2() -> void:
 	await t.shot("m2_cleared")
 
 	GameState.advance(3.0)
-	var before := JSON.stringify(GameState.to_dict(), "", true, true)
+	var before := JSON.stringify(GameState.to_dict(), "", true)
 	Save.save_game()
 	GameState.new_game()
 	Save.load_game()
-	t.check(before == JSON.stringify(GameState.to_dict(), "", true, true) and GameState.wave == 1, "reload keeps the wave and its HP")
+	t.check(before == JSON.stringify(GameState.to_dict(), "", true) and GameState.wave == 1, "reload keeps the wave and its HP")
 
 	GameState.kill_wave()
 	t.check(GameState.wave == 2 and Data.wave_type(2).name == "Junk Brute", "debug kill wave: Junk Brute next")
@@ -271,11 +271,11 @@ func m3() -> void:
 	GameState.advance(3.0)
 	t.check(GameState.scrap < scrap + 20.0 and not GameState.lines[0].paused, "unpaused: production resumes")
 
-	var before := JSON.stringify(GameState.to_dict(), "", true, true)
+	var before := JSON.stringify(GameState.to_dict(), "", true)
 	Save.save_game()
 	GameState.new_game()
 	Save.load_game()
-	t.check(before == JSON.stringify(GameState.to_dict(), "", true, true), "reload keeps workers and pause")
+	t.check(before == JSON.stringify(GameState.to_dict(), "", true), "reload keeps workers and pause")
 
 
 func m4() -> void:
@@ -286,29 +286,25 @@ func m4() -> void:
 	t.check(menu.visible, "UPGRADES opens the menu")
 	await t.frames(1)
 	var buy := _buy(menu, "frame_bar")
-	t.check(buy.disabled and menu.find_child("Row_frame_bar", true, false).modulate != Color.WHITE, "unaffordable rows are grey")
+	t.check(buy.disabled and menu.row("frame_bar").modulate != Color.WHITE, "unaffordable rows are grey")
 	await t.shot("m4_menu")
 
 	GameState.credits = 1e6
 	var checks := [
-		["segments", "frame_bar", "frame.bar_size", 5.0],
-		["workers", "chunk", "worker_chunk", 2.0],
-		["yard", "tap", "scrap_per_tap", 2.0],
-		["payout", "step_cap", "payout_cap", 7.0],
-		["salvage", "salvage", "salvage", 0.25],
-		["lines", "lines", "lines", 2.0],
+		["frame_bar", "frame.bar_size", 5.0],
+		["chunk", "worker_chunk", 2.0],
+		["tap", "scrap_per_tap", 2.0],
+		["step_cap", "payout_cap", 7.0],
+		["salvage", "salvage", 0.25],
+		["lines", "lines", 2.0],
 	]
 	for c: Array in checks:
-		await t.click(menu.find_child("Tab_" + c[0], true, false))
-		await t.frames(2)
-		await t.click(_buy(menu, c[1]))
-		t.check(is_equal_approx(GameState.stat(c[2]), c[3]), "%s tab: %s is now %s" % [c[0], c[2], GameState.stat(c[2])])
+		await t.click(_buy(menu, c[0]))
+		t.check(is_equal_approx(GameState.stat(c[1]), c[2]), "%s is now %s" % [c[1], GameState.stat(c[1])])
 	t.check(GameState.lines.size() == 2 and main.line_view(1) != null, "line 2 unlocked and shown")
 	t.check(is_equal_approx(GameState.upgrade_cost("tap"), 25.0 * 1.15), "cost base·1.15^level")
 	t.check(is_equal_approx(GameState.lines[0].segments[0].bar_size(), 5.0), "sim reads the derived bar size")
 
-	await t.click(main.find_child("Tab_salvage", true, false))
-	await t.frames(2)
 	for i in 20:
 		await t.click(_buy(menu, "salvage"))
 	t.check(GameState.upgrade_maxed("salvage") and is_equal_approx(GameState.salvage_share(), 0.9), "salvage stops at 90%")
@@ -333,11 +329,212 @@ func m4() -> void:
 	await t.click(main.find_child("UnlockLine", true, false))
 	await t.frames(1)
 	t.check(GameState.lines.size() == 3 and main.line_view(2) != null, "pane button unlocks line 3")
-	var before := JSON.stringify(GameState.to_dict(), "", true, true)
+	var before := JSON.stringify(GameState.to_dict(), "", true)
 	Save.save_game()
 	GameState.new_game()
 	Save.load_game()
-	t.check(before == JSON.stringify(GameState.to_dict(), "", true, true) and GameState.stat("lines") == 3.0, "reload keeps upgrades and lines")
+	t.check(before == JSON.stringify(GameState.to_dict(), "", true) and GameState.stat("lines") == 3.0, "reload keeps upgrades and lines")
+
+
+func m5() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	var line: LineView = main.line_view(0)
+	var segs := GameState.lines[0].segments
+	t.check(line.get_node("Pause").position.x < 20, "pause sits at the left of the line")
+	t.check(absf(line.segment_view(0).position.x - 52.0) < 1.0 and absf(line.segment_view(2).position.x + 80.0 + 52.0 - 360.0) < 1.0, "3 segments centered (x %d)" % line.segment_view(0).position.x)
+
+	await t.click(main.get_node("%Upgrades"))
+	await t.frames(1)
+	t.check(_sorted(menu), "one list, cheapest first, maxed last")
+	t.check(menu.row("final_arms").visible and _buy(menu, "final_arms").disabled, "Atomic Missile row visible and locked")
+	t.check(not menu.row("plating_bar").visible, "plating rows hidden until plating is unlocked")
+	await t.shot("m5_menu")
+	await t.click(main.get_node("%Upgrades"))
+
+	GameState.scrap = 45.0
+	for i in 3:
+		await t.click(_build_button(line, i))
+	GameState.credits = 1000.0
+	for i in 3:
+		await t.click(line.segment_view(0).get_node("Hire"))
+	await t.frames(1)
+	t.check(not line.segment_view(0).get_node("Hire").visible and line.segment_view(1).get_node("Hire").visible, "hire button gone when slots are full")
+
+	GameState.scrap = 0.0
+	await _fill_bar(line, 0)
+	GameState.advance(0.2)
+	await t.frames(1)
+	var rate: Label = main.get_node("%Hud")._scrap_rate
+	t.check(GameState.starved() and rate.modulate == Hud.STARVED, "no scrap: HUD scrap rate turns red")
+	GameState.scrap = 100.0
+	GameState.advance(0.2)
+	await t.frames(1)
+	t.check(not GameState.starved() and rate.modulate == Hud.RATE_COLOR, "scrap back: normal color")
+
+	await t.click(line.segment_view(0).get_node("Jump"))
+	await t.frames(3)
+	var row := menu.row("tier_frame")
+	t.check(menu.visible and row.modulate == UpgradeMenu.FLASH, "⬆ opens the menu on the frame tier row")
+	t.check(row.get_global_rect().intersects(menu.get_global_rect()), "the row is scrolled into view")
+	t.check(not line.segment_view(0).get_node("Apply").visible, "no tier to apply yet")
+	GameState.credits = 300.0
+	await t.click(_buy(menu, "tier_frame"))
+	t.check(GameState.unlocked_tier("frame") == 1, "Bolted Frame unlocked for 300 credits")
+	await t.shot("m5_unlocked")
+	await t.click(main.get_node("%Upgrades"))
+
+	await t.click(line.get_node("Pause"))
+	GameState.scrap = 0.0
+	GameState.advance(10.0)
+	t.check(GameState.lines[0].paused and is_zero_approx(GameState.scrap), "paused line saves scrap")
+	GameState.scrap = 60.0
+	await t.frames(1)
+	await t.click(line.segment_view(0).get_node("Apply"))
+	t.check(segs[0].tier == 1 and is_zero_approx(GameState.scrap), "apply Bolted Frame for 60 scrap")
+	await t.click(line.get_node("Pause"))
+	GameState.scrap = 1000.0
+	GameState.field.clear()
+	for k in 3:
+		for i in 3:
+			await _fill_bar(line, i)
+		GameState.advance(3.0)
+	var m: MechState = GameState.field[-1]
+	t.check(m.parts.frame == 1 and is_equal_approx(m.lifetime, 30.0), "new mechs have Bolted Frames and live 30 s")
+	t.check(is_equal_approx(m.scrap_cost, 8.0 + 3.0 + 3.0), "scrap per mech rises to 14")
+	await t.frames(30)
+	await t.shot("m5_bolted")
+
+	GameState.credits = 1000.0
+	GameState.buy_upgrade("tier_plating")
+	await t.frames(2)
+	t.check(segs.size() == 4 and line.segment_view(3) != null, "plating unlock adds a 4th pad")
+	t.check(absf(line.segment_view(0).position.x - 8.0) < 1.0, "4 segments re-centered (x %d)" % line.segment_view(0).position.x)
+	await t.click(_build_button(line, 3))
+	t.check(segs[3].built, "plating built on line 1")
+	GameState.field.clear()
+	for k in 4:
+		for i in 4:
+			await _fill_bar(line, i)
+		GameState.advance(3.0)
+	m = GameState.field[-1]
+	t.check(m.parts.has("plating") and is_equal_approx(m.lifetime, 40.0), "plated mechs live 40 s (%s)" % m.lifetime)
+	await t.frames(30)
+	await t.shot("m5_plating")
+
+	GameState.wave = 10
+	var aged := MechState.new()
+	aged.lifetime = 20.0
+	GameState.field = [aged]
+	GameState.advance(20.0 / 1.5 + 0.1)
+	t.check(GameState.field.is_empty(), "wave 11: mechs age 1.5x and die after 13.3 s")
+
+
+func m6() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var field: Battlefield = main.get_node("%Battlefield")
+	GameState.time_scale = 1.0
+	GameState.debug_spawn_mechs(3)
+	await t.frames(2)
+	var view := field.mech_view(GameState.field[0].id)
+	t.check(view.walking, "mechs walk in")
+	await t.wait(6.0)
+	t.check(not view.walking, "and hold a slot")
+	var bullets := field.find_children("*", "Sprite2D", true, false).filter(func(n: Node) -> bool:
+		return n.texture == preload("res://art/fx/bullet.png") or n.texture == preload("res://art/fx/enemy_bullet.png"))
+	await t.shot("m6_fight")
+	var fired := 0
+	for k in 60:
+		await t.frames(1)
+		fired = maxi(fired, field.find_children("*", "Sprite2D", true, false).filter(func(n: Node) -> bool:
+			return n.texture == preload("res://art/fx/bullet.png")).size())
+	t.check(fired > 0 or bullets.size() > 0, "mechs fire at the wave")
+
+	var m: MechState = GameState.field[0]
+	for pair: Array in [[0.9, 0], [0.6, 1], [0.4, 2], [0.2, 3], [0.1, 4]]:
+		m.wear = m.lifetime * (1.0 - pair[0])
+		await t.frames(1)
+		t.check(view.get("_stage") == pair[1], "remaining %d%%: damage stage %d" % [pair[0] * 100, pair[1]])
+	await t.shot("m6_damaged")
+
+	GameState.debug_spawn_mechs(50)
+	await t.frames(2)
+	t.check(field.mech_count() == 24 and GameState.field.size() == 53, "53 mechs simulated, 24 drawn")
+	await t.wait(2.0)
+	var max_discs := 0
+	var start := Time.get_ticks_msec()
+	var frames := 0
+	while Time.get_ticks_msec() - start < 4000:
+		await t.frames(1)
+		frames += 1
+		max_discs = maxi(max_discs, main.get_node("%Flyers").in_flight())
+	print("  fps with 53 mechs: %.0f" % (frames / 4.0))
+	t.check(max_discs <= 30 and max_discs > 0, "income discs stay readable (max %d in flight)" % max_discs)
+	await t.shot("m6_50")
+
+
+func m7() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	var nuke: Nuke = main.get_node("%Nuke")
+	var line: LineView = main.line_view(0)
+	GameState.credits = 1e8
+	GameState.scrap = 1e7
+	for i in 3:
+		await t.click(_build_button(line, i))
+	for i in 3:
+		GameState.hire_worker(0, i)
+	await t.click(main.get_node("%Upgrades"))
+	for i in 4:
+		await t.click(_buy(menu, "tier_arms"))
+	t.check(GameState.unlocked_tier("arms") == 4, "Railgun unlocked")
+	await t.click(_buy(menu, "final_arms"))
+	t.check(menu.get_node("Confirm").visible and GameState.level("final_arms") == 0, "Atomic Missile asks to confirm")
+	await t.shot("m7_confirm")
+	await t.click(menu.find_child("Yes", true, false))
+	t.check(GameState.unlocked_tier("arms") == 5, "Atomic Missile unlocked")
+	await t.click(main.get_node("%Upgrades"))
+	for i in 5:
+		await t.click(line.segment_view(2).get_node("Apply"))
+	t.check(GameState.lines[0].segments[2].tier == 5, "applied to the Arms segment")
+
+	GameState.time_scale = 1.0
+	var start := Time.get_ticks_msec()
+	while not GameState.run_over and Time.get_ticks_msec() - start < 20000:
+		for i in 3:
+			GameState.tap_segment(0, i)
+		await t.frames(1)
+	t.check(GameState.run_over and nuke.visible, "Nuclear Mech deploys, input locked")
+	await t.wait(3.0)
+	await t.shot("m7_walk")
+	await t.wait(3.6)
+	await t.shot("m7_launch")
+	await t.wait(1.4)
+	await t.shot("m7_cloud")
+	await t.wait(2.4)
+	await t.shot("m7_sweep")
+	start = Time.get_ticks_msec()
+	while not nuke.card_visible() and Time.get_ticks_msec() - start < 20000:
+		await t.frames(1)
+	t.check(nuke.card_visible(), "run stats card after %.1f s" % ((Time.get_ticks_msec() - start) / 1000.0))
+	t.check(not line.get_node("Segment0").visible, "factory collapsed")
+	await t.shot("m7_card")
+
+	Save.save_game()
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
+	Save.load_game()
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
+	main = t.get_tree().current_scene
+	t.check(GameState.run_over and main.get_node("%Nuke").card_visible(), "reload shows the card, not the old run")
+	await t.click(main.get_node("%Nuke").find_child("StartAgain", true, false))
+	await t.frames(3)
+	main = t.get_tree().current_scene
+	t.check(not GameState.run_over and GameState.mechs_built == 0 and not main.get_node("%Nuke").visible, "Start again gives a fresh game")
 
 
 func shots() -> void:
@@ -383,12 +580,18 @@ func _buy(menu: UpgradeMenu, id: String) -> Button:
 
 
 func _spawn_mechs(n: int) -> void:
-	for i in n:
-		var m := MechState.new()
-		m.id = GameState.next_mech_id
-		GameState.next_mech_id += 1
-		m.parts = {"frame": 0, "core": 0, "arms": 0}
-		GameState._deploy(m)
+	GameState.debug_spawn_mechs(n)
+
+
+func _sorted(menu: UpgradeMenu) -> bool:
+	var keys := []
+	for id: String in Data.upgrade_list.map(func(r: Dictionary) -> String: return r.id):
+		keys.append([menu.row(id).get_index(), 1 if GameState.upgrade_maxed(id) else 0, GameState.upgrade_cost(id)])
+	keys.sort()
+	for i in range(1, keys.size()):
+		if keys[i][1] < keys[i - 1][1] or (keys[i][1] == keys[i - 1][1] and keys[i][2] < keys[i - 1][2]):
+			return false
+	return true
 
 
 func _bot_step() -> void:

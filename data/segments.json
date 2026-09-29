@@ -1,5 +1,5 @@
 {
-	"line_slots": ["frame", "core", "arms"],
+	"line_slots": ["frame", "core", "arms", "plating"],
 	"types": {
 		"frame": {
 			"name": "Frame",
@@ -8,8 +8,14 @@
 			"worker_base": 50,
 			"worker_growth": 1.35,
 			"worker_slots": 3,
+			"layer": 0,
 			"tiers": [
-				{"part": "Scrap Frame", "scrap_per_mech": 4, "lifetime": 20}
+				{"part": "Scrap Frame", "scrap_per_mech": 4, "lifetime": 20, "unlock_cost": 0, "apply_cost": 0},
+				{"part": "Bolted Frame", "scrap_per_mech": 8, "lifetime": 30, "unlock_cost": 300, "apply_cost": 60},
+				{"part": "Steel Walker", "scrap_per_mech": 16, "lifetime": 45, "unlock_cost": 2000, "apply_cost": 250},
+				{"part": "Composite Strider", "scrap_per_mech": 32, "lifetime": 65, "unlock_cost": 12000, "apply_cost": 1000},
+				{"part": "Titan Chassis", "scrap_per_mech": 64, "lifetime": 90, "unlock_cost": 60000, "apply_cost": 4000},
+				{"part": "Atomic Colossus", "scrap_per_mech": 128, "lifetime": 120, "unlock_cost": 300000, "apply_cost": 15000}
 			]
 		},
 		"core": {
@@ -19,8 +25,14 @@
 			"worker_base": 50,
 			"worker_growth": 1.35,
 			"worker_slots": 3,
+			"layer": 2,
 			"tiers": [
-				{"part": "Junk Brain", "scrap_per_mech": 3, "credits_per_sec": 1, "deploy_fee": 5}
+				{"part": "Junk Brain", "scrap_per_mech": 3, "credits_per_sec": 1, "deploy_fee": 5, "unlock_cost": 0, "apply_cost": 0},
+				{"part": "Relay Box", "scrap_per_mech": 6, "credits_per_sec": 3, "deploy_fee": 15, "unlock_cost": 400, "apply_cost": 60},
+				{"part": "Tube Core", "scrap_per_mech": 12, "credits_per_sec": 9, "deploy_fee": 45, "unlock_cost": 2500, "apply_cost": 250},
+				{"part": "Silicon Mind", "scrap_per_mech": 24, "credits_per_sec": 27, "deploy_fee": 130, "unlock_cost": 15000, "apply_cost": 1000},
+				{"part": "Quantum Core", "scrap_per_mech": 48, "credits_per_sec": 80, "deploy_fee": 400, "unlock_cost": 75000, "apply_cost": 4000},
+				{"part": "Doom Core", "scrap_per_mech": 96, "credits_per_sec": 240, "deploy_fee": 1200, "unlock_cost": 350000, "apply_cost": 15000}
 			]
 		},
 		"arms": {
@@ -30,8 +42,32 @@
 			"worker_base": 50,
 			"worker_growth": 1.35,
 			"worker_slots": 3,
+			"layer": 3,
 			"tiers": [
-				{"part": "Pipe Gun", "scrap_per_mech": 3, "dps": 1}
+				{"part": "Pipe Gun", "scrap_per_mech": 3, "dps": 1, "unlock_cost": 0, "apply_cost": 0},
+				{"part": "Bolt Cannon", "scrap_per_mech": 6, "dps": 3, "unlock_cost": 350, "apply_cost": 60},
+				{"part": "Autocannon", "scrap_per_mech": 12, "dps": 9, "unlock_cost": 2200, "apply_cost": 250},
+				{"part": "Rocket Pod", "scrap_per_mech": 24, "dps": 27, "unlock_cost": 13000, "apply_cost": 1000},
+				{"part": "Railgun", "scrap_per_mech": 48, "dps": 80, "unlock_cost": 70000, "apply_cost": 4000},
+				{"part": "Atomic Missile", "scrap_per_mech": 500, "dps": 0, "unlock_cost": 2000000, "apply_cost": 20000, "final": true}
+			]
+		},
+		"plating": {
+			"name": "Plating",
+			"optional": true,
+			"build_cost": 200,
+			"bar_size": 5,
+			"worker_base": 80,
+			"worker_growth": 1.35,
+			"worker_slots": 3,
+			"layer": 1,
+			"tiers": [
+				{"part": "Tin Sheets", "scrap_per_mech": 3, "lifetime": 10, "unlock_cost": 150, "apply_cost": 0},
+				{"part": "Boiler Plate", "scrap_per_mech": 6, "lifetime": 20, "unlock_cost": 1200, "apply_cost": 60},
+				{"part": "Steel Plating", "scrap_per_mech": 12, "lifetime": 35, "unlock_cost": 8000, "apply_cost": 250},
+				{"part": "Ceramic Armor", "scrap_per_mech": 24, "lifetime": 55, "unlock_cost": 40000, "apply_cost": 1000},
+				{"part": "Reactive Armor", "scrap_per_mech": 48, "lifetime": 80, "unlock_cost": 200000, "apply_cost": 4000},
+				{"part": "Lead-Lined Hull", "scrap_per_mech": 96, "lifetime": 110, "unlock_cost": 800000, "apply_cost": 15000}
 			]
 		}
 	}

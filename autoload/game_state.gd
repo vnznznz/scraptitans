@@ -6,6 +6,8 @@ signal mech_income(mech: MechState, credits: float)
 signal mech_died(mech: MechState, salvage: float)
 signal wave_cleared(bounty: float)
 signal line_added(index: int)
+signal segment_added(line_index: int)
+signal nuke_launched(mech: MechState)
 
 const TICK := 1.0 / 30.0
 const MAX_FRAME_DELTA := 0.25
@@ -24,6 +26,7 @@ var wave_hp := 0.0
 var yard_workers := 0
 var yard_t := 0.0
 var levels := {}
+var run_over := false
 var credits_rate := 0.0
 var scrap_rate := 0.0
 var time_scale := 1.0
@@ -39,6 +42,8 @@ var _scrap_history: Array[float] = []
 
 
 func _process(delta: float) -> void:
+	if run_over:
+		return
 	_acc += minf(delta, MAX_FRAME_DELTA) * time_scale
 	while _acc >= TICK:
 		_acc -= TICK
@@ -47,20 +52,23 @@ func _process(delta: float) -> void:
 
 func advance(seconds: float) -> void:
 	for i in int(round(seconds / TICK)):
+		if run_over:
+			return
 		_step(TICK)
 
 
 func new_game() -> void:
 	scrap = Data.econ("start_scrap")
 	credits = Data.econ("start_credits")
-	lines = [LineState.create()]
+	levels = {}
+	_stats = {}
+	lines = [LineState.create(active_slots())]
 	field = []
 	next_mech_id = 1
 	run_time = 0.0
 	mechs_built = 0
 	credits_earned = 0.0
-	levels = {}
-	_stats = {}
+	run_over = false
 	wave = 0
 	wave_hp = wave_max_hp()
 	yard_workers = 0
@@ -76,6 +84,49 @@ func stat(key: String) -> float:
 		v += float(row.delta) * level(row.id)
 	_stats[key] = v
 	return v
+
+
+func active_slots() -> Array:
+	return Data.line_slots().filter(func(t: String) -> bool: return unlocked_tier(t) >= 0)
+
+
+func unlocked_tier(type_id: String) -> int:
+	var lv := level("tier_" + type_id) + level("final_" + type_id)
+	return lv - (1 if Data.segment_type(type_id).get("optional", false) else 0)
+
+
+func can_apply_tier(line_index: int, seg_index: int) -> bool:
+	var s := lines[line_index].segments[seg_index]
+	return s.built and s.tier < unlocked_tier(s.type_id)
+
+
+func tier_apply_cost(line_index: int, seg_index: int) -> float:
+	var s := lines[line_index].segments[seg_index]
+	return float(Data.tier(s.type_id, s.tier + 1).apply_cost)
+
+
+func apply_tier(line_index: int, seg_index: int) -> bool:
+	if not can_apply_tier(line_index, seg_index):
+		return false
+	var cost := tier_apply_cost(line_index, seg_index)
+	if scrap < cost:
+		return false
+	scrap -= cost
+	lines[line_index].segments[seg_index].tier += 1
+	purchased.emit()
+	return true
+
+
+func starved() -> bool:
+	for line in lines:
+		for s in line.segments:
+			if s.stall == SegmentState.Stall.NO_SCRAP:
+				return true
+	return false
+
+
+func aging() -> float:
+	return 1.0 + float(Data.enemies.wave_damage) * wave
 
 
 func tap_pile() -> void:
@@ -169,23 +220,46 @@ func level(id: String) -> int:
 
 
 func upgrade_cost(id: String) -> float:
-	return float(Data.upgrade_row(id).base_cost) * pow(Data.econ("upgrade_cost_growth"), level(id))
+	var row := Data.upgrade_row(id)
+	match row.get("kind", ""):
+		"tier":
+			return float(Data.tier(row.type, mini(unlocked_tier(row.type) + 1, Data.segment_type(row.type).tiers.size() - 1)).unlock_cost)
+		"final":
+			return float(Data.segment_type(row.type).tiers[-1].unlock_cost)
+	return float(row.base_cost) * pow(Data.econ("upgrade_cost_growth"), level(id))
 
 
 func upgrade_maxed(id: String) -> bool:
 	return level(id) >= int(Data.upgrade_row(id).max_level)
 
 
+func upgrade_locked(id: String) -> bool:
+	var row := Data.upgrade_row(id)
+	return row.get("kind", "") == "final" and not upgrade_maxed("tier_" + row.type)
+
+
+func upgrade_visible(id: String) -> bool:
+	var row := Data.upgrade_row(id)
+	var stat_key: String = row.get("stat", "")
+	var dot := stat_key.find(".")
+	return dot == -1 or unlocked_tier(stat_key.left(dot)) >= 0
+
+
 func buy_upgrade(id: String) -> bool:
 	var cost := upgrade_cost(id)
-	if upgrade_maxed(id) or credits < cost:
+	if upgrade_maxed(id) or upgrade_locked(id) or credits < cost:
 		return false
 	credits -= cost
 	levels[id] = level(id) + 1
 	_stats = {}
 	while lines.size() < int(stat("lines")):
-		lines.append(LineState.create())
+		lines.append(LineState.create(active_slots()))
 		line_added.emit(lines.size() - 1)
+	for i in lines.size():
+		for type_id: String in active_slots():
+			if not lines[i].has_type(type_id):
+				lines[i].segments.append(SegmentState.new(type_id))
+				segment_added.emit(i)
 	purchased.emit()
 	return true
 
@@ -228,6 +302,7 @@ func to_dict() -> Dictionary:
 		"yard_workers": yard_workers,
 		"yard_t": yard_t,
 		"levels": levels.duplicate(),
+		"run_over": run_over,
 	}
 
 
@@ -253,6 +328,7 @@ func from_dict(d: Dictionary) -> void:
 	wave_hp = float(d.get("wave_hp", wave_max_hp()))
 	yard_workers = int(d.get("yard_workers", 0))
 	yard_t = float(d.get("yard_t", 0.0))
+	run_over = d.get("run_over", false)
 	_reset_rates()
 
 
@@ -294,7 +370,7 @@ func _step_yard(dt: float) -> void:
 
 func _step_line(line: LineState, dt: float) -> void:
 	var segs := line.segments
-	var last := segs.size() - 1
+	var last := line.last_built()
 	for i in range(last, -1, -1):
 		var s := segs[i]
 		s.stall = SegmentState.Stall.NONE
@@ -345,18 +421,32 @@ func _try_assemble(s: SegmentState, spawn: bool) -> void:
 
 
 func _deploy(m: MechState) -> void:
-	var frame := Data.tier("frame", m.parts.get("frame", 0))
-	var core := Data.tier("core", m.parts.get("core", 0))
-	var arms := Data.tier("arms", m.parts.get("arms", 0))
-	m.lifetime = float(frame.lifetime)
-	m.base_rate = float(core.credits_per_sec)
-	m.deploy_fee = float(core.deploy_fee) * stat("deploy_fee_mult")
-	m.dps = float(arms.dps)
+	for type_id: String in m.parts:
+		var t := Data.tier(type_id, m.parts[type_id])
+		m.lifetime += float(t.get("lifetime", 0.0))
+		m.base_rate += float(t.get("credits_per_sec", 0.0))
+		m.deploy_fee += float(t.get("deploy_fee", 0.0))
+		m.dps += float(t.get("dps", 0.0))
+	m.deploy_fee *= stat("deploy_fee_mult")
 	m.arrive_t = 0.0
 	field.append(m)
 	mechs_built += 1
 	_gain_credits(m.deploy_fee)
 	mech_deployed.emit(m)
+	if m.is_nuclear():
+		run_over = true
+		purchased.emit()
+		nuke_launched.emit(m)
+
+
+func debug_spawn_mechs(n: int) -> void:
+	for i in n:
+		var m := MechState.new()
+		m.id = next_mech_id
+		next_mech_id += 1
+		for type_id: String in ["frame", "core", "arms"]:
+			m.parts[type_id] = 0
+		_deploy(m)
 
 
 func payout_rate(m: MechState) -> float:
@@ -368,10 +458,11 @@ func _step_field(dt: float) -> void:
 	for m: MechState in field.duplicate():
 		var c := payout_rate(m) * dt
 		m.age += dt
+		m.wear += dt * aging()
 		_gain_credits(c)
 		m.pend_credits += c
 		m.pend_t += dt
-		var dead := m.age >= m.lifetime
+		var dead := m.wear >= m.lifetime
 		if m.pend_t >= 1.0 or dead:
 			mech_income.emit(m, m.pend_credits)
 			m.pend_t = 0.0
