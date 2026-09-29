@@ -16,6 +16,7 @@
 - Scrapyard always visible in the bottom bar; pile/workers/tap in child `Yard`, centered until reveal, then slides left (0.4 s): pile (tap), yard workers on both sides, hire button (icon + cost, MAX + disabled when full) above UPGRADES; pane starts at the top
 - Views build their children in code; main adds one `LineView` per line, more on `line_added`
 - UPGRADES button toggles the menu (reads CLOSE while open); badge = `GameState.affordable_upgrades()` (visible, unmaxed, unlocked, affordable rows): red with count, grey "0" when none; hidden only while the menu is open
+- Intro guide (`scenes/intro_guide.gd`, above `Layout`, no input): yellow pulsing label + bobbing arrow, step derived from state (unsaved): short on scrap for the next build / a station stalled NO_SCRAP → pile; affordable → that station's Build button; all built → first station at or past the mech (past it once assembling / part fitted) whose bar isn't full, no arrow when none; hidden once `revealed()`
 - Progressive reveal: UPGRADES, UNLOCK LINE, YARD WORKER (+ yard slots) hidden until `GameState.revealed()` (`mechs_built > 0`)
 - HUD columns: scrap (x 6) / mechs built + `mechs_per_min` (x 112, icon bumps on deploy) / credits (x 214), gear right
 - Window/tab title `(N) Scrap Titans` while N upgrades are affordable (after reveal, before the nuke); `DisplayServer.window_set_title` = `document.title` on web (inside Poki's iframe it won't reach the tab)
@@ -48,7 +49,7 @@
 - Payout `cap` starts 0 (flat), Pay raises add steps
 - `mechs_per_min`: deploys in the last 60 one-second samples (unsaved)
 - Per-line scrap use: assembly costs → `LineState.use_scrap`, sampled each second with the global rates → `scrap_used_rate` (5 s window, unsaved); `LineState.starved()`
-- Rates over 5 s: `credits_rate`; `scrap_rate` net (assembly spend subtracts; HUD); `scrap_gain_rate` gross (disc tiers)
+- Rates over 5 s: `credits_rate`; `tap_dps` (battlefield tap damage); `scrap_rate` net (assembly spend subtracts; HUD); `scrap_gain_rate` gross (disc tiers)
 - Stall icon: NO_SCRAP at once, BLOCKED only after 3 s of game time in that state (view-side timer)
 - `starved()`: any segment stalled NO_SCRAP → HUD scrap +/s red
 - Wave: `wave`, `wave_hp`; drains by summed mech `dps`; ≤0 → bounty, `wave += 1`, full HP. `hp = base_hp·hp_growth^wave`, bounty likewise
@@ -67,7 +68,7 @@
 - New save fields read with `.get` defaults, so `version` stays 1
 
 ## Battlefield
-- Wave bar at top (`WaveBar`): `W<n> hp/max` left, `DPS` right
+- Wave bar at top (`WaveBar`): `W<n> hp/max` left, `DPS` right = `wave_dps()` (mech DPS + `tap_dps`)
 - Enemies right side, y-sorted layer; air and ground each spread left→right in pop order; visible = `wave_alive()`; flyers bob; `enemy_<sprite>_<variant>.png`
 - `DamageFx` (`scenes/damage_fx.gd`): smoke ×3 / sparks by remaining share; mechs (lifetime) and enemies (wave HP left) share it
 - Wave cleared: puffs, `CPUParticles2D` sparks, bounty disc burst, shake, next wave walks in from the right
@@ -90,7 +91,7 @@
 ## Input
 - Hand cursor on every button (via `Main` `node_added` hook → `Hover.button`; arrow while disabled) and tap area (`Hover.add`)
 - Hover: theme `hover` style (`button_hover.png`), flat buttons and tap areas tint (`self_modulate`, tap area lights its `highlight`: machine, pile); all hover off on touchscreens (emulated mouse would leave it stuck)
-- Battlefield: full-rect `TapArea` `FieldTap` → `tap_wave()`, nearest visible enemy flashes + puff, 2 credit discs burst from the tap point
+- Battlefield: full-rect `TapArea` `FieldTap` → `tap_wave()`, nearest visible enemy flashes + puff; one credit disc per whole credit the HUD counter gains (≤5, none under 1) bursts from the tap point
 - Taps: `TapArea` (`ui/tap_area.gd`): fires on `ScreenTouch` press (multi-touch) or real mouse press; ignores touch-emulated mouse; `MOUSE_FILTER_PASS` so drags reach `ScrollContainer`
 - Buttons in the scroll pane use `MOUSE_FILTER_PASS`; scroll deadzone 8
 
@@ -103,7 +104,7 @@
 
 ## Commands
 - Import: `godot --headless --path . --import`
-- Scenario: `godot --headless --path . -- --scenario <m0..m8>`; exit code 1 on failure; `Instrument.click` scrolls the target into view first
+- Scenario: `godot --headless --path . -- --scenario <m0..m8|intro>`; exit code 1 on failure; `Instrument.click` scrolls the target into view first
 - Tuning: `godot --headless --path . -- --scenario tune`: bot plays a run (3 taps/s, builds, buys cheapest, applies tiers, pauses lines to save for applies); prints per-minute economy + purchase timeline; checks first worker < 4 min, nuke 30–60 min. Now: first worker 1.4 min, nuke ~33 min (1.5 taps/s: 2.5 / 36 min); the bot never taps the battlefield
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
 - Placeholders: `uv run --with pillow python3 tools/gen_placeholders.py`

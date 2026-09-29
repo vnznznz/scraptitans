@@ -42,6 +42,13 @@ func _ready() -> void:
 	_badge_style.content_margin_right = 5
 	_badge.add_theme_stylebox_override("normal", _badge_style)
 	_upgrades.add_child(_badge)
+	var guide := IntroGuide.new()
+	guide.name = "IntroGuide"
+	guide.pile = (%Scrapyard as Scrapyard).pile()
+	guide.line = line_view(0)
+	guide.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	add_child(guide)
+	move_child(guide, $Layout.get_index() + 1)
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.pressed.connect(_toggle_menu)
 

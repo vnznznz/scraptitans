@@ -17,6 +17,7 @@ const BAR_RECT := Rect2(4, 4, 352, 20)
 const MECH_FIRE := Vector2(0.8, 1.6)
 const ENEMY_FIRE := Vector2(1.2, 2.4)
 const INCOME_DISCS_PER_S := 10.0
+const TAP_DISCS_MAX := 5
 
 var _mechs: Node2D
 var _enemy_layer: Node2D
@@ -112,7 +113,7 @@ func _process(delta: float) -> void:
 	_bar.max_value = max_hp
 	_bar.value = GameState.wave_hp
 	_hp_label.text = "W%d  %s/%s" % [GameState.wave + 1, Fmt.num(GameState.wave_hp), Fmt.num(max_hp)]
-	_dps_label.text = "%s DPS" % Fmt.num(GameState.field_dps())
+	_dps_label.text = "%s DPS" % Fmt.num(GameState.wave_dps())
 	var alive := GameState.wave_alive()
 	while _enemy_count > alive:
 		_pop_enemy(_enemies.size() - _enemy_count)
@@ -220,6 +221,7 @@ func _show_wave(walk_in: bool) -> void:
 
 
 func _on_tap(at: Vector2) -> void:
+	var before := GameState.credits
 	var pay := GameState.tap_wave()
 	if pay <= 0.0:
 		return
@@ -231,7 +233,9 @@ func _on_tap(at: Vector2) -> void:
 		target.modulate = Color(3, 3, 3)
 		target.create_tween().tween_property(target, "modulate", Color.WHITE, 0.12)
 		_puff(_enemy_center(target) + Vector2(randf_range(-4, 4), randf_range(-4, 4)), 0.4, Color(1, 0.9, 0.6))
-	Flyers.spawn(Flyers.Kind.CREDITS, global_position + at, pay, 2)
+	var whole := mini(int(floorf(before + pay) - floorf(before)), TAP_DISCS_MAX)
+	if whole > 0:
+		Flyers.spawn(Flyers.Kind.CREDITS, global_position + at, pay, whole)
 
 
 func _pop_enemy(i: int) -> void:

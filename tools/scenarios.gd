@@ -772,8 +772,23 @@ func m8() -> void:
 	await t.click(field_tap)
 	t.check(is_equal_approx(GameState.wave_hp, GameState.wave_max_hp() * 0.99), "a battlefield tap deals 1% of the wave HP")
 	t.check(is_equal_approx(GameState.credits, GameState.wave_bounty() * 0.01), "and pays 1%% of the bounty (%.2f)" % GameState.credits)
+	t.check(flyers.get_child_count() == 0, "under 1 credit paid: no disc")
+	GameState.credits = 0.5
+	await t.click(field_tap)
 	var tap_at := field_tap.get_global_rect().get_center()
-	t.check(flyers.get_child_count() == 2 and flyers.get_children().all(func(d: Control) -> bool: return (d.position + d.size / 2.0).distance_to(tap_at) < 30.0), "two credit discs burst from the tap point")
+	t.check(flyers.get_child_count() == 1 and flyers.get_children().all(func(d: Control) -> bool: return (d.position + d.size / 2.0).distance_to(tap_at) < 30.0), "counter ticks 0 → 1: one credit disc bursts from the tap point")
+	for c in flyers.get_children():
+		c.free()
+	GameState.wave = 8
+	GameState.wave_hp = GameState.wave_max_hp()
+	GameState.credits = 0.0
+	await t.click(field_tap)
+	t.check(flyers.get_child_count() == int(GameState.credits), "one disc per whole credit earned (%d discs, %.2f credits)" % [flyers.get_child_count(), GameState.credits])
+	var field_dps := GameState.field_dps()
+	GameState.advance(1.0)
+	var dps_label: Label = main.find_child("DpsLabel", true, false)
+	await t.frames(1)
+	t.check(GameState.tap_dps > 0.0 and is_equal_approx(GameState.wave_dps(), field_dps + GameState.tap_dps), "wave DPS includes tap damage (%s)" % dps_label.text)
 	GameState.credits = 1e6
 	for i in 4:
 		GameState.buy_upgrade("tap_damage")
@@ -969,6 +984,49 @@ func shots() -> void:
 	await t.click(main.find_child("DebugToggle", true, false))
 	await t.click(main.find_child("SettingsButton", true, false))
 	await t.shot("settings")
+
+
+func intro() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var line: LineView = main.line_view(0)
+	var guide: IntroGuide = main.get_node("IntroGuide")
+	var pile: Control = main.find_child("Pile", true, false)
+	var arrow_x := func() -> float: return guide.get("_tip").x + guide.global_position.x
+	t.check(guide.text() == "TAP THE SCRAP PILE", "fresh game: guide points at the pile (%s)" % guide.text())
+	t.check(absf(arrow_x.call() - pile.get_global_rect().get_center().x) < 1.0, "arrow above the pile")
+	await t.shot("intro_pile")
+	for i in 10:
+		await t.click(pile)
+	t.check(guide.text() == "BUILD THE FRAME STATION", "10 scrap: build the frame (%s)" % guide.text())
+	await t.shot("intro_build")
+	await t.click(_build_button(line, 0))
+	t.check(guide.text() == "TAP THE SCRAP PILE", "short on scrap again: back to the pile")
+	for i in 40:
+		await t.click(pile)
+	for i in 2:
+		await t.click(_build_button(line, i + 1))
+	t.check(guide.text() == "TAP STATIONS TO BUILD A MECH", "all built: tap the stations (%s)" % guide.text())
+	t.check(absf(arrow_x.call() - line.segment_view(0).get_global_rect().get_center().x) < 1.0, "arrow under the frame station")
+	await t.shot("intro_stations")
+	await _fill_bar(line, 0)
+	t.check(absf(arrow_x.call() - line.segment_view(1).get_global_rect().get_center().x) < 1.0, "frame full: arrow moves to core")
+	GameState.advance(0.1)
+	await t.frames(1)
+	t.check(GameState.lines[0].segments[0].assembling and absf(arrow_x.call() - line.segment_view(1).get_global_rect().get_center().x) < 1.0, "frame assembling (bar emptied): arrow stays on core")
+	await _fill_bar(line, 1)
+	t.check(absf(arrow_x.call() - line.segment_view(2).get_global_rect().get_center().x) < 1.0, "core full: arrow on arms")
+	await _fill_bar(line, 2)
+	await t.frames(1)
+	t.check(guide.visible and not guide.get("_arrow"), "all bars full: text stays, no arrow")
+	GameState.advance(4.0)
+	await t.frames(2)
+	t.check(guide.text() == "OUT OF SCRAP: TAP THE PILE", "stalled on scrap: back to the pile (%s)" % guide.text())
+	for i in 10:
+		await t.click(pile)
+	GameState.advance(4.0)
+	await t.frames(2)
+	t.check(GameState.mechs_built == 1 and not guide.visible, "first mech deployed: guide gone")
 
 
 func _fresh(frozen := true) -> void:

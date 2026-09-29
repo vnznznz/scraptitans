@@ -212,4 +212,4 @@ Test:
 
 ## Not in the prototype
 
-Audio and tutorial (neither is in the pitch), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.
+Audio and a full tutorial (neither is in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.

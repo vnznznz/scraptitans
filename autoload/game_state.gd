@@ -32,6 +32,7 @@ var run_over := false
 var credits_rate := 0.0
 var scrap_rate := 0.0
 var scrap_gain_rate := 0.0
+var tap_dps := 0.0
 var mechs_per_min := 0
 var time_scale := 1.0
 var yard_chunks := 0
@@ -42,9 +43,11 @@ var _rate_t := 0.0
 var _credits_bucket := 0.0
 var _scrap_bucket := 0.0
 var _scrap_gain_bucket := 0.0
+var _tap_bucket := 0.0
 var _credits_history: Array[float] = []
 var _scrap_history: Array[float] = []
 var _scrap_gain_history: Array[float] = []
+var _tap_history: Array[float] = []
 var _mech_bucket := 0
 var _mech_history: Array[int] = []
 var _wave_list: Array[Dictionary] = []
@@ -314,6 +317,10 @@ func field_dps() -> float:
 	return total
 
 
+func wave_dps() -> float:
+	return field_dps() + tap_dps
+
+
 func kill_wave() -> void:
 	_clear_wave()
 
@@ -515,6 +522,7 @@ func tap_wave() -> float:
 	var share := stat("tap_damage")
 	var pay := wave_bounty() * share
 	_gain_credits(pay)
+	_tap_bucket += wave_max_hp() * share
 	_damage_wave(wave_max_hp() * share)
 	return pay
 
@@ -580,16 +588,20 @@ func _step_rates(dt: float) -> void:
 	_credits_history.append(_credits_bucket)
 	_scrap_history.append(_scrap_bucket)
 	_scrap_gain_history.append(_scrap_gain_bucket)
+	_tap_history.append(_tap_bucket)
 	_credits_bucket = 0.0
 	_scrap_bucket = 0.0
 	_scrap_gain_bucket = 0.0
+	_tap_bucket = 0.0
 	if _credits_history.size() > RATE_WINDOW:
 		_credits_history.pop_front()
 		_scrap_history.pop_front()
 		_scrap_gain_history.pop_front()
+		_tap_history.pop_front()
 	credits_rate = _average(_credits_history)
 	scrap_rate = _average(_scrap_history)
 	scrap_gain_rate = _average(_scrap_gain_history)
+	tap_dps = _average(_tap_history)
 
 
 func _average(values: Array[float]) -> float:
@@ -607,6 +619,9 @@ func _reset_rates() -> void:
 	_credits_history = []
 	_scrap_history = []
 	_scrap_gain_history = []
+	_tap_bucket = 0.0
+	_tap_history = []
+	tap_dps = 0.0
 	_mech_bucket = 0
 	_mech_history = []
 	mechs_per_min = 0
