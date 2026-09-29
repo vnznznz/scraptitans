@@ -6,7 +6,7 @@ Prototype milestones for [pitch.md](pitch.md). Each ends with a web build playab
 
 - Claude checks the Test list as far as it can by instrumenting Godot directly: headless scenario runs for logic, windowed screenshots for visuals. Claude never runs browser tests.
 - The user runs the Test list in the local browser and iOS Safari, with the build served by Caddy over HTTPS (self-signed cert).
-- Sprites are PNG files from the start, placeholders included, so M9 replaces files, not code.
+- Sprites are PNG files from the start, placeholders included, so M10 replaces files, not code.
 - Tunables live in JSON files in `data/` (not Resource files as the pitch says); tune by playing, with the debug panel from M1 on.
 - Update [tech.md](tech.md) and tick the boxes below.
 
@@ -184,20 +184,68 @@ Test:
 - With the scrap-per-kill upgrade, each popped enemy sends scrap discs.
 - 3 fresh players reach the nuke in 30–60 min.
 
-## M9 · Art
+## M9 · Balance and clarity
+
+Build: taps, battlefield and scrap matter for the whole run; steadier pacing; a screen that explains itself. Fixes from the M8 critique (tune bot with player profiles, screenshots at 2× and tall phone).
+
+- [ ] Tune bot: player profiles (baseline, casual 1.5 taps/s, all taps on the battlefield, ⅓ on the battlefield, stops tapping at 10 min, never fits Arms tiers, never pauses) and per-run metrics (income by source, starved share, gaps between buys, share of station work from taps); `tune` checks the targets in the Test list
+- [ ] Battlefield tap scales with the factory: a tap deals `tap_damage` seconds of field DPS (floor: tier 1 Arms DPS, so it works on an empty field) instead of the pitch's share of wave HP; no per-tap bounty share; the Tap damage row raises the seconds
+- [ ] Pile tap scales with the yard: `scrap_per_tap` plus a share of yard scrap/s, so tapping the pile helps in scarce phases
+- [ ] Bounties are a real share of income: a bounty ≈ N s of payout at the expected clear time; `bounty_growth` ≥ `hp_growth`, so higher waves pay more per HP
+- [ ] Softer wave aging (`wave_damage`), so pushing waves with Arms pays off instead of shortening mech lives for nothing
+- [ ] Scrap cat and mouse: `scrap_per_mech` and `apply_cost` climb steeply from tier 3; each tier or line unlock makes scrap tight for a while, yard and salvage upgrades loosen it again; in tight phases pausing a line to save for a fit is worth it
+- [ ] Scrap per kill bounded (fixed scrap per enemy by wave band, not a share of wave HP) or dropped
+- [ ] Pacing and costs:
+  - [ ] A burst of buys after each line or tier unlock, then 30–90 s waits; never more than 2 min with nothing affordable
+  - [ ] Regular upgrade rows spread over the run: more levels, steeper growth; none maxed before ~20 min (now all by 11.4 min)
+  - [ ] Tier unlock costs on a smooth curve (now ×40 from tier 2 to 3); first tier fit within ~3 min
+  - [ ] Line unlocks spread out (lines 2 and 3 now arrive 1.5 min apart and income jumps ×16 in 4 min)
+  - [ ] Atomic Missile priced so the final wait is ≤ ~90 s (now 188 s with nothing to buy)
+  - [ ] ⬆ fits the highest unlocked tier in one tap, for the sum of the skipped apply costs, so a new line isn't 15 separate fits
+- [ ] Clarity:
+  - [ ] Station label is its type (FRAME, CORE, ARMS, PLATING) plus its stat icon (lifetime, credits, damage); the part name moves to the menu's tier row. Also stops long part names spilling into the pause strip
+  - [ ] Tier rows state the effect: part name as title, `PAY 8 → 16/S`, `LIFE 44 → 57 S`, `DMG 8 → 16` below
+  - [ ] No MAX anywhere: a full station hides hire and the fit button takes the row, showing its scrap price; nothing to buy → empty row. Same for yard hire. Maxed menu rows collapse into one `MAXED` footer
+  - [ ] Affordable vs not at a glance: affordable = lit button, price in the currency color; unaffordable = normal button, dim price, title stays readable
+  - [ ] Plain words: wave bar `WAVE 6` / `5 DMG/S` (the bar alone shows HP); menu rows `5 → 6` with level pips instead of `LV 4/9 5 > 6`; lines row `LINE 4`
+  - [ ] Pause strip hidden until the first NO_SCRAP stall; scrap use as a small meter instead of stacked digits
+  - [ ] Spare pane height goes to the battlefield (capped ~2× its height), lines sit at the bottom of the pane near the thumb; the battlefield shrinks back to 160 as lines are added
+  - [ ] UNLOCK LINE compact (one button row high) until affordable
+  - [ ] No UPGRADES badge at 0
+  - [ ] Discs fly behind HUD and wave bar text
+  - [ ] Intro guide after the reveal: one hint for tapping the battlefield, one for the first affordable upgrade
+
+Test:
+- All tune profiles reach the nuke in 30–60 min; the all-battlefield-taps bot is within ~20% of the baseline, not 5× faster.
+- Stopping taps at minute 10 costs ≥ 10% more run time.
+- Bounties are 25–40% of credits over a run; the Arms-fitting bot beats the no-Arms bot.
+- Scrap is short (a station stalled NO_SCRAP) for 5–15% of the run, spread over ≥ 3 phases; the pausing bot beats the never-pausing bot.
+- Every 5 min window has buys; longest stretch with nothing affordable ≤ 2 min; first tier fit ≤ 3 min; final wait ≤ 90 s.
+- A new player can tell what each station does from the line alone; every tier row states its effect; the fit button shows its price; no MAX anywhere.
+- Fresh game on a tall phone: no big empty band between the line and the bottom bar.
+- 3 fresh players reach the nuke in 30–60 min.
+
+## M10 · Art
 
 Build: release candidate. Claude refines the placeholder art.
 
 - [ ] One palette and pixel scale for everything
-- [ ] Mechs: parts per tier, walk cycle, firing, Nuclear Mech
-- [ ] Factory: segment machines (idle, working), empty pad, belt tile, scrap pile fill states, stall icon, workers
-- [ ] Battlefield: enemies, smoke, sparks, explosion, debris, background layers
-- [ ] Nuke: missile, flash, mushroom cloud, shockwave, factory debris
+- [ ] Mechs: parts per tier, walk cycle, firing, Nuclear Mech; the silhouette grows with Frame tier (Atomic Colossus visibly bigger than Scrap Frame), so tiers read by shape, not only color
+- [ ] Factory: one machine silhouette per station type (e.g. press, dome, gun rack, plate roller) instead of one gantry with a colored tool head; idle and working; empty pad, belt tile, scrap pile fill states, stall icon, workers
+- [ ] Battlefield: enemies, smoke, sparks, explosion, debris, background layers, bullet variations, tracers
+- [ ] Battlefield crowd: smoke starts later (< 40% life, now < 75%, so ~¾ of mechs smoke) and lighter, so a hurt mech stands out among 24; drawn mechs spread wider instead of one blob
+- [ ] Enemies escalate at later waves in size and count (boss-size brutes), not only in color
+- [ ] Nuke: missile, flash, mushroom cloud, shockwave, factory debris, camera shake; the Nuclear Mech is 2× size and the other mechs stop and step aside, so it reads within a second; run card with more character
+- a pass over the flying discs animations (late-game scrap discs quieter: fewer, smaller, fading)
+- a pass over layout alignment, button sizes
+- unify UI style
 
 Test:
 - Every sprite reads at phone size; part tiers are distinguishable at a glance.
+- Station types are told apart without their labels.
+- In a full field (24 mechs) a hurt mech and the Nuclear Mech are spotted at a glance.
 
-## M10 · Poki
+## M11 · Poki
 
 Build: Poki integration.
 
