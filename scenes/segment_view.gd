@@ -2,16 +2,13 @@ class_name SegmentView
 extends Control
 
 const WIDTH := 80.0
-const HEIGHT := 132.0
-const NAME_H := 32.0
-const MACHINE_Y := 32.0
-const BELT_Y := 88.0
+const HEIGHT := 89.0
+const NAME_H := 25.0
+const MACHINE_Y := 25.0
+const BELT_Y := 81.0
 const BAR_RECT := Rect2(2, 2, 76, 8)
 const WORKERS_Y := 42.0
 const WORKER_DX := 6.0
-const ROW_Y := 100.0
-const ROW_H := 32.0
-const APPLY_W := 20.0
 const STAT_ICONS := {
 	"lifetime": preload("res://art/ui/life.png"),
 	"credits_per_sec": preload("res://art/ui/credits.png"),
@@ -26,6 +23,7 @@ const WORK_FPS := 11.0
 var line_index := 0
 var seg_index := 0
 
+var _header: HBoxContainer
 var _name: Label
 var _machine: TextureRect
 var _frames: Array[Texture2D] = []
@@ -34,7 +32,6 @@ var _build: Button
 var _bar: TextureProgressBar
 var _stall: TextureRect
 var _tap: TapArea
-var _hire: Button
 var _apply: Button
 var _workers: Array[TextureRect] = []
 var _chunks_seen := 0
@@ -51,6 +48,7 @@ func _ready() -> void:
 	var type_id := _state().type_id
 
 	var header := HBoxContainer.new()
+	_header = header
 	header.name = "Header"
 	header.alignment = BoxContainer.ALIGNMENT_CENTER
 	header.add_theme_constant_override("separation", 1)
@@ -123,10 +121,16 @@ func _ready() -> void:
 	_tap.tapped.connect(_on_tap)
 	add_child(_tap)
 
-	_hire = _row_button("Hire", WORKER_TEX, Flyers.Kind.CREDITS)
-	_hire.pressed.connect(_on_hire)
-	_apply = _row_button("Apply", preload("res://art/ui/up.png"), Flyers.Kind.SCRAP)
+	_apply = Button.new()
+	_apply.name = "Apply"
+	_apply.icon = preload("res://art/ui/up.png")
+	_apply.add_theme_constant_override("h_separation", 2)
+	_apply.position = Vector2(-1, 0)
+	_apply.size = Vector2(WIDTH + 2, NAME_H)
+	_apply.mouse_filter = MOUSE_FILTER_PASS
+	Price.setup(_apply, Flyers.Kind.SCRAP, true)
 	_apply.pressed.connect(_on_apply)
+	add_child(_apply)
 	_chunks_seen = _state().chunks
 	_assemblies_seen = _state().assemblies
 	_scroll = get_parent().get_parent().get_parent() as ScrollContainer
@@ -141,13 +145,13 @@ func _process(delta: float) -> void:
 	_pad.visible = not built
 	_build.visible = not built
 	if not built:
-		_hire.visible = false
 		_apply.visible = false
+		_header.visible = true
 		var cost := GameState.build_cost(line_index, seg_index)
 		Price.show(_build, Fmt.num(cost), GameState.scrap >= cost)
 		_stall.visible = false
 		return
-	_update_row(s)
+	_update_apply()
 	_update_workers(s)
 	_machine.modulate = PAUSED if GameState.lines[line_index].paused else Color.WHITE
 	if s.assemblies != _assemblies_seen:
@@ -168,7 +172,8 @@ func _process(delta: float) -> void:
 
 
 func _update_workers(s: SegmentState) -> void:
-	var slots := s.worker_slots()
+	var slots := int(GameState.stat("worker_slots"))
+	var n := GameState.lines[line_index].station_workers(seg_index)
 	while _workers.size() < slots:
 		var w := TextureRect.new()
 		w.texture = WORKER_TEX
@@ -180,44 +185,24 @@ func _update_workers(s: SegmentState) -> void:
 		_machine.move_child(w, 0)
 		_workers.append(w)
 	for i in _workers.size():
-		_workers[i].visible = i < s.workers
-	if s.chunks != _chunks_seen and s.workers > 0:
-		var w := _workers[(s.chunks - 1) % s.workers]
-		var tw := w.create_tween()
-		tw.tween_property(w, "position:y", WORKERS_Y - 4, 0.08)
-		tw.tween_property(w, "position:y", WORKERS_Y, 0.1)
+		_workers[i].visible = i < n
+	if s.chunks != _chunks_seen:
+		if n > 0:
+			var w := _workers[(s.chunks - 1) % n]
+			var tw := w.create_tween()
+			tw.tween_property(w, "position:y", WORKERS_Y - 4, 0.08)
+			tw.tween_property(w, "position:y", WORKERS_Y, 0.1)
 		_bump_t = 0.06
 	_chunks_seen = s.chunks
 
 
-func _update_row(s: SegmentState) -> void:
-	var hire := s.workers < s.worker_slots()
+func _update_apply() -> void:
 	var fit := GameState.can_apply_tier(line_index, seg_index)
-	_hire.visible = hire
 	_apply.visible = fit
-	var row := Rect2(-1, ROW_Y, WIDTH + 2, ROW_H)
-	if hire:
-		var cost := GameState.worker_cost(line_index, seg_index)
-		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
-		_hire.position = row.position
-		_hire.size = Vector2(row.size.x - (APPLY_W + 2.0 if fit else 0.0), ROW_H)
+	_header.visible = not fit
 	if fit:
 		var cost := GameState.tier_apply_cost(line_index, seg_index)
-		Price.show(_apply, "" if hire else Fmt.num(cost), GameState.scrap >= cost)
-		_apply.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER if hire else HORIZONTAL_ALIGNMENT_LEFT
-		_apply.position = Vector2(row.end.x - APPLY_W, ROW_Y) if hire else row.position
-		_apply.size = Vector2(APPLY_W, ROW_H) if hire else row.size
-
-
-func _row_button(node_name: String, icon: Texture2D, kind: Flyers.Kind) -> Button:
-	var b := Button.new()
-	b.name = node_name
-	b.icon = icon
-	b.add_theme_constant_override("h_separation", 2)
-	b.mouse_filter = MOUSE_FILTER_PASS
-	Price.setup(b, kind, true)
-	add_child(b)
-	return b
+		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost)
 
 
 static func _stat_key(type_id: String) -> String:
@@ -232,7 +217,7 @@ func _consume(s: SegmentState) -> void:
 	(get_parent() as LineView).scrap_bits(position + TOOL_HEAD)
 	var head := global_position + TOOL_HEAD
 	if _scroll == null or _scroll.get_global_rect().has_point(head):
-		Flyers.spend(Flyers.Kind.SCRAP, head, float(s.tier_data().scrap_per_mech))
+		Flyers.spend(Flyers.Kind.SCRAP, head, s.scrap_cost())
 
 
 func _state() -> SegmentState:
@@ -243,12 +228,6 @@ func _on_build() -> void:
 	var cost := GameState.build_cost(line_index, seg_index)
 	if GameState.build_segment(line_index, seg_index):
 		Flyers.pay(Flyers.Kind.SCRAP, _build, cost)
-
-
-func _on_hire() -> void:
-	var cost := GameState.worker_cost(line_index, seg_index)
-	if GameState.hire_worker(line_index, seg_index):
-		Flyers.pay(Flyers.Kind.CREDITS, _hire, cost)
 
 
 func _on_apply() -> void:

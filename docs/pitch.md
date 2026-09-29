@@ -28,7 +28,7 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
   - **Core** → credit payout.
   - **Arms** → damage per second against the enemy wave, so bounty rate.
   - **Plating** → lifetime.
-- **Work bar:** the only throughput gate. Fills from player taps (tap the station) and from the station's workers. It fills **even when no mech is present**, so work is banked. When full and a mech is waiting: deduct scrap, play the assembly animation (~0.5 s), attach the part, send the mech down the belt. Frame spawns the mech. The bar grows with the station's tier.
+- **Work bar:** the only throughput gate. Fills from player taps (tap the station) and from the line's crew. It fills **even when no mech is present**, so work is banked. When full and a mech is waiting: deduct scrap, play the assembly animation (~0.5 s), attach the part, send the mech down the belt. Frame spawns the mech. The bar grows with the station's tier.
 - A station holds one mech. If the next station is busy, the mech waits on the belt and blocks upstream.
 - **Stalls must be visible:** bar full but no scrap (station flashes the scrap icon and waits), or downstream blocked.
 - Stations are **connected by a conveyor belt**. The mech gains parts as it moves and walks off the right edge at the end.
@@ -38,14 +38,14 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 
 ## Workers
 
-- No pool. **"+ WORKER" on a station hires directly** for credits, up to the station's slot cap.
+- **One crew per line.** The hire button under the line hires for credits, up to the line's cap (slots per station × built stations). Each chunk goes to the station with the emptiest bar, so the crew covers the bottleneck.
 - A worker adds a **chunk of work every few seconds** (not continuous), so the bar visibly jumps. Yard workers add a chunk of scrap the same way.
-- Cost formula: `cost = base * growth^n` where `n` = workers hired **on that station**, base and growth per station type (e.g. base 50, growth 1.35). Tune so the first worker per station arrives within the first few minutes.
+- Cost formula: `cost = base * growth^n` where `n` = workers hired **on that line** (base 50, growth 1.1). Tune so the first worker arrives within the first few minutes.
 - Slot caps are raised through the upgrade menu.
 
 ## Battlefield (nearly no UI)
 
-- Mechs walk in from the left and fire at the enemy wave on the right. Enemies fire back.
+- Mechs walk in from the left and fire at the enemy wave on the right. Enemies fire back. Better-equipped mechs stand in the front row, so upgrades show.
 - No HP bars on mechs. Mech damage shows as smoke (3 intensities), then sparks, then explosion and debris. It follows remaining lifetime, not enemy fire.
 - No combat sim beyond the wave: lifetime, payout and damage come from the stats; visuals play along.
 - **Tapping the battlefield** (anywhere) hits the wave: a small share of its HP and the same share of its bounty as credits. The nearest enemy flashes.
@@ -89,7 +89,8 @@ A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**
 - **Tap damage:** battlefield taps hit harder.
 - **Yard:** scrap per tap, yard slots, yard haul (scrap per worker trip).
 - **Payout:** step cap, step interval, deploy fee.
-- **Salvage:** 0% → 40%.
+- **Salvage:** 0% → 60%.
+- **Lean build (mid game on):** every part costs less scrap, so late lines don't starve without pausing.
 - **Scrap per kill (late game):** each enemy destroyed pays scrap.
 - **Lines:** unlock line 2, 3, …
 
@@ -112,7 +113,8 @@ Every row has an info button with a plain description. Tapping the station body 
 
 ## Endgame: the nuke
 
-- The **Atomic Missile** is the final unlock in the menu. Unlocking it (credits) shows a confirmation: "This ends everything. Unlock?"
+- The **Atomic Missile** is the final unlock in the menu, locked until every other part tier is unlocked. Unlocking it (credits) shows a confirmation: "This ends everything. Unlock?"
+- It can only be fitted on the Arms station of a **fully upgraded line**: every station built and carrying its best part.
 - Applying it to an Arms station (scrap) turns that line's next mech into the **Nuclear Mech**.
 - **Sequence:**
   1. The Nuclear Mech walks onto the battlefield and fires. The missile arcs off-screen.
@@ -133,10 +135,11 @@ Every row has an info button with a plain description. Tapping the station body 
 │  mechs →  smoke  ✸   ← enemy │  discs fly to the HUD
 ├──────────────────────────────┤
 │ ▼ ScrollContainer (vertical) │
-│   FRAME  CORE   ARMS  PLATING│  station names
-│1 [▓▓▓▓]=[▓▓░░]=[░░░]=[+ ]→   │  pause strip, work bar = machine top,
-│⏸ [ww  ]  [w  ]  [ww ]        │  workers inside, belt, mech exits →
-│  [+w][⬆] [+w]   [+w]         │  hire + apply tier share one row
+│┌ CREW 5/9         [+w  67]  │  crew bar + pause strip form an L
+││  FRAME  [⬆ 2K] ARMS  PLATING│  station names; ⬆ fit replaces a name
+││ [▓▓▓▓]=[▓▓░░]=[░░░]=[+ ]→   │  work bar = machine top,
+│⏸ [ww  ]  [w  ]  [ww ]        │  crew inside, belt, mech exits →
+│┌ CREW 3/9 ...                │  next line flush below
 │ [ + UNLOCK LINE 2 · credits ]│
 ├──────────────────────────────┤
 │ w⛏ [SCRAP PILE] ⛏w  [+YARD W]│  fixed, always visible

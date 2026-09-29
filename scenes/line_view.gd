@@ -1,9 +1,13 @@
 class_name LineView
 extends Control
 
-const SEG_Y := 0.0
 const SEG_STEP := 84.0
 const PAUSE_W := 24.0
+const CREW_H := 26.0
+const HIRE_W := 120.0
+const L_FILL := Pal.SLATE_D
+const L_LIGHT := Pal.SLATE
+const L_EDGE := Pal.INK
 const METER := Rect2(8, 26, 8, 44)
 const METER_BG := Color(Pal.INK, 0.6)
 const USAGE_COLOR := Pal.STEEL_L
@@ -14,9 +18,13 @@ const PLAY_TEX := preload("res://art/ui/play.png")
 var line_index := 0
 
 var _pause: Button
+var _hire: Button
+var _crew: Label
 var _pause_icon: TextureRect
 var _usage: ColorRect
 var _strip := false
+var _bar := false
+var _top := 0.0
 var _segments: Array[SegmentView] = []
 var _mechs: Node2D
 var _fx: Node2D
@@ -27,13 +35,12 @@ var _collapsed := false
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(0, SEG_Y + SegmentView.HEIGHT + 4)
 	mouse_filter = MOUSE_FILTER_PASS
 
 	_pause = Button.new()
 	_pause.name = "Pause"
-	_pause.position = Vector2(0, SEG_Y)
 	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
+	_pause.flat = true
 	_pause.mouse_filter = MOUSE_FILTER_PASS
 	_pause.pressed.connect(GameState.toggle_pause.bind(line_index))
 	add_child(_pause)
@@ -57,12 +64,28 @@ func _ready() -> void:
 	_pause_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(_pause_icon)
 
+	_crew = Label.new()
+	_crew.name = "Crew"
+	_crew.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	_crew.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_crew.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(_crew)
+	_hire = Button.new()
+	_hire.name = "Hire"
+	_hire.icon = preload("res://art/line/worker.png")
+	_hire.add_theme_constant_override("h_separation", 4)
+	_hire.mouse_filter = MOUSE_FILTER_PASS
+	Price.setup(_hire, Flyers.Kind.CREDITS, true)
+	_hire.pressed.connect(_on_hire)
+	add_child(_hire)
+
 	_mechs = Node2D.new()
 	add_child(_mechs)
 	_fx = Node2D.new()
 	add_child(_fx)
 	_strip = GameState.stalled_once
 	_pause.visible = _strip
+	_bar = GameState.revealed()
 	_sync_segments()
 	resized.connect(_layout)
 
@@ -74,7 +97,7 @@ func collapse() -> void:
 			c.visible = false
 	queue_redraw()
 	for i in _segments.size():
-		var at := Vector2(_seg_x(i) + SegmentView.WIDTH / 2.0, SEG_Y + SegmentView.BELT_Y - 30)
+		var at := Vector2(_seg_x(i) + SegmentView.WIDTH / 2.0, _top + SegmentView.BELT_Y - 30)
 		Fx.explosion(self, at + Vector2(randf_range(-16, 16), randf_range(-10, 10)), true, randf_range(0.4, 0.7))
 		Fx.debris(self, at, 12)
 		Fx.debris(self, at, 6, true)
@@ -93,8 +116,27 @@ func _sync_segments() -> void:
 
 
 func _layout() -> void:
+	_top = CREW_H if _bar else 0.0
 	for i in _segments.size():
-		_segments[i].position = Vector2(_seg_x(i), SEG_Y)
+		_segments[i].position = Vector2(_seg_x(i), _top)
+	custom_minimum_size = Vector2(0, _top + SegmentView.BELT_Y + 8.0)
+	_pause.position = Vector2(0, _top)
+	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
+	_crew.position = Vector2(_left() + 6.0, 0)
+	_crew.size = Vector2(maxf(size.x - HIRE_W - _left() - 6.0, 0.0), CREW_H - 1.0)
+	_hire.position = Vector2(size.x - HIRE_W, 0)
+	_hire.size = Vector2(HIRE_W, CREW_H - 1.0)
+	queue_redraw()
+
+
+func hire_button() -> Button:
+	return _hire
+
+
+func _on_hire() -> void:
+	var cost := GameState.worker_cost(line_index)
+	if GameState.hire_worker(line_index):
+		Flyers.pay(Flyers.Kind.CREDITS, _hire, cost)
 
 
 func scrap_bits(pos: Vector2) -> void:
@@ -147,15 +189,26 @@ func _process(delta: float) -> void:
 		_strip = GameState.stalled_once
 		_pause.visible = _strip
 		_layout()
+	if _bar != GameState.revealed():
+		_bar = GameState.revealed()
+		_layout()
 		queue_redraw()
-	var paused := _line().paused
+	var line := _line()
+	var slots := line.worker_slots()
+	_crew.text = "CREW %d/%d" % [line.workers, slots]
+	_crew.visible = _bar and slots > 0
+	_hire.visible = _bar and line.workers < slots
+	if _hire.visible:
+		var cost := GameState.worker_cost(line_index)
+		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
+	var paused := line.paused
 	_pause_icon.texture = PLAY_TEX if paused else PAUSE_TEX
 	var share := clampf(_line().scrap_used_rate / maxf(GameState.scrap_gain_rate, 1.0), 0.0, 1.0)
 	var h := roundf(METER.size.y * share)
 	_usage.position = Vector2(METER.position.x, METER.end.y - h)
 	_usage.size = Vector2(METER.size.x, h)
 	_usage.color = Hud.STARVED if _line().starved() else (USAGE_COLOR * Color(1, 1, 1, 0.5) if paused else USAGE_COLOR)
-	var belt_y := SEG_Y + SegmentView.BELT_Y
+	var belt_y := _top + SegmentView.BELT_Y
 	var belt_time := Data.econ("belt_time")
 	var moving := false
 	var seen := {}
@@ -192,14 +245,30 @@ func _draw() -> void:
 	if _collapsed:
 		var rubble := preload("res://art/line/rubble.png")
 		for i in _segments.size():
-			draw_texture(rubble, Vector2(_seg_x(i), SEG_Y + SegmentView.BELT_Y - 12))
+			draw_texture(rubble, Vector2(_seg_x(i), _top + SegmentView.BELT_Y - 12))
 		return
-	var y := SEG_Y + SegmentView.BELT_Y
+	var y := _top + SegmentView.BELT_Y
 	var w := BELT_TEX.get_width()
 	var x := _left() - w + _belt_offset
 	while x < size.x:
 		draw_texture(BELT_TEX, Vector2(x, y))
 		x += w
+	_draw_frame()
+
+
+func _draw_frame() -> void:
+	var bottom := _top + SegmentView.BELT_Y + 8.0
+	if _bar:
+		draw_rect(Rect2(0, 0, size.x, CREW_H), L_FILL)
+		draw_rect(Rect2(0, 0, size.x, 1), L_LIGHT)
+		draw_rect(Rect2(_left(), CREW_H - 1.0, size.x - _left(), 1), L_EDGE)
+	if _strip:
+		draw_rect(Rect2(0, 0, PAUSE_W, bottom), L_FILL)
+		draw_rect(Rect2(0, 0, 1, bottom), L_LIGHT)
+		draw_rect(Rect2(PAUSE_W - 1.0, _top, 1, bottom - _top), L_EDGE)
+		draw_rect(Rect2(0, bottom - 1.0, PAUSE_W, 1), L_EDGE)
+		if not _bar:
+			draw_rect(Rect2(0, 0, PAUSE_W, 1), L_LIGHT)
 
 
 func _exit(view: MechView) -> void:

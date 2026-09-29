@@ -13,7 +13,8 @@ const ROW_SHADE := [1.0, 0.78, 0.6]
 const FILL_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
 const SLOT_X0 := 224.0
 const SLOT_DX := 28.0
-const WALK_SPEED := 40.0
+const WALK_SPEED := 64.0
+const WALK_ANIM := 1.6
 const NUKE_SPEED := 22.0
 const NUKE_POS := Vector2(118, 156)
 const ASIDE := Vector2(34, -5)
@@ -112,10 +113,9 @@ func _ready() -> void:
 	if GameState.run_over:
 		scorch()
 		return
-	for m in GameState.field:
-		var view := _add_view(m)
-		if view:
-			view.position = _slot_pos(_slots[m.id])
+	_sync_views()
+	for id: int in _views:
+		_views[id].position = _slot_pos(_slots[id])
 	_show_wave(false)
 
 
@@ -149,9 +149,7 @@ func _process(delta: float) -> void:
 	if GameState.run_over:
 		_step_views(delta, false)
 		return
-	for m in GameState.field:
-		if not _views.has(m.id):
-			_add_view(m)
+	_sync_views()
 	_step_views(delta, true)
 
 	if _wave_shown != GameState.wave:
@@ -190,9 +188,8 @@ func _step_views(delta: float, fight: bool) -> void:
 		if _nuke_id != -1 and id != _nuke_id:
 			continue
 		var target := _slot_pos(_slots[id])
-		view.position.x = move_toward(view.position.x, target.x, (NUKE_SPEED if view.nuclear else WALK_SPEED) * speed)
-		view.position.y = target.y
-		view.walking = view.position.x != target.x
+		view.position = view.position.move_toward(target, (NUKE_SPEED if view.nuclear else WALK_SPEED) * speed)
+		view.walking = view.position != target
 		if not fight or view.walking or m.dps <= 0.0:
 			continue
 		_fire_t[id] = float(_fire_t.get(id, randf_range(0.0, MECH_FIRE.y))) - delta * GameState.time_scale
@@ -409,25 +406,94 @@ func _bar_label(node_name: String, align: HorizontalAlignment) -> Label:
 func _add_view(m: MechState) -> MechView:
 	var slot := -1 if m.is_nuclear() else _free_slot()
 	if slot == -1 and not m.is_nuclear():
-		return null
+		slot = _replace_weakest(m)
+		if slot == -1:
+			return null
 	var view := MechView.new()
 	view.nuclear = m.is_nuclear()
 	view.set_parts(m.parts)
-	var row := int(float(slot) / SLOTS_PER_ROW) if slot >= 0 else -1
 	view.position = Vector2(ENTRY_X, _slot_pos(slot).y)
 	view.walking = true
-	if view.nuclear:
-		view.walk_speed = 0.6
+	view.walk_speed = 0.6 if view.nuclear else WALK_ANIM
+	_mechs.add_child(view)
+	_views[m.id] = view
+	_states[m.id] = m
+	_set_slot(m.id, slot)
+	return view
+
+
+func _set_slot(id: int, slot: int) -> void:
+	var view: MechView = _views[id]
+	var row := int(float(slot) / SLOTS_PER_ROW) if slot >= 0 else -1
+	_slots[id] = slot
 	var shade: float = ROW_SHADE[row] if row >= 0 else 1.0
 	view.modulate = Color(shade, shade, minf(shade + 0.04, 1.0))
 	view.set_meta("shade", view.modulate)
 	view.set_meta("row", row)
-	_mechs.add_child(view)
 	_mechs.move_child(view, _row_index(row))
-	_views[m.id] = view
-	_states[m.id] = m
-	_slots[m.id] = slot
-	return view
+
+
+static func score(m: MechState) -> int:
+	var total := 0
+	for type_id: String in m.parts:
+		total += int(m.parts[type_id]) + 1
+	return total
+
+
+func _sync_views() -> void:
+	for m in GameState.field:
+		if not _views.has(m.id):
+			_add_view(m)
+	if _nuke_id == -1:
+		_sort_rows()
+
+
+func _replace_weakest(m: MechState) -> int:
+	var weakest := -1
+	for id: int in _views:
+		if _slots[id] >= 0 and (weakest == -1 or score(_states[id]) < score(_states[weakest])):
+			weakest = id
+	if weakest == -1 or score(_states[weakest]) >= score(m):
+		return -1
+	var slot: int = _slots[weakest]
+	var view: MechView = _views[weakest]
+	_views.erase(weakest)
+	_slots.erase(weakest)
+	_states.erase(weakest)
+	_fire_t.erase(weakest)
+	var tw := view.create_tween()
+	tw.tween_property(view, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(view.queue_free)
+	return slot
+
+
+func _sort_rows() -> void:
+	var rows: Array[Array] = [[], [], []]
+	for id: int in _slots:
+		if _slots[id] >= 0:
+			rows[int(float(_slots[id]) / SLOTS_PER_ROW)].append(id)
+	for front in ROWS - 1:
+		while true:
+			var weak := -1
+			for id: int in rows[front]:
+				if weak == -1 or score(_states[id]) < score(_states[weak]):
+					weak = id
+			var strong := -1
+			var strong_row := -1
+			for r in range(front + 1, ROWS):
+				for id: int in rows[r]:
+					if strong == -1 or score(_states[id]) > score(_states[strong]):
+						strong = id
+						strong_row = r
+			if weak == -1 or strong == -1 or score(_states[strong]) <= score(_states[weak]):
+				break
+			var slot: int = _slots[weak]
+			_set_slot(weak, _slots[strong])
+			_set_slot(strong, slot)
+			rows[front].erase(weak)
+			rows[front].append(strong)
+			rows[strong_row].erase(strong)
+			rows[strong_row].append(weak)
 
 
 func _row_index(row: int) -> int:

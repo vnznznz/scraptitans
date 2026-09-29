@@ -112,15 +112,32 @@ func unlocked_tier(type_id: String) -> int:
 	return lv - (1 if Data.segment_type(type_id).get("optional", false) else 0)
 
 
+func top_tier(type_id: String) -> int:
+	var tiers: Array = Data.segment_type(type_id).tiers
+	return tiers.size() - (2 if tiers[-1].get("final", false) else 1)
+
+
+func line_maxed(line_index: int) -> bool:
+	return lines[line_index].segments.all(func(s: SegmentState) -> bool: return s.built and s.tier >= top_tier(s.type_id))
+
+
+func apply_target(line_index: int, seg_index: int) -> int:
+	var s := lines[line_index].segments[seg_index]
+	var target := unlocked_tier(s.type_id)
+	if target > top_tier(s.type_id) and not line_maxed(line_index):
+		target = top_tier(s.type_id)
+	return target
+
+
 func can_apply_tier(line_index: int, seg_index: int) -> bool:
 	var s := lines[line_index].segments[seg_index]
-	return s.built and s.tier < unlocked_tier(s.type_id)
+	return s.built and s.tier < apply_target(line_index, seg_index)
 
 
 func tier_apply_cost(line_index: int, seg_index: int) -> float:
 	var s := lines[line_index].segments[seg_index]
 	var cost := 0.0
-	for t in range(s.tier + 1, unlocked_tier(s.type_id) + 1):
+	for t in range(s.tier + 1, apply_target(line_index, seg_index) + 1):
 		cost += float(Data.tier(s.type_id, t).apply_cost)
 	return cost
 
@@ -133,7 +150,7 @@ func apply_tier(line_index: int, seg_index: int) -> bool:
 		return false
 	scrap -= cost
 	var s := lines[line_index].segments[seg_index]
-	s.tier = unlocked_tier(s.type_id)
+	s.tier = apply_target(line_index, seg_index)
 	purchased.emit()
 	return true
 
@@ -181,19 +198,17 @@ func build_segment(line_index: int, seg_index: int) -> bool:
 	return true
 
 
-func worker_cost(line_index: int, seg_index: int) -> float:
-	var s := lines[line_index].segments[seg_index]
-	var t := Data.segment_type(s.type_id)
-	return float(t.worker_base) * pow(float(t.worker_growth), s.workers)
+func worker_cost(line_index: int) -> float:
+	return Data.econ("worker_base") * pow(Data.econ("worker_growth"), lines[line_index].workers)
 
 
-func hire_worker(line_index: int, seg_index: int) -> bool:
-	var s := lines[line_index].segments[seg_index]
-	var cost := worker_cost(line_index, seg_index)
-	if not s.built or s.workers >= s.worker_slots() or credits < cost:
+func hire_worker(line_index: int) -> bool:
+	var line := lines[line_index]
+	var cost := worker_cost(line_index)
+	if line.workers >= line.worker_slots() or credits < cost:
 		return false
 	credits -= cost
-	s.workers += 1
+	line.workers += 1
 	purchased.emit()
 	return true
 
@@ -249,7 +264,7 @@ func upgrade_maxed(id: String) -> bool:
 
 func upgrade_locked(id: String) -> bool:
 	var row := Data.upgrade_row(id)
-	return row.get("kind", "") == "final" and not upgrade_maxed("tier_" + row.type)
+	return row.get("kind", "") == "final" and Data.upgrade_list.any(func(r: Dictionary) -> bool: return r.get("kind", "") == "tier" and not upgrade_maxed(r.id))
 
 
 func upgrade_visible(id: String) -> bool:
@@ -401,15 +416,18 @@ func _step(dt: float) -> void:
 func _step_workers(line: LineState, dt: float) -> void:
 	var interval := stat("worker_interval")
 	var chunk := stat("worker_chunk")
-	for s in line.segments:
-		if not s.built or s.workers == 0:
-			continue
-		s.worker_t += dt * s.workers
-		while s.worker_t >= interval:
-			s.worker_t -= interval
-			if not s.bar_full():
-				s.work = minf(s.bar_size(), s.work + chunk)
-				s.chunks += 1
+	if line.workers == 0:
+		return
+	line.worker_t += dt * line.workers
+	while line.worker_t >= interval:
+		line.worker_t -= interval
+		var target: SegmentState
+		for s in line.segments:
+			if s.built and not s.bar_full() and (target == null or s.work / s.bar_size() < target.work / target.bar_size()):
+				target = s
+		if target:
+			target.work = minf(target.bar_size(), target.work + chunk)
+			target.chunks += 1
 
 
 func _step_yard(dt: float) -> void:
@@ -460,7 +478,7 @@ func _step_line(line: LineState, dt: float) -> void:
 
 
 func _try_assemble(line: LineState, s: SegmentState, spawn: bool) -> void:
-	var cost := float(s.tier_data().scrap_per_mech)
+	var cost := s.scrap_cost()
 	if scrap < cost:
 		s.stall = SegmentState.Stall.NO_SCRAP
 		stalled_once = true

@@ -229,7 +229,7 @@ func _describe(r: Dictionary, title: Label, effect: Label, pips: Pips) -> void:
 		"final":
 			var tiers: Array = Data.segment_type(r.type).tiers
 			title.text = str(tiers[-1].part).to_upper()
-			effect.text = "NEEDS %s" % str(tiers[-2].part).to_upper() if GameState.upgrade_locked(id) else "ENDS THE WAR"
+			effect.text = "NEEDS ALL PARTS" if GameState.upgrade_locked(id) else "ENDS THE WAR"
 		_:
 			title.text = str(r.name).to_upper()
 			var value := GameState.stat(r.stat)
@@ -251,10 +251,10 @@ func _desc(r: Dictionary) -> String:
 	match r.get("kind", ""):
 		"tier":
 			var type := Data.segment_type(r.type)
-			var first := "The first level adds a %s pad to every line. " % type.name if type.get("optional", false) else ""
+			var first := "Adds a %s pad to every line. " % type.name if type.get("optional", false) else ""
 			var cost := float(type.tiers[mini(GameState.unlocked_tier(r.type) + 1, type.tiers.size() - 1)].apply_cost)
-			var fit := "Then tap the green arrow on each %s station to fit it for %s scrap. " % [type.name, Fmt.num(cost)] if cost > 0.0 else ""
-			return "%sUnlocks the next %s part. %s%s" % [first, type.name, fit, type.desc]
+			var fit := "Fit: green arrow, %s scrap. " % Fmt.num(cost) if cost > 0.0 else ""
+			return "%sNext %s part. %s%s" % [first, type.name, fit, type.desc]
 		"final":
 			return Data.segment_type(r.type).tiers[-1].desc
 	return r.desc

@@ -239,6 +239,11 @@ Build: release candidate. Claude refines the placeholder art.
 - [x] A pass over the flying discs animations (late-game scrap discs quieter: fewer, smaller, fading)
 - [x] A pass over layout alignment, button sizes
 - [x] Unify UI style
+- [x] Tighter lines (136 → 120 px): one crew per line (hire under the belt, chunks to the emptiest bar), ⬆ fit in the station header; pile no longer stays flattened or shrinks under heavy activity
+- [x] Crew bar on top of each line, L frame with the pause strip, lines stack flush (115 px, no gaps)
+- [x] Battlefield: better-equipped mechs take the front row and stay drawn past 24; mechs walk in faster
+- [x] Atomic Missile: unlock needs every other part tier; fit needs a fully upgraded line
+- [x] Rebalance: Lean build row (less scrap per part), more scrap row levels, scrap-tight mid game where pausing pays, top tiers cheaper; never pausing finishes in time; terse descriptions
 
 Test:
 - Every sprite reads at phone size; part tiers are distinguishable at a glance.

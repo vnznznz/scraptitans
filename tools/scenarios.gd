@@ -207,7 +207,7 @@ func m3() -> void:
 	var segs := GameState.lines[0].segments
 
 	var elapsed := 0.0
-	while GameState.credits < GameState.worker_cost(0, 0) and elapsed < 600.0:
+	while GameState.credits < GameState.worker_cost(0) and elapsed < 600.0:
 		_bot_step()
 		GameState.advance(0.2)
 		elapsed += 0.2
@@ -219,16 +219,26 @@ func m3() -> void:
 	segs = GameState.lines[0].segments
 	GameState.credits = 10000.0
 	var costs := []
-	for i in 4:
-		costs.append(snappedf(GameState.worker_cost(0, 0), 0.01))
-		GameState.hire_worker(0, 0)
-	t.check(costs.slice(0, 3) == [50.0, 67.5, 91.13], "worker cost 50·1.35^n %s" % [costs])
-	t.check(segs[0].workers == 3, "slot cap 3 stops the 4th hire")
+	for i in 10:
+		costs.append(snappedf(GameState.worker_cost(0), 0.01))
+		GameState.hire_worker(0)
+	t.check(costs.slice(0, 3) == [50.0, 55.0, 60.5], "worker cost 50·1.1^n per line %s" % [costs])
+	t.check(GameState.lines[0].workers == 9 and GameState.lines[0].worker_slots() == 9, "3 slots per built station: 9, the 10th hire stops")
+	t.check([0, 1, 2].all(func(i: int) -> bool: return GameState.lines[0].station_workers(i) == 3), "crew shown 3 per station")
 
+	GameState.lines[0].workers = 3
 	GameState.advance(0.6)
-	var w := segs[0].work
+	t.check(is_zero_approx(segs[0].work), "no chunk yet")
 	GameState.advance(0.1)
-	t.check(is_equal_approx(segs[0].work - w, 1.0), "3 workers: one chunk every 2/3 s, the bar jumps by 1")
+	t.check(is_equal_approx(segs[0].work, 1.0) and is_zero_approx(segs[1].work), "3 workers: one chunk every 2/3 s, to the emptiest bar")
+	GameState.advance(2.0 / 3.0)
+	t.check(is_equal_approx(segs[1].work, 1.0), "the next chunk goes to the next emptiest bar")
+	segs[0].work = segs[0].bar_size()
+	segs[1].work = segs[1].bar_size()
+	segs[2].work = 0.0
+	var chunks := segs[2].chunks
+	GameState.advance(2.0)
+	t.check(segs[2].chunks - chunks == 3 and segs[0].bar_full(), "full bars get no chunks; the crew feeds the empty one")
 
 	await _fresh()
 	main = t.get_tree().current_scene
@@ -238,9 +248,8 @@ func m3() -> void:
 		await t.click(_build_button(line, i))
 	GameState.credits = 10000.0
 	GameState.mechs_built = 1
-	for i in 3:
-		while GameState.lines[0].segments[i].workers < 3:
-			await t.click(line.segment_view(i).get_node("Hire"))
+	while GameState.lines[0].workers < 9:
+		await t.click(line.hire_button())
 	for i in 2:
 		await t.click(main.find_child("HireYard", true, false))
 	t.check(GameState.yard_workers == 2 and GameState.yard_workers == GameState.yard_slots(), "2 yard workers fill the yard slots")
@@ -275,6 +284,8 @@ func m3() -> void:
 	GameState.new_game()
 	Save.load_game()
 	t.check(before == JSON.stringify(GameState.to_dict(), "", true), "reload keeps workers and pause")
+	var old_seg := func(w: int) -> Dictionary: return {"type_id": "frame", "built": true, "tier": 0, "work": 0, "mech": null, "assembling": false, "assemble_t": 0, "workers": w}
+	t.check(LineState.from_dict({"segments": [old_seg.call(2), old_seg.call(3)]}).workers == 5, "old saves: station workers join the line crew")
 
 
 func m4() -> void:
@@ -306,9 +317,15 @@ func m4() -> void:
 	t.check(is_equal_approx(GameState.upgrade_cost("tap"), 60.0 * Data.econ("upgrade_cost_growth")), "cost base·growth^level")
 	t.check(is_equal_approx(GameState.lines[0].segments[0].bar_size(), 5.7), "sim reads the derived bar size")
 
+	GameState.credits = 1e9
 	for i in 20:
 		await t.click(_buy(menu, "salvage"))
-	t.check(GameState.upgrade_maxed("salvage") and is_equal_approx(GameState.salvage_share(), 0.4), "salvage stops at 40%")
+	t.check(GameState.upgrade_maxed("salvage") and is_equal_approx(GameState.salvage_share(), 0.6), "salvage stops at 60%")
+	var seg: SegmentState = GameState.lines[0].segments[0]
+	var full_cost := float(seg.tier_data().scrap_per_mech)
+	GameState.credits = 1e6
+	GameState.buy_upgrade("lean")
+	t.check(is_equal_approx(seg.scrap_cost(), full_cost * 0.94), "Lean build: parts cost 6%% less scrap (%s)" % seg.scrap_cost())
 	await t.shot("m4_salvage")
 	await t.click(main.get_node("%Upgrades"))
 	t.check(not menu.visible, "the same button closes the menu")
@@ -364,13 +381,18 @@ func m5() -> void:
 	for i in 3:
 		await t.click(_build_button(line, i))
 	GameState.credits = 1000.0
-	for i in 3:
-		await t.click(line.segment_view(0).get_node("Hire"))
 	await t.frames(1)
-	var full_hire: Button = line.segment_view(0).get_node("Hire")
-	var free_hire: Button = line.segment_view(1).get_node("Hire")
-	t.check(not full_hire.visible and free_hire.visible and not free_hire.disabled, "full station: hire hidden, no MAX")
-	t.check(not line.segment_view(0).get_node("Apply").visible, "nothing to buy: empty row")
+	var hire := line.hire_button()
+	var crew: Label = line.get_node("Crew")
+	t.check(hire.visible and not hire.disabled and crew.text == "CREW 0/9", "one hire button per line, crew 0/9")
+	var pause: Control = line.get_node("Pause")
+	t.check(is_zero_approx(hire.position.y) and hire.get_rect().end.y <= LineView.CREW_H and is_equal_approx(hire.get_rect().end.x, line.size.x), "hire sits in the crew bar at the top right")
+	t.check(is_equal_approx(pause.position.y, LineView.CREW_H) and crew.position.x >= pause.size.x and line.segment_view(0).position.y >= LineView.CREW_H, "crew bar on top, pause strip below it at the left: an L")
+	for i in 9:
+		await t.click(hire)
+	await t.frames(1)
+	t.check(not hire.visible and crew.text == "CREW 9/9", "full crew: hire hidden, no MAX")
+	t.check(not line.segment_view(0).get_node("Apply").visible and line.segment_view(0).get_node("Header").visible, "nothing to fit: station name shown")
 
 	GameState.scrap = 0.0
 	await _fill_bar(line, 0)
@@ -442,6 +464,8 @@ func m5() -> void:
 	await t.frames(30)
 	await t.shot("m5_plating")
 
+	for l in GameState.lines:
+		l.paused = true
 	GameState.wave = 10
 	var aged := MechState.new()
 	aged.lifetime = 20.0
@@ -489,6 +513,18 @@ func m6() -> void:
 	GameState.debug_spawn_mechs(50)
 	await t.frames(2)
 	t.check(field.mech_count() == 24 and GameState.field.size() == 53, "53 mechs simulated, 24 drawn")
+	var elite := MechState.new()
+	elite.id = GameState.next_mech_id
+	GameState.next_mech_id += 1
+	for type_id: String in ["frame", "core", "arms"]:
+		elite.parts[type_id] = 3
+	GameState._deploy(elite)
+	await t.frames(2)
+	var elite_view := field.mech_view(elite.id)
+	t.check(elite_view != null and field.mech_count() == 24, "a better mech replaces the weakest drawn one")
+	t.check(elite_view != null and int(elite_view.get_meta("row")) == 0, "and takes the front row")
+	await t.wait(4.0)
+	t.check(elite_view != null and not elite_view.walking and is_equal_approx(elite_view.position.y, Battlefield.ROW_Y[0]), "it reaches its front slot within 4 s")
 	await t.wait(2.0)
 	var max_discs := 0
 	var start := Time.get_ticks_msec()
@@ -513,27 +549,48 @@ func m7() -> void:
 	for i in 3:
 		await t.click(_build_button(line, i))
 	for i in 3:
-		GameState.hire_worker(0, i)
+		GameState.hire_worker(0)
 	GameState.mechs_built = 1
 	await t.frames(1)
 	await t.click(main.get_node("%Upgrades"))
 	for i in 4:
 		await t.click(_buy(menu, "tier_arms"))
 	t.check(GameState.unlocked_tier("arms") == 4, "Railgun unlocked")
+	await t.frames(1)
+	var final_effect: Label = menu.row("final_arms").find_child("Effect", true, false)
+	t.check(GameState.upgrade_locked("final_arms") and _buy(menu, "final_arms").disabled and final_effect.text == "NEEDS ALL PARTS", "Arms maxed alone: Atomic Missile still locked (%s)" % final_effect.text)
+	for id: String in ["tier_frame", "tier_core", "tier_plating"]:
+		while not GameState.upgrade_maxed(id):
+			GameState.buy_upgrade(id)
+			if id != "tier_plating":
+				t.check(GameState.upgrade_locked("final_arms"), "missile locked while %s isn't maxed" % id)
+	await t.frames(2)
+	t.check(not GameState.upgrade_locked("final_arms") and not _buy(menu, "final_arms").disabled, "every part unlocked: missile can be bought")
 	await t.click(_buy(menu, "final_arms"))
 	t.check(menu.get_node("Confirm").visible and GameState.level("final_arms") == 0, "Atomic Missile asks to confirm")
 	await t.shot("m7_confirm")
 	await t.click(menu.find_child("Yes", true, false))
 	t.check(GameState.unlocked_tier("arms") == 5, "Atomic Missile unlocked")
 	await t.click(main.get_node("%Upgrades"))
-	for i in 5:
-		await t.click(line.segment_view(2).get_node("Apply"))
-	t.check(GameState.lines[0].segments[2].tier == 5, "applied to the Arms segment")
+	var segs := GameState.lines[0].segments
+	t.check(segs.size() == 4, "plating pad added")
+	await t.click(line.segment_view(2).get_node("Apply"))
+	t.check(segs[2].tier == 4 and not GameState.can_apply_tier(0, 2), "line not maxed: Arms fit stops at the Railgun")
+	await t.click(_build_button(line, 3))
+	for i in [0, 1]:
+		await t.click(line.segment_view(i).get_node("Apply"))
+	await t.frames(1)
+	t.check(not GameState.can_apply_tier(0, 2) and not line.segment_view(2).get_node("Apply").visible, "one station short of its best part: still no missile")
+	await t.click(line.segment_view(3).get_node("Apply"))
+	await t.frames(1)
+	t.check(GameState.line_maxed(0) and GameState.can_apply_tier(0, 2), "every station at its best part: missile can be fitted")
+	await t.click(line.segment_view(2).get_node("Apply"))
+	t.check(segs[2].tier == 5, "applied to the Arms segment")
 
 	GameState.time_scale = 1.0
 	var start := Time.get_ticks_msec()
 	while not GameState.run_over and Time.get_ticks_msec() - start < 20000:
-		for i in 3:
+		for i in segs.size():
 			GameState.tap_segment(0, i)
 		await t.frames(1)
 	t.check(GameState.run_over and nuke.visible, "Nuclear Mech deploys, input locked")
@@ -577,12 +634,15 @@ func m8() -> void:
 	GameState.scrap = 45.0
 	for i in 3:
 		await t.click(_build_button(line, i))
+	await t.frames(1)
+	t.check(not line.get_node("Crew").visible and not line.hire_button().visible and is_zero_approx(line.segment_view(0).position.y), "stations built, no mech yet: no crew bar, stations at the top")
 	GameState.scrap = 100.0
 	for k in 3:
 		await _fill_bar(line, k)
 	GameState.advance(3.0)
 	await t.frames(1)
-	t.check(GameState.mechs_built == 1 and hidden.all(func(c: Control) -> bool: return c.visible), "first mech deployed: the buttons appear")
+	hidden.append(line.get_node("Crew"))
+	t.check(GameState.mechs_built == 1 and hidden.all(func(c: Control) -> bool: return c.visible), "first mech deployed: the buttons and crew row appear")
 
 	t.check(line.size.y < 200.0, "line takes %d px (M7: 238)" % line.size.y)
 	t.check(line.segment_view(0).find_child("Jump", false, false) == null and line.segment_view(0).find_child("Bottleneck", false, false) == null, "no jump button, no bottleneck box")
@@ -591,9 +651,8 @@ func m8() -> void:
 
 	GameState.field.clear()
 	GameState.credits = 1e6
-	for i in 3:
-		for k in 3:
-			GameState.hire_worker(0, i)
+	for i in 9:
+		GameState.hire_worker(0)
 	GameState.scrap = 1e4
 	GameState.advance(8.0)
 	await t.frames(1)
@@ -650,13 +709,12 @@ func m8() -> void:
 	GameState.scrap = 100.0
 	await t.frames(1)
 	var sv := line.segment_view(0)
-	var hire: Button = sv.get_node("Hire")
 	var apply: Button = sv.get_node("Apply")
-	t.check(hire.visible and apply.visible and absf(hire.position.y - apply.position.y) < 1.0, "hire and apply share one row")
-	t.check(hire.get_rect().end.x <= apply.position.x and apply.get_rect().end.x <= 84.0, "they fit the segment (%s, %s)" % [hire.get_rect(), apply.get_rect()])
+	t.check(apply.visible and not sv.get_node("Header").visible and apply.get_rect().end.y <= SegmentView.MACHINE_Y, "fit replaces the station name above the machine %s" % apply.get_rect())
+	t.check(apply.position.x >= -2.0 and apply.get_rect().end.x <= 82.0, "it fits the station (%s)" % apply.get_rect())
 	await t.shot("m8_row")
 	await t.click(apply)
-	t.check(GameState.lines[0].segments[0].tier == 1, "apply from the shared row")
+	t.check(GameState.lines[0].segments[0].tier == 1, "apply from the header")
 
 	var kinds := {}
 	var variants := {}
@@ -823,6 +881,28 @@ func m8() -> void:
 	t.check(not is_equal_approx(pile_sprite.position.x, rest_x), "pile vibrates on tap")
 	await t.wait(0.3)
 	t.check(is_equal_approx(pile_sprite.position.x, rest_x), "and settles back")
+	GameState.mechs_built = 1
+	GameState.yard_workers = 20
+	GameState.levels["yard_crew"] = 20
+	GameState.levels["interval"] = 10
+	GameState._stats.clear()
+	var scale := GameState.time_scale
+	GameState.time_scale = 1.0
+	GameState.scrap = GameState.yard_rate() * 40.0
+	var tallest := 0.0
+	var lowest := 2
+	for f in 120:
+		if f % 30 == 0:
+			pile.tapped.emit(Vector2(10, 10))
+		await t.frames(1)
+		tallest = maxf(tallest, pile_sprite.scale.y)
+		lowest = mini(lowest, (yard.get_parent() as Scrapyard).pile_level())
+	t.check(tallest > 0.99 and lowest == 2, "busy yard + taps: the pile still springs back (%.3f) and keeps its size (%d)" % [tallest, lowest])
+	GameState.time_scale = scale
+	GameState.yard_workers = 0
+	GameState.levels.erase("yard_crew")
+	GameState.levels.erase("interval")
+	GameState._stats.clear()
 
 	var motion := InputEventMouseMotion.new()
 	motion.position = pile.get_global_rect().get_center()
@@ -850,7 +930,7 @@ func m8() -> void:
 	GameState.mechs_built = 1
 	GameState.credits = 5000.0
 	await t.frames(2)
-	var hire_button: Button = line.segment_view(1).get_node("Hire")
+	var hire_button: Button = line.hire_button()
 	await t.click(hire_button)
 	var discs := flyers.get_children()
 	t.check(discs.size() == 2 and discs.all(func(d: TextureRect) -> bool: return Flyers.TEXTURES[0].has(d.texture)), "hiring for 50 credits sends 2 credit discs (%d)" % discs.size())
@@ -878,6 +958,7 @@ const PROFILES := {
 const TAPS_PER_S := 3.0
 const STEP := 0.25
 const PHASE_GAP := 30.0
+const SAVE_WINDOW := 30.0
 
 
 func m9() -> void:
@@ -925,20 +1006,13 @@ func m9() -> void:
 	GameState.credits = 0.0
 	await t.frames(1)
 	var apply: Button = line.segment_view(0).get_node("Apply")
-	var hire: Button = line.segment_view(0).get_node("Hire")
-	t.check(apply.visible and hire.visible and apply.text == "" and hire.get_rect().end.x <= apply.position.x, "hire + ⬆ share the row")
-	GameState.credits = 1e6
-	for i in GameState.lines[0].segments[0].worker_slots():
-		GameState.hire_worker(0, 0)
-	GameState.credits = 0.0
-	await t.frames(1)
-	t.check(not hire.visible and apply.visible and apply.text == Fmt.num(cost) and apply.size.x > 80.0, "full station: fit takes the row, shows %s" % apply.text)
+	t.check(apply.visible and apply.text == Fmt.num(cost) and apply.size.x > 80.0, "fit takes the header, shows %s" % apply.text)
 	t.check(apply.theme_type_variation == &"LitRow", "affordable fit is lit")
 	await t.shot("m9_fit")
 	await t.click(apply)
 	t.check(segs[0].tier == 3 and is_zero_approx(GameState.scrap), "⬆ fits Composite Strider in one tap")
 	await t.frames(1)
-	t.check(not apply.visible and not hire.visible, "nothing to buy: empty row")
+	t.check(not apply.visible and line.segment_view(0).get_node("Header").visible, "fitted: the name is back")
 
 	GameState.mechs_built = 1
 	GameState.credits = 1e9
@@ -1008,6 +1082,9 @@ func m9() -> void:
 	t.check(heights[0] > heights[1] and heights[-1] == Battlefield.HEIGHT, "battlefield shrinks back to 160 as lines are added %s" % [heights])
 	var content: Control = main.get_node("%Content")
 	t.check(content.get_child(-1) == unlock, "UNLOCK LINE sits below the lines")
+	var l0: LineView = main.line_view(0)
+	var l1: LineView = main.line_view(1)
+	t.check(is_equal_approx(l1.position.y, l0.get_rect().end.y), "lines stack with no gap (%d, %d)" % [l0.get_rect().end.y, l1.position.y])
 
 	await _fresh()
 	main = t.get_tree().current_scene
@@ -1079,7 +1156,15 @@ func tune() -> void:
 	t.check(absf(runs.field.time / base.time - 1.0) <= 0.2, "all-battlefield taps within 20%% of baseline (%.2f×)" % (runs.field.time / base.time))
 	t.check(runs.quit10.time >= base.time * 1.1, "stopping taps at 10 min costs %.0f%% more time" % ((runs.quit10.time / base.time - 1.0) * 100.0))
 	t.check(runs.no_arms.time > base.time, "fitting Arms beats not fitting them (%.1f vs %.1f min)" % [base.time / 60.0, runs.no_arms.time / 60.0])
-	t.check(runs.no_pause.time > base.time, "pausing beats never pausing (%.1f vs %.1f min)" % [base.time / 60.0, runs.no_pause.time / 60.0])
+	var gain := 0.0
+	var gain_fit := ""
+	for fit: String in base.l1_fits:
+		var d: float = runs.no_pause.l1_fits.get(fit, INF) - base.l1_fits[fit]
+		if d > gain:
+			gain = d
+			gain_fit = fit
+	t.check(gain >= 60.0, "pausing gets a fit sooner (%s by %.0f s)" % [gain_fit.trim_prefix("apply L1 "), gain])
+	t.check(runs.no_pause.time <= base.time * 1.1 and runs.no_pause.gap <= 150.0, "never pausing isn't stuck: %.1f vs %.1f min, longest wait %.0f s" % [runs.no_pause.time / 60.0, base.time / 60.0, runs.no_pause.gap])
 	GameState.new_game()
 
 
@@ -1174,9 +1259,18 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"first_worker": hires[0][0] if hires.size() else INF,
 		"final_wait": final_wait,
 		"first_maxed": r.maxed.values().min() if r.maxed.size() else INF,
+		"l1_fits": _first_times(fits.filter(func(e: Array) -> bool: return e[1].begins_with("apply L1 "))),
 		"tap_scrap": r.scrap.tap / scrap_total,
 		"tap_work": r.work.tap / maxf(r.work.tap + worker_work, 1.0),
 	}
+
+
+func _first_times(events: Array) -> Dictionary:
+	var d := {}
+	for e: Array in events:
+		if not d.has(e[1]):
+			d[e[1]] = e[0]
+	return d
 
 
 func _shares(d: Dictionary) -> String:
@@ -1222,14 +1316,14 @@ func _bot_manage(p: Dictionary, r: Dictionary) -> void:
 			if not GameState.lines[li].segments[i].built and GameState.build_segment(li, i):
 				r.events.append([now, "build L%d %s" % [li + 1, GameState.lines[li].segments[i].type_id]])
 	var pending := INF
-	var nuke_ready: bool = GameState.unlocked_tier("arms") == Data.segment_type("arms").tiers.size() - 1
+	var nuke_ready: bool = GameState.unlocked_tier("arms") > GameState.top_tier("arms")
 	for li in GameState.lines.size():
 		for i in GameState.lines[li].segments.size():
 			var s := GameState.lines[li].segments[i]
 			if not GameState.can_apply_tier(li, i):
 				continue
 			if nuke_ready:
-				if li != 0 or i != 2:
+				if li != 0:
 					continue
 			elif p.get("no_arms", false) and s.type_id == "arms":
 				continue
@@ -1240,9 +1334,10 @@ func _bot_manage(p: Dictionary, r: Dictionary) -> void:
 			else:
 				pending = minf(pending, cost)
 	r.want = pending if pending < INF else 0.0
-	var save := pending < INF and GameState.scrap_rate * 60.0 < pending - GameState.scrap
+	var short := pending - GameState.scrap
+	var save := pending < INF and GameState.scrap_rate * 60.0 < short and GameState.scrap_gain_rate * SAVE_WINDOW >= short
 	if nuke_ready:
-		save = GameState.lines[0].segments[2].tier < GameState.unlocked_tier("arms")
+		save = GameState.lines[0].segments[2].tier <= GameState.top_tier("arms")
 	if p.get("no_pause", false):
 		save = false
 	for li in GameState.lines.size():
@@ -1251,10 +1346,8 @@ func _bot_manage(p: Dictionary, r: Dictionary) -> void:
 	while true:
 		var options := []
 		for li in GameState.lines.size():
-			for i in GameState.lines[li].segments.size():
-				var s := GameState.lines[li].segments[i]
-				if s.built and s.workers < s.worker_slots():
-					options.append([GameState.worker_cost(li, i), "hire", li, i])
+			if GameState.lines[li].workers < GameState.lines[li].worker_slots():
+				options.append([GameState.worker_cost(li), "hire", li])
 		if GameState.yard_workers < GameState.yard_slots():
 			options.append([GameState.yard_worker_cost(), "yard"])
 		for row: Dictionary in Data.upgrade_list:
@@ -1266,7 +1359,7 @@ func _bot_manage(p: Dictionary, r: Dictionary) -> void:
 		var o: Array = options[0]
 		match o[1]:
 			"hire":
-				GameState.hire_worker(o[2], o[3])
+				GameState.hire_worker(o[2])
 				r.buys.append([now, "hire"])
 				if not r.events.any(func(e: Array) -> bool: return e[1].begins_with("hire")):
 					r.events.append([now, "hire first worker"])
@@ -1328,9 +1421,9 @@ func art() -> void:
 		for si in segs.size():
 			GameState.build_segment(li, si)
 			segs[si].tier = clampi(li * 2 + si % 2, 0, 4)
-			GameState.hire_worker(li, si)
+			GameState.hire_worker(li)
 			if si % 2 == 0:
-				GameState.hire_worker(li, si)
+				GameState.hire_worker(li)
 			var m := MechState.new()
 			m.id = GameState.next_mech_id
 			GameState.next_mech_id += 1
@@ -1511,6 +1604,7 @@ func _fill_bar(line: LineView, i: int) -> void:
 	var tap: Control = line.segment_view(i).get_node("Tap")
 	for k in 8:
 		await t.click(tap)
+
 
 
 

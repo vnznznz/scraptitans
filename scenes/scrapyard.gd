@@ -11,6 +11,7 @@ const GROUND_Y := 96.0
 const WORKER_DX := 7.0
 const HIRE_RECT := Rect2(240, 6, 114, 40)
 const SLIDE_TIME := 0.4
+const SQUASH_TIME := 0.12
 
 var _yard: Control
 var _pile: TextureRect
@@ -18,6 +19,9 @@ var _tap: TapArea
 var _hire: Button
 var _workers: Array[TextureRect] = []
 var _chunks_seen := 0
+var _squash_depth := 0.0
+var _squash_at := -1.0
+var _clock := 0.0
 var _collapsed := false
 
 
@@ -68,7 +72,8 @@ func collapse() -> void:
 		w.visible = false
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_clock += delta
 	_pile.texture = PILE_LEVELS[pile_level()]
 	if _collapsed:
 		return
@@ -104,7 +109,7 @@ func _process(_delta: float) -> void:
 
 
 func pile_level() -> int:
-	var seconds := GameState.scrap / maxf(GameState.scrap_gain_rate, 1.0)
+	var seconds := GameState.scrap / maxf(GameState.yard_rate(), 1.0)
 	var level := 0
 	for s: float in PILE_SECONDS:
 		if seconds >= s:
@@ -141,21 +146,27 @@ func _dig(i: int) -> void:
 	tw.tween_property(w, "position:x", hit_x, (0.1 + absf(hit_x - home.x) / 300.0) / speed) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void:
-		_squash(0.97, 1.0)
+		_squash(0.97, 1.0, 0.2)
 		Flyers.spawn(Flyers.Kind.SCRAP, w.global_position + Vector2(WORKER_TEX.get_width() / 2.0, -4), GameState.yard_chunk()))
 	tw.tween_property(w, "position", Vector2((hit_x + home.x) / 2.0, home.y - 4.0), 0.1 / speed) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(w, "position", home, 0.12 / speed).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 
-func _squash(y_scale: float, shake: float) -> void:
+func _squash(y_scale: float, shake: float, rest: float) -> void:
+	var depth := 1.0 - y_scale
+	var elapsed := _clock - _squash_at
+	if elapsed < rest or (elapsed < SQUASH_TIME and depth < _squash_depth):
+		return
+	_squash_depth = depth
+	_squash_at = _clock
 	_pile.scale = Vector2(2.0 - y_scale, y_scale)
 	if _pile.has_meta("tween"):
 		(_pile.get_meta("tween") as Tween).kill()
 	_pile.position = PILE_POS
 	var tw := _pile.create_tween()
 	_pile.set_meta("tween", tw)
-	tw.tween_property(_pile, "scale", Vector2.ONE, 0.12)
+	tw.tween_property(_pile, "scale", Vector2.ONE, SQUASH_TIME)
 	for k in 4:
 		tw.parallel().tween_property(_pile, "position:x", PILE_POS.x + shake * (1.0 if k % 2 == 0 else -1.0) * (1.0 - k * 0.25), 0.03).set_delay(k * 0.03)
 	tw.chain().tween_property(_pile, "position:x", PILE_POS.x, 0.03)
@@ -171,4 +182,4 @@ func _on_tap(at: Vector2) -> void:
 	var amount := GameState.tap_scrap()
 	GameState.tap_pile()
 	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), amount, 1, true)
-	_squash(0.92, 2.0)
+	_squash(0.92, 2.0, 0.06)

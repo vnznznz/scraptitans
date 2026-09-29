@@ -5,6 +5,7 @@ const BADGE_ON := Pal.RED
 const FIELD_MAX := 2.0
 const UNLOCK_SMALL := Vector2(220, 32)
 const UNLOCK_BIG := Vector2(300, 44)
+const UNLOCK_GAP := 8.0
 const FLYERS_Z := 1
 const TEXT_Z := 2
 const OVERLAY_Z := 3
@@ -18,6 +19,7 @@ const OVERLAY_Z := 3
 @onready var _flyers: Control = %Flyers
 
 var _unlock: Button
+var _unlock_gap: Control
 var _badge: Label
 var _badge_style: StyleBoxFlat
 var _title := ""
@@ -40,8 +42,14 @@ func _ready() -> void:
 	_unlock.size_flags_horizontal = SIZE_SHRINK_CENTER
 	_unlock.mouse_filter = MOUSE_FILTER_PASS
 	_unlock.pressed.connect(_on_unlock)
+	_unlock_gap = Control.new()
+	_unlock_gap.name = "UnlockGap"
+	_unlock_gap.custom_minimum_size = Vector2(0, UNLOCK_GAP)
+	_unlock_gap.mouse_filter = MOUSE_FILTER_PASS
+	_content.add_child(_unlock_gap)
 	_content.add_child(_unlock)
-	_content.move_child(_unlock, 0)
+	_content.move_child(_unlock_gap, 0)
+	_content.move_child(_unlock, 1)
 	for i in GameState.lines.size():
 		_add_line(i)
 	GameState.line_added.connect(_add_line)
@@ -88,6 +96,7 @@ func _process(_delta: float) -> void:
 	_badge.reset_size()
 	_badge.position = Vector2(_upgrades.size.x - _badge.size.x + 4, -10)
 	_unlock.visible = GameState.revealed() and not GameState.upgrade_maxed("lines") and not GameState.run_over
+	_unlock_gap.visible = _unlock.visible
 	if _unlock.visible:
 		var cost := GameState.upgrade_cost("lines")
 		var can_buy := GameState.credits >= cost
