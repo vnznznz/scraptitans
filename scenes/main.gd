@@ -1,12 +1,21 @@
+class_name Main
 extends Control
 
 const BADGE_ON := Color(0.85, 0.25, 0.2)
-const BADGE_OFF := Color(0.3, 0.3, 0.34)
+const FIELD_MAX := 2.0
+const UNLOCK_SMALL := Vector2(220, 32)
+const UNLOCK_BIG := Vector2(300, 44)
+const FLYERS_Z := 1
+const TEXT_Z := 2
+const OVERLAY_Z := 3
 
 @onready var _content: VBoxContainer = %Content
 @onready var _settings: SettingsOverlay = %Settings
 @onready var _menu: UpgradeMenu = %UpgradeMenu
 @onready var _upgrades: Button = %Upgrades
+@onready var _battlefield: Battlefield = %Battlefield
+@onready var _scroll: ScrollContainer = %Scroll
+@onready var _flyers: Control = %Flyers
 
 var _unlock: Button
 var _badge: Label
@@ -20,11 +29,14 @@ func _ready() -> void:
 		Hover.button(b)
 	get_tree().node_added.connect(_on_node_added)
 	if not Hover.enabled():
-		ThemeDB.get_project_theme().set_stylebox("hover", "Button", get_theme_stylebox("normal", "Button"))
+		var theme := ThemeDB.get_project_theme()
+		theme.set_stylebox("hover", "Button", theme.get_stylebox("normal", "Button"))
+		theme.set_stylebox("hover", "PriceRow", theme.get_stylebox("normal", "PriceRow"))
 	_unlock = Button.new()
 	_unlock.name = "UnlockLine"
 	_unlock.icon = preload("res://art/ui/credits.png")
-	_unlock.custom_minimum_size = Vector2(300, 40)
+	_unlock.custom_minimum_size = UNLOCK_SMALL
+	Price.setup(_unlock, Flyers.Kind.CREDITS)
 	_unlock.size_flags_horizontal = SIZE_SHRINK_CENTER
 	_unlock.mouse_filter = MOUSE_FILTER_PASS
 	_unlock.pressed.connect(_on_unlock)
@@ -36,6 +48,7 @@ func _ready() -> void:
 	_badge = Label.new()
 	_badge.name = "Badge"
 	_badge_style = StyleBoxFlat.new()
+	_badge_style.bg_color = BADGE_ON
 	_badge_style.border_color = Color(0.08, 0.07, 0.1)
 	_badge_style.set_border_width_all(1)
 	_badge_style.content_margin_left = 5
@@ -46,32 +59,47 @@ func _ready() -> void:
 	guide.name = "IntroGuide"
 	guide.pile = (%Scrapyard as Scrapyard).pile()
 	guide.line = line_view(0)
+	guide.battlefield = _battlefield
+	guide.upgrades = _upgrades
+	guide.menu = _menu
 	guide.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(guide)
 	move_child(guide, $Layout.get_index() + 1)
+	guide.z_index = OVERLAY_Z
+	_flyers.z_index = FLYERS_Z
+	_menu.z_index = TEXT_Z
+	for overlay: Control in [%Debug, %Settings, %Nuke]:
+		overlay.z_index = OVERLAY_Z + 1
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.pressed.connect(_toggle_menu)
 
 
 func _process(_delta: float) -> void:
+	_fit_battlefield()
 	_upgrades.visible = GameState.revealed() and not GameState.run_over
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	var affordable := GameState.affordable_upgrades()
-	_badge.visible = not _menu.visible
+	_badge.visible = not _menu.visible and affordable > 0
 	_badge.text = str(affordable)
 	var title := "(%d) %s" % [affordable, _app_name] if affordable > 0 and GameState.revealed() and not GameState.run_over else _app_name
 	if title != _title:
 		_title = title
 		DisplayServer.window_set_title(title)
-	_badge_style.bg_color = BADGE_ON if affordable > 0 else BADGE_OFF
-	_badge.modulate.a = 1.0 if affordable > 0 else 0.6
 	_badge.reset_size()
 	_badge.position = Vector2(_upgrades.size.x - _badge.size.x + 4, -10)
 	_unlock.visible = GameState.revealed() and not GameState.upgrade_maxed("lines") and not GameState.run_over
 	if _unlock.visible:
 		var cost := GameState.upgrade_cost("lines")
-		_unlock.text = "+ UNLOCK LINE %d  %s" % [GameState.lines.size() + 1, Fmt.num(cost)]
-		_unlock.disabled = GameState.credits < cost
+		var can_buy := GameState.credits >= cost
+		Price.show(_unlock, "+ LINE %d  %s" % [GameState.lines.size() + 1, Fmt.num(cost)], can_buy)
+		_unlock.custom_minimum_size = UNLOCK_BIG if can_buy else UNLOCK_SMALL
+
+
+func _fit_battlefield() -> void:
+	var pane := _scroll.size.y + _battlefield.size.y
+	var h := clampf(pane - _content.get_combined_minimum_size().y, Battlefield.HEIGHT, Battlefield.HEIGHT * FIELD_MAX)
+	if _battlefield.custom_minimum_size.y != h:
+		_battlefield.custom_minimum_size.y = h
 
 
 func _on_unlock() -> void:

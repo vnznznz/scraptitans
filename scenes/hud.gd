@@ -24,9 +24,9 @@ func _ready() -> void:
 	bg.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(bg)
 
-	_credits = _amount(preload("res://art/ui/credits.png"), 214, Color(1.0, 0.83, 0.3))
+	_credits = _amount(preload("res://art/ui/credits.png"), 214, Price.COLORS[Flyers.Kind.CREDITS])
 	_credits_rate = _rate(214)
-	_scrap = _amount(preload("res://art/ui/scrap.png"), 6, Color(0.86, 0.86, 0.82))
+	_scrap = _amount(preload("res://art/ui/scrap.png"), 6, Price.COLORS[Flyers.Kind.SCRAP])
 	_scrap_rate = _rate(6)
 	_mechs = _amount(preload("res://art/ui/mech.png"), 112, Color(0.75, 0.85, 1.0))
 	_mechs.name = "Mechs"
@@ -88,6 +88,7 @@ func _amount(icon_tex: Texture2D, x: float, color: Color) -> Label:
 	var label := Label.new()
 	label.position = Vector2(x + 22, ICON_Y - 4)
 	label.add_theme_color_override("font_color", color)
+	label.z_index = Main.TEXT_Z
 	add_child(label)
 	return label
 
@@ -96,5 +97,6 @@ func _rate(x: float) -> Label:
 	var label := Label.new()
 	label.position = Vector2(x, RATE_Y)
 	label.modulate = RATE_COLOR
+	label.z_index = Main.TEXT_Z
 	add_child(label)
 	return label

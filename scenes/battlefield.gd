@@ -1,6 +1,8 @@
 class_name Battlefield
 extends Control
 
+const HEIGHT := 160.0
+const SKY := Color(34 / 255.0, 36 / 255.0, 60 / 255.0)
 const GROUND_Y := 138.0
 const AIR_Y := 84.0
 const ROWS := 3
@@ -17,8 +19,8 @@ const BAR_RECT := Rect2(4, 4, 352, 20)
 const MECH_FIRE := Vector2(0.8, 1.6)
 const ENEMY_FIRE := Vector2(1.2, 2.4)
 const INCOME_DISCS_PER_S := 10.0
-const TAP_DISCS_MAX := 5
 
+var _world: Node2D
 var _mechs: Node2D
 var _enemy_layer: Node2D
 var _enemies: Array[Sprite2D] = []
@@ -33,14 +35,18 @@ var _hp_label: Label
 var _dps_label: Label
 var _bg: TextureRect
 var _tap: TapArea
+var _hint: Control
 
 
 func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
+	_world = Node2D.new()
+	_world.name = "World"
+	add_child(_world)
 	_bg = TextureRect.new()
 	_bg.texture = preload("res://art/battlefield/bg.png")
 	_bg.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(_bg)
+	_world.add_child(_bg)
 
 	_tap = TapArea.new()
 	_tap.name = "FieldTap"
@@ -50,9 +56,17 @@ func _ready() -> void:
 
 	_enemy_layer = Node2D.new()
 	_enemy_layer.y_sort_enabled = true
-	add_child(_enemy_layer)
+	_world.add_child(_enemy_layer)
 	_mechs = Node2D.new()
-	add_child(_mechs)
+	_world.add_child(_mechs)
+	_hint = Control.new()
+	_hint.name = "HintAnchor"
+	_hint.position = Vector2(ENEMY_X0, AIR_Y - 20.0)
+	_hint.size = Vector2(ENEMY_X1 - ENEMY_X0, 8)
+	_hint.mouse_filter = MOUSE_FILTER_IGNORE
+	_world.add_child(_hint)
+	resized.connect(_on_resized)
+	_on_resized()
 
 	_bar = TextureProgressBar.new()
 	_bar.name = "WaveBar"
@@ -86,6 +100,19 @@ func _ready() -> void:
 	_show_wave(false)
 
 
+func hint_anchor() -> Control:
+	return _hint
+
+
+func _on_resized() -> void:
+	_world.position.y = maxf(0.0, size.y - HEIGHT)
+	queue_redraw()
+
+
+func _draw() -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), SKY * _bg.modulate)
+
+
 func mech_count() -> int:
 	return _views.size()
 
@@ -112,8 +139,8 @@ func _process(delta: float) -> void:
 	var max_hp := GameState.wave_max_hp()
 	_bar.max_value = max_hp
 	_bar.value = GameState.wave_hp
-	_hp_label.text = "W%d  %s/%s" % [GameState.wave + 1, Fmt.num(GameState.wave_hp), Fmt.num(max_hp)]
-	_dps_label.text = "%s DPS" % Fmt.num(GameState.wave_dps())
+	_hp_label.text = "WAVE %d" % (GameState.wave + 1)
+	_dps_label.text = "%s DMG/S" % Fmt.num(GameState.wave_dps())
 	var alive := GameState.wave_alive()
 	while _enemy_count > alive:
 		_pop_enemy(_enemies.size() - _enemy_count)
@@ -221,11 +248,10 @@ func _show_wave(walk_in: bool) -> void:
 
 
 func _on_tap(at: Vector2) -> void:
-	var before := GameState.credits
-	var pay := GameState.tap_wave()
-	if pay <= 0.0:
+	if GameState.tap_wave() <= 0.0:
 		return
 	var target: Sprite2D = null
+	at -= _world.position
 	for e in _enemies:
 		if e.visible and (target == null or _enemy_center(e).distance_to(at) < _enemy_center(target).distance_to(at)):
 			target = e
@@ -233,9 +259,6 @@ func _on_tap(at: Vector2) -> void:
 		target.modulate = Color(3, 3, 3)
 		target.create_tween().tween_property(target, "modulate", Color.WHITE, 0.12)
 		_puff(_enemy_center(target) + Vector2(randf_range(-4, 4), randf_range(-4, 4)), 0.4, Color(1, 0.9, 0.6))
-	var whole := mini(int(floorf(before + pay) - floorf(before)), TAP_DISCS_MAX)
-	if whole > 0:
-		Flyers.spawn(Flyers.Kind.CREDITS, global_position + at, pay, whole)
 
 
 func _pop_enemy(i: int) -> void:
@@ -248,7 +271,7 @@ func _pop_enemy(i: int) -> void:
 
 func _on_enemy_killed(i: int, scrap: float) -> void:
 	if i < _enemies.size():
-		Flyers.spawn(Flyers.Kind.SCRAP, global_position + _enemy_center(_enemies[i]), scrap, 2)
+		Flyers.spawn(Flyers.Kind.SCRAP, _world.global_position + _enemy_center(_enemies[i]), scrap, 2)
 
 
 func _on_wave_cleared(bounty: float) -> void:
@@ -258,7 +281,7 @@ func _on_wave_cleared(bounty: float) -> void:
 			_puff(_enemy_center(e), 1.4, Color(1, 0.6, 0.3))
 	_puff(center, 2.5, Color(1, 0.7, 0.3))
 	_sparks(center)
-	Flyers.spawn(Flyers.Kind.CREDITS, global_position + center, bounty, clampi(8 + GameState.wave, 8, 20))
+	Flyers.spawn(Flyers.Kind.CREDITS, _world.global_position + center, bounty, clampi(8 + GameState.wave, 8, 20))
 	shake()
 	_show_wave(true)
 
@@ -300,7 +323,7 @@ func mushroom() -> void:
 	cloud.offset = Vector2(0, -cloud.texture.get_height())
 	cloud.position = Vector2(size.x / 2.0, GROUND_Y + 8)
 	cloud.scale = Vector2(0.3, 0.1)
-	add_child(cloud)
+	_world.add_child(cloud)
 	var tw := cloud.create_tween()
 	tw.tween_property(cloud, "scale", Vector2(2.0, 2.0), 1.8).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(cloud, "modulate", Color(0.7, 0.6, 0.6), 3.0)
@@ -319,6 +342,7 @@ func scorch() -> void:
 	_hp_label.visible = false
 	_dps_label.visible = false
 	_bg.modulate = Color(1.2, 0.7, 0.5)
+	queue_redraw()
 
 
 func _puff(pos: Vector2, size_scale: float, color: Color) -> void:
@@ -364,6 +388,7 @@ func _bar_label(node_name: String, align: HorizontalAlignment) -> Label:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_constant_override("outline_size", 4)
 	label.add_theme_color_override("font_outline_color", Color(0.08, 0.07, 0.1))
+	label.z_index = Main.TEXT_Z
 	add_child(label)
 	return label
 

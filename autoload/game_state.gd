@@ -29,6 +29,8 @@ var yard_workers := 0
 var yard_t := 0.0
 var levels := {}
 var run_over := false
+var stalled_once := false
+var field_taps := 0
 var credits_rate := 0.0
 var scrap_rate := 0.0
 var scrap_gain_rate := 0.0
@@ -82,6 +84,8 @@ func new_game() -> void:
 	mechs_built = 0
 	credits_earned = 0.0
 	run_over = false
+	stalled_once = false
+	field_taps = 0
 	wave = 0
 	wave_hp = wave_max_hp()
 	yard_workers = 0
@@ -115,7 +119,10 @@ func can_apply_tier(line_index: int, seg_index: int) -> bool:
 
 func tier_apply_cost(line_index: int, seg_index: int) -> float:
 	var s := lines[line_index].segments[seg_index]
-	return float(Data.tier(s.type_id, s.tier + 1).apply_cost)
+	var cost := 0.0
+	for t in range(s.tier + 1, unlocked_tier(s.type_id) + 1):
+		cost += float(Data.tier(s.type_id, t).apply_cost)
+	return cost
 
 
 func apply_tier(line_index: int, seg_index: int) -> bool:
@@ -125,7 +132,8 @@ func apply_tier(line_index: int, seg_index: int) -> bool:
 	if scrap < cost:
 		return false
 	scrap -= cost
-	lines[line_index].segments[seg_index].tier += 1
+	var s := lines[line_index].segments[seg_index]
+	s.tier = unlocked_tier(s.type_id)
 	purchased.emit()
 	return true
 
@@ -142,8 +150,12 @@ func aging() -> float:
 	return 1.0 + float(Data.enemies.wave_damage) * wave
 
 
+func tap_scrap() -> float:
+	return stat("scrap_per_tap") + Data.econ("tap_yard_share") * yard_rate()
+
+
 func tap_pile() -> void:
-	_gain_scrap(stat("scrap_per_tap"))
+	_gain_scrap(tap_scrap())
 
 
 func tap_segment(line_index: int, seg_index: int) -> bool:
@@ -192,6 +204,10 @@ func yard_slots() -> int:
 
 func yard_chunk() -> float:
 	return stat("yard_chunk") * stat("worker_chunk")
+
+
+func yard_rate() -> float:
+	return yard_workers * yard_chunk() / stat("worker_interval")
 
 
 func yard_worker_cost() -> float:
@@ -304,10 +320,7 @@ func wave_alive() -> int:
 
 
 func kill_scrap(e: Dictionary) -> float:
-	var total := 0.0
-	for other in wave_enemies():
-		total += other.weight
-	return stat("kill_scrap") * wave_max_hp() * e.weight / total
+	return stat("kill_scrap") * pow(float(Data.enemies.variant_scrap), e.variant)
 
 
 func field_dps() -> float:
@@ -341,6 +354,8 @@ func to_dict() -> Dictionary:
 		"yard_t": yard_t,
 		"levels": levels.duplicate(),
 		"run_over": run_over,
+		"stalled_once": stalled_once,
+		"field_taps": field_taps,
 	}
 
 
@@ -367,6 +382,8 @@ func from_dict(d: Dictionary) -> void:
 	yard_workers = int(d.get("yard_workers", 0))
 	yard_t = float(d.get("yard_t", 0.0))
 	run_over = d.get("run_over", false)
+	stalled_once = d.get("stalled_once", false)
+	field_taps = int(d.get("field_taps", 0))
 	_reset_rates()
 
 
@@ -446,6 +463,7 @@ func _try_assemble(line: LineState, s: SegmentState, spawn: bool) -> void:
 	var cost := float(s.tier_data().scrap_per_mech)
 	if scrap < cost:
 		s.stall = SegmentState.Stall.NO_SCRAP
+		stalled_once = true
 		return
 	scrap -= cost
 	_scrap_bucket -= cost
@@ -516,15 +534,18 @@ func _step_field(dt: float) -> void:
 			mech_died.emit(m, salvage)
 
 
+func tap_wave_damage() -> float:
+	return stat("tap_damage") * maxf(field_dps(), float(Data.tier("arms", 0).dps))
+
+
 func tap_wave() -> float:
 	if run_over:
 		return 0.0
-	var share := stat("tap_damage")
-	var pay := wave_bounty() * share
-	_gain_credits(pay)
-	_tap_bucket += wave_max_hp() * share
-	_damage_wave(wave_max_hp() * share)
-	return pay
+	var damage := tap_wave_damage()
+	field_taps += 1
+	_tap_bucket += damage
+	_damage_wave(damage)
+	return damage
 
 
 func _step_wave(dt: float) -> void:

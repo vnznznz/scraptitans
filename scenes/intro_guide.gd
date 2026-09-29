@@ -5,9 +5,13 @@ const COLOR := Color(1.0, 0.85, 0.3)
 const OUTLINE := Color(0.08, 0.07, 0.1)
 const ARROW := Vector2(8, 10)
 const MARGIN := 16.0
+const FIELD_TAPS := 3
 
 var pile: Control
 var line: LineView
+var battlefield: Battlefield
+var upgrades: Control
+var menu: UpgradeMenu
 
 var _label: Label
 var _tip := Vector2.ZERO
@@ -65,8 +69,10 @@ func _draw() -> void:
 
 
 func _step() -> Array:
-	if GameState.revealed() or GameState.run_over or pile == null or line == null:
+	if GameState.run_over or pile == null or line == null:
 		return []
+	if GameState.revealed():
+		return _hint()
 	var segs := GameState.lines[0].segments
 	for i in segs.size():
 		if segs[i].built:
@@ -86,3 +92,15 @@ func _step() -> Array:
 		if not segs[i].bar_full():
 			return ["TAP STATIONS TO BUILD A MECH", line.segment_view(i), false]
 	return ["TAP STATIONS TO BUILD A MECH", null, false]
+
+
+func _hint() -> Array:
+	if GameState.levels.is_empty() and GameState.affordable_upgrades() > 0 and upgrades and menu:
+		if not menu.visible:
+			return ["UPGRADE AVAILABLE", upgrades, true]
+		var buy := menu.first_affordable()
+		if buy:
+			return ["BUY IT", buy, false]
+	if GameState.field_taps < FIELD_TAPS and not GameState.field.is_empty() and battlefield and not (menu and menu.visible):
+		return ["TAP THE BATTLEFIELD TO HIT THE WAVE", battlefield.hint_anchor(), true]
+	return []

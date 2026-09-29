@@ -15,8 +15,9 @@ func _ready() -> void:
 		shots_dir = args[j + 1]
 		DirAccess.make_dir_recursive_absolute(shots_dir)
 	await frames(2)
-	var runner: Object = load("res://tools/scenarios.gd").new(self)
-	if not runner.has_method(scenario):
+	var script: GDScript = load("res://tools/scenarios.gd")
+	var runner: Object = script.new(self) if script and script.can_instantiate() else null
+	if runner == null or not runner.has_method(scenario):
 		printerr("Unknown scenario: ", scenario)
 		get_tree().quit(2)
 		return

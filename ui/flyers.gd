@@ -4,6 +4,7 @@ extends Control
 enum Kind { CREDITS, SCRAP }
 
 const MAX_IN_FLIGHT := 48
+const PAY_Z := 2
 const SPENDS_PER_S := 6.0
 const TIER_SECONDS := [2.0, 10.0]
 const TEXTURES := [
@@ -41,7 +42,7 @@ static func spend(kind: Kind, to: Vector2, amount: float) -> void:
 static func pay(kind: Kind, target: Control, amount: float) -> void:
 	if _instance and amount > 0.0:
 		var count := clampi(1 + int(log(maxf(amount, 1.0)) / log(10.0)), 1, 8)
-		_instance._fly_out(kind, target.get_global_rect().get_center(), tier(kind, amount), count)
+		_instance._fly_out(kind, target.get_global_rect().get_center(), tier(kind, amount), count, PAY_Z)
 
 
 static func tier(kind: Kind, amount: float) -> int:
@@ -89,7 +90,7 @@ func _spend(kind: Kind, to: Vector2, disc_tier: int) -> void:
 	_fly_out(kind, to, disc_tier, 1)
 
 
-func _fly_out(kind: Kind, to: Vector2, disc_tier: int, count: int) -> void:
+func _fly_out(kind: Kind, to: Vector2, disc_tier: int, count: int, z := 0) -> void:
 	var tex: Texture2D = TEXTURES[kind][disc_tier]
 	var half := tex.get_size() / 2.0
 	var from := hud.target(kind)
@@ -102,6 +103,7 @@ func _fly_out(kind: Kind, to: Vector2, disc_tier: int, count: int) -> void:
 		disc.mouse_filter = MOUSE_FILTER_IGNORE
 		disc.position = from - half
 		disc.visible = i == 0
+		disc.z_index = z
 		add_child(disc)
 		var drop := from + Vector2(randf_range(-12, 12), randf_range(18, 30))
 		var tw := disc.create_tween()

@@ -13,8 +13,9 @@ func m0() -> void:
 	var scroll: ScrollContainer = t.node("Scroll")
 	var content: Control = t.node("Content")
 	t.check(main.size == Vector2(360, 640), "viewport is 360x640 (got %s)" % main.size)
-	t.check(t.node("Hud").size.y == 48 and t.node("Battlefield").size.y == 160, "hud and battlefield heights")
-	t.check(scroll.size.y > 300, "scroll pane fills the middle (%d px)" % scroll.size.y)
+	var field_h: float = t.node("Battlefield").size.y
+	t.check(t.node("Hud").size.y == 48 and field_h == 320.0, "hud 48, battlefield takes the spare height, capped at 2× (%d)" % field_h)
+	t.check(scroll.size.y >= content.get_combined_minimum_size().y and scroll.size.y + field_h == 492.0, "scroll pane holds the line (%d px)" % scroll.size.y)
 	t.check(t.node("Scrapyard").get_parent().name == "BottomBar" and content.find_child("Scrapyard", true, false) == null, "scrapyard sits in the fixed bottom bar, not in the pane")
 	t.check(scroll.scroll_vertical == 0, "pane starts at the top")
 	t.check(ProjectSettings.get_setting("display/window/stretch/aspect") == "keep_width", "aspect keep_width")
@@ -161,7 +162,7 @@ func m2() -> void:
 	_spawn_mechs(3)
 	await t.frames(1)
 	var label: Label = field.get_node("DpsLabel")
-	t.check(is_equal_approx(GameState.field_dps(), 3.0) and label.text == "3 DPS", "DPS matches the mech count (%s)" % label.text)
+	t.check(is_equal_approx(GameState.field_dps(), 3.0) and label.text == "3 DMG/S", "DPS matches the mech count (%s)" % label.text)
 	GameState.advance(2.0)
 	t.check(absf(GameState.wave_hp - (hp0 - 6.0)) < 0.2, "3 DPS drains 6 HP in 2 s (%.2f left)" % GameState.wave_hp)
 	GameState.advance(hp0 / 2.0 / 3.0 - 2.0)
@@ -251,8 +252,10 @@ func m3() -> void:
 	await t.shot("m3_workers")
 
 	GameState.kill_wave()
+	GameState.stalled_once = true
+	await t.frames(1)
 	await t.click(line.get_node("Pause"))
-	GameState.advance(25.0)
+	GameState.advance(40.0)
 	var scrap := GameState.scrap
 	var field_before := GameState.field.size()
 	GameState.advance(10.0)
@@ -282,24 +285,24 @@ func m4() -> void:
 	t.check(menu.visible, "UPGRADES opens the menu")
 	await t.frames(1)
 	var buy := _buy(menu, "tap")
-	t.check(buy.disabled and menu.row("tap").modulate != Color.WHITE, "unaffordable rows are grey")
+	t.check(buy.disabled and buy.theme_type_variation == &"PriceButton" and menu.row("tap").modulate == Color.WHITE, "unaffordable: normal button, dim price, title readable")
 	await t.shot("m4_menu")
 
 	GameState.credits = 1e6
 	var checks := [
-		["bar", "bar_mult", 0.9],
+		["bar", "bar_mult", 0.95],
 		["crew", "worker_slots", 4.0],
-		["tap", "scrap_per_tap", 2.0],
+		["tap", "tap_yard_share", 0.19],
 		["raises", "payout_cap", 1.0],
-		["salvage", "salvage", 0.05],
+		["salvage", "salvage", 0.04],
 		["lines", "lines", 2.0],
 	]
 	for c: Array in checks:
 		await t.click(_buy(menu, c[0]))
 		t.check(is_equal_approx(GameState.stat(c[1]), c[2]), "%s is now %s" % [c[1], GameState.stat(c[1])])
 	t.check(GameState.lines.size() == 2 and main.line_view(1) != null, "line 2 unlocked and shown")
-	t.check(is_equal_approx(GameState.upgrade_cost("tap"), 25.0 * Data.econ("upgrade_cost_growth")), "cost base·growth^level")
-	t.check(is_equal_approx(GameState.lines[0].segments[0].bar_size(), 5.4), "sim reads the derived bar size")
+	t.check(is_equal_approx(GameState.upgrade_cost("tap"), 60.0 * Data.econ("upgrade_cost_growth")), "cost base·growth^level")
+	t.check(is_equal_approx(GameState.lines[0].segments[0].bar_size(), 5.7), "sim reads the derived bar size")
 
 	for i in 20:
 		await t.click(_buy(menu, "salvage"))
@@ -338,7 +341,10 @@ func m5() -> void:
 	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
 	var line: LineView = main.line_view(0)
 	var segs := GameState.lines[0].segments
-	t.check(line.get_node("Pause").position.x < 20, "pause sits at the left of the line")
+	t.check(not line.get_node("Pause").visible and _centered(line, 3), "fresh game: no pause strip, 3 segments centered (x %d)" % line.segment_view(0).position.x)
+	GameState.stalled_once = true
+	await t.frames(1)
+	t.check(line.get_node("Pause").visible and line.get_node("Pause").position.x < 20, "after a stall: pause sits at the left of the line")
 	t.check(_centered(line, 3), "3 segments centered right of the pause strip (x %d)" % line.segment_view(0).position.x)
 	var pause_rect: Rect2 = line.get_node("Pause").get_rect()
 	t.check(is_zero_approx(pause_rect.position.y) and pause_rect.end.y >= SegmentView.BELT_Y and pause_rect.end.x <= line.segment_view(0).position.x, "pause strip spans names to belt, left of the stations")
@@ -361,8 +367,8 @@ func m5() -> void:
 	await t.frames(1)
 	var full_hire: Button = line.segment_view(0).get_node("Hire")
 	var free_hire: Button = line.segment_view(1).get_node("Hire")
-	t.check(full_hire.visible and full_hire.disabled and full_hire.text == "MAX" and not free_hire.disabled, "full station: hire stays, reads MAX, disabled")
-	t.check(full_hire.get_rect() == free_hire.get_rect(), "hire buttons keep their size")
+	t.check(not full_hire.visible and free_hire.visible and not free_hire.disabled, "full station: hire hidden, no MAX")
+	t.check(not line.segment_view(0).get_node("Apply").visible, "nothing to buy: empty row")
 
 	GameState.scrap = 0.0
 	await _fill_bar(line, 0)
@@ -376,11 +382,11 @@ func m5() -> void:
 	t.check(not GameState.starved() and rate.modulate == Hud.RATE_COLOR, "scrap back: normal color")
 
 	var apply0: Button = line.segment_view(0).get_node("Apply")
-	t.check(apply0.visible and apply0.disabled, "no tier to apply yet: arrow shown, disabled")
+	t.check(not apply0.visible, "no tier to apply yet: no fit button")
 	await t.click(main.get_node("%Upgrades"))
-	GameState.credits = 300.0
+	GameState.credits = 80.0
 	await t.click(_buy(menu, "tier_frame"))
-	t.check(GameState.unlocked_tier("frame") == 1, "Bolted Frame unlocked for 300 credits")
+	t.check(GameState.unlocked_tier("frame") == 1, "Bolted Frame unlocked for 80 credits")
 	await t.shot("m5_unlocked")
 	await t.click(main.get_node("%Upgrades"))
 
@@ -388,10 +394,10 @@ func m5() -> void:
 	GameState.scrap = 0.0
 	GameState.advance(10.0)
 	t.check(GameState.lines[0].paused and is_zero_approx(GameState.scrap), "paused line saves scrap")
-	GameState.scrap = 60.0
+	GameState.scrap = 30.0
 	await t.frames(1)
 	await t.click(line.segment_view(0).get_node("Apply"))
-	t.check(segs[0].tier == 1 and is_zero_approx(GameState.scrap), "apply Bolted Frame for 60 scrap")
+	t.check(segs[0].tier == 1 and is_zero_approx(GameState.scrap), "apply Bolted Frame for 30 scrap")
 	await t.click(line.get_node("Pause"))
 	GameState.scrap = 1000.0
 	GameState.field.clear()
@@ -401,7 +407,7 @@ func m5() -> void:
 		GameState.advance(3.0)
 	var m: MechState = GameState.field[-1]
 	t.check(m.parts.frame == 1 and is_equal_approx(m.lifetime, 26.0), "new mechs have Bolted Frames and live 26 s")
-	t.check(is_equal_approx(m.scrap_cost, 6.0 + 3.0 + 3.0), "scrap per mech rises to 12")
+	t.check(is_equal_approx(m.scrap_cost, 14.0 + 3.0 + 3.0), "scrap per mech rises to 20")
 	await t.frames(30)
 	await t.shot("m5_bolted")
 
@@ -428,8 +434,11 @@ func m5() -> void:
 	var aged := MechState.new()
 	aged.lifetime = 20.0
 	GameState.field = [aged]
-	GameState.advance(20.0 / 1.5 + 0.1)
-	t.check(GameState.field.is_empty(), "wave 11: mechs age 1.5x and die after 13.3 s")
+	var aging := 1.0 + float(Data.enemies.wave_damage) * 10.0
+	GameState.advance(20.0 / aging - 0.2)
+	t.check(GameState.field.size() == 1, "wave 11: mechs age %.1fx, alive at %.1f s" % [aging, 20.0 / aging - 0.2])
+	GameState.advance(0.3)
+	t.check(GameState.field.is_empty(), "and dead after %.1f s" % (20.0 / aging + 0.1))
 
 
 func m6() -> void:
@@ -593,8 +602,8 @@ func m8() -> void:
 	GameState.buy_upgrade("raises")
 	t.check(is_equal_approx(GameState.payout_rate(m), 2.25), "2 pay raises: x1.5 twice (%s)" % GameState.payout_rate(m))
 	GameState.buy_upgrade("raise_time")
-	m.age = 4.6
-	t.check(is_equal_approx(GameState.payout_rate(m), 1.5), "faster raises: first raise at 4.5 s")
+	m.age = 4.75
+	t.check(is_equal_approx(GameState.payout_rate(m), 1.5), "faster raises: first raise at 4.7 s")
 	for i in 20:
 		GameState.buy_upgrade("salvage")
 	t.check(is_equal_approx(GameState.salvage_share(), 0.4), "salvage capped at 40%")
@@ -688,7 +697,7 @@ func m8() -> void:
 	GameState.wave_hp = GameState.wave_max_hp() * (1.0 - first.weight / GameState.wave_enemies().reduce(func(a: float, e: Dictionary) -> float: return a + e.weight, 0.0)) + 0.01
 	GameState.advance(0.1)
 	await t.frames(1)
-	t.check(is_equal_approx(expect, 0.05 * GameState.wave_max_hp() * first.weight / GameState.wave_enemies().reduce(func(a: float, e: Dictionary) -> float: return a + e.weight, 0.0)), "kill scrap is 5% of the enemy's HP")
+	t.check(is_equal_approx(expect, 50.0 * pow(float(Data.enemies.variant_scrap), first.variant)), "kill scrap: 50 per enemy × %s^variant %d, not a share of its HP" % [Data.enemies.variant_scrap, first.variant])
 	t.check(absf(GameState.scrap - scrap - expect) < 1.0, "the popped enemy pays %s scrap (got %s)" % [Fmt.num(expect), Fmt.num(GameState.scrap - scrap)])
 	t.check(flyers.get_children().any(func(d: TextureRect) -> bool: return Flyers.TEXTURES[1].has(d.texture)), "and sends scrap discs")
 	await t.shot("m8_kill")
@@ -717,10 +726,10 @@ func m8() -> void:
 	await _fill_bar(line, 0)
 	GameState.advance(1.0)
 	await t.frames(1)
-	var usage: Label = line.find_child("Usage", true, false)
+	var usage: ColorRect = line.find_child("Usage", true, false)
 	GameState.advance(1.0)
 	await t.frames(2)
-	t.check(GameState.lines[0].scrap_used_rate > 0.0 and usage.text.replace("\n", "") == Fmt.whole(GameState.lines[0].scrap_used_rate), "line scrap usage shows %s/s" % usage.text.replace("\n", ""))
+	t.check(GameState.lines[0].scrap_used_rate > 0.0 and usage.size.y > 0.0, "line scrap use shows as a meter (%d px)" % usage.size.y)
 	var stall: Control = line.segment_view(0).get_node("Stall")
 	t.check(GameState.lines[0].segments[0].stall == SegmentState.Stall.BLOCKED and not stall.visible, "blocked: no icon yet")
 	GameState.time_scale = 10.0
@@ -747,7 +756,7 @@ func m8() -> void:
 	await t.shot("m8_badge")
 	GameState.credits = 0.0
 	await t.frames(2)
-	t.check(badge.visible and badge.text == "0", "badge stays, reads 0 when nothing is affordable")
+	t.check(not badge.visible, "no badge when nothing is affordable")
 	t.check(main.get("_title") == "Scrap Titans", "plain title when nothing is affordable")
 
 	var hud_mechs: Label = main.find_child("Mechs", true, false)
@@ -769,22 +778,17 @@ func m8() -> void:
 	flyers = main.get_node("%Flyers")
 	for c in flyers.get_children():
 		c.free()
+	GameState.field.clear()
 	await t.click(field_tap)
-	t.check(is_equal_approx(GameState.wave_hp, GameState.wave_max_hp() * 0.99), "a battlefield tap deals 1% of the wave HP")
-	t.check(is_equal_approx(GameState.credits, GameState.wave_bounty() * 0.01), "and pays 1%% of the bounty (%.2f)" % GameState.credits)
-	t.check(flyers.get_child_count() == 0, "under 1 credit paid: no disc")
-	GameState.credits = 0.5
-	await t.click(field_tap)
-	var tap_at := field_tap.get_global_rect().get_center()
-	t.check(flyers.get_child_count() == 1 and flyers.get_children().all(func(d: Control) -> bool: return (d.position + d.size / 2.0).distance_to(tap_at) < 30.0), "counter ticks 0 → 1: one credit disc bursts from the tap point")
-	for c in flyers.get_children():
-		c.free()
+	var floor_dps := float(Data.tier("arms", 0).dps)
+	t.check(is_equal_approx(GameState.wave_max_hp() - GameState.wave_hp, 0.2 * floor_dps), "empty field: a tap deals 0.2 s of tier 1 Arms DPS")
+	t.check(is_zero_approx(GameState.credits) and flyers.get_child_count() == 0, "taps pay no credits, send no discs")
+	GameState.debug_spawn_mechs(10)
 	GameState.wave = 8
 	GameState.wave_hp = GameState.wave_max_hp()
-	GameState.credits = 0.0
-	await t.click(field_tap)
-	t.check(flyers.get_child_count() == int(GameState.credits), "one disc per whole credit earned (%d discs, %.2f credits)" % [flyers.get_child_count(), GameState.credits])
 	var field_dps := GameState.field_dps()
+	await t.click(field_tap)
+	t.check(is_equal_approx(GameState.wave_max_hp() - GameState.wave_hp, 0.2 * field_dps), "10 mechs: a tap deals 0.2 s of field DPS (%s)" % Fmt.num(field_dps * 0.2))
 	GameState.advance(1.0)
 	var dps_label: Label = main.find_child("DpsLabel", true, false)
 	await t.frames(1)
@@ -794,8 +798,8 @@ func m8() -> void:
 		GameState.buy_upgrade("tap_damage")
 	var hp := GameState.wave_hp
 	await t.click(field_tap)
-	t.check(is_equal_approx(hp - GameState.wave_hp, GameState.wave_max_hp() * 0.05), "Tap damage chain: 5% per tap")
-	GameState.wave_hp = GameState.wave_max_hp() * 0.03
+	t.check(is_equal_approx(hp - GameState.wave_hp, GameState.field_dps() * 0.52), "Tap damage chain: 4 levels, 0.52 s per tap")
+	GameState.wave_hp = GameState.field_dps() * 0.3
 	var wave := GameState.wave
 	await t.click(field_tap)
 	t.check(GameState.wave == wave + 1, "taps can finish a wave")
@@ -850,82 +854,385 @@ func m8() -> void:
 	await t.shot("m8_pay")
 
 
+const PROFILES := {
+	"baseline": {},
+	"casual": {"taps": 1.5},
+	"field": {"field": 1.0},
+	"third": {"field": 1.0 / 3.0},
+	"quit10": {"stop": 600.0},
+	"no_arms": {"no_arms": true},
+	"no_pause": {"no_pause": true},
+}
+const TAPS_PER_S := 3.0
+const STEP := 0.25
+const PHASE_GAP := 30.0
+
+
+func m9() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var line: LineView = main.line_view(0)
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	var field: Battlefield = main.get_node("%Battlefield")
+	var segs := GameState.lines[0].segments
+
+	var names := []
+	for i in 3:
+		var sv := line.segment_view(i)
+		names.append((sv.find_child("Name", true, false) as Label).text)
+	t.check(names == ["FRAME", "CORE", "ARMS"], "stations named by type %s" % [names])
+	var icons := []
+	for i in 3:
+		icons.append((line.segment_view(i).find_child("Stat", true, false) as TextureRect).texture.resource_path.get_file())
+	t.check(icons == ["life.png", "credits.png", "damage.png"], "stat icons %s" % [icons])
+	await t.shot("m9_fresh")
+
+	var build: Button = _build_button(line, 0)
+	t.check(build.disabled and build.theme_type_variation == &"PriceButton", "unaffordable build: normal button, dim price")
+	GameState.scrap = 100.0
+	await t.frames(2)
+	t.check(not build.disabled and build.theme_type_variation == &"LitButton" and build.get_theme_color("font_color") == Price.COLORS[Flyers.Kind.SCRAP], "affordable build: lit, scrap-colored price")
+	for i in 3:
+		await t.click(_build_button(line, i))
+
+	GameState.yard_workers = 2
+	var tap := GameState.tap_scrap()
+	var expect := GameState.stat("scrap_per_tap") + GameState.stat("tap_yard_share") * 2.0 * GameState.yard_chunk() / GameState.stat("worker_interval")
+	t.check(is_equal_approx(tap, expect) and tap > GameState.stat("scrap_per_tap"), "pile tap scales with the yard (%.1f)" % tap)
+	GameState.yard_workers = 0
+
+	GameState.credits = 1e9
+	for i in 3:
+		GameState.buy_upgrade("tier_frame")
+	var cost := GameState.tier_apply_cost(0, 0)
+	var sum := 0.0
+	for k in range(1, 4):
+		sum += float(Data.tier("frame", k).apply_cost)
+	t.check(is_equal_approx(cost, sum), "fit price is the sum of skipped tiers (%s)" % Fmt.num(cost))
+	GameState.scrap = cost
+	GameState.credits = 0.0
+	await t.frames(1)
+	var apply: Button = line.segment_view(0).get_node("Apply")
+	var hire: Button = line.segment_view(0).get_node("Hire")
+	t.check(apply.visible and hire.visible and apply.text == "" and hire.get_rect().end.x <= apply.position.x, "hire + ⬆ share the row")
+	GameState.credits = 1e6
+	for i in GameState.lines[0].segments[0].worker_slots():
+		GameState.hire_worker(0, 0)
+	GameState.credits = 0.0
+	await t.frames(1)
+	t.check(not hire.visible and apply.visible and apply.text == Fmt.num(cost) and apply.size.x > 80.0, "full station: fit takes the row, shows %s" % apply.text)
+	t.check(apply.theme_type_variation == &"LitRow", "affordable fit is lit")
+	await t.shot("m9_fit")
+	await t.click(apply)
+	t.check(segs[0].tier == 3 and is_zero_approx(GameState.scrap), "⬆ fits Composite Strider in one tap")
+	await t.frames(1)
+	t.check(not apply.visible and not hire.visible, "nothing to buy: empty row")
+
+	GameState.mechs_built = 1
+	GameState.credits = 1e9
+	GameState.buy_upgrade("tier_plating")
+	for i in 10:
+		GameState.buy_upgrade("tap_damage")
+	GameState.credits = 50.0
+	await t.frames(1)
+	await t.click(main.get_node("%Upgrades"))
+	await t.frames(1)
+	var effect := func(id: String) -> String: return (menu.row(id).find_child("Effect", true, false) as Label).text
+	t.check(effect.call("tier_frame") == "LIFE 44 » 57 S", "frame tier row: %s" % effect.call("tier_frame"))
+	t.check(effect.call("tier_core") == "PAY 1 » 2/S", "core tier row: %s" % effect.call("tier_core"))
+	t.check(effect.call("tier_arms") == "DMG 1 » 2", "arms tier row: %s" % effect.call("tier_arms"))
+	t.check(effect.call("tier_plating") == "LIFE 10 » 13 S", "plating tier row: %s" % effect.call("tier_plating"))
+	t.check(effect.call("crew") == "3 » 4" and menu.row("crew").find_child("Pips", true, false).visible, "plain row: 3 » 4 with level pips")
+	t.check(effect.call("lines") == "LINE 2", "lines row: %s" % effect.call("lines"))
+	t.check(not menu.row("tap_damage").visible, "maxed row hidden")
+	var maxed: Label = menu.find_child("Maxed", true, false).find_child("List", true, false)
+	t.check(maxed.is_visible_in_tree() and maxed.text == "TAP DAMAGE", "MAXED footer lists it (%s)" % maxed.text)
+	var texts := main.find_children("*", "Button", true, false).map(func(b: Button) -> String: return b.text) \
+			+ main.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+	t.check(not texts.any(func(x: String) -> bool: return x.split(" ").has("MAX")), "no MAX anywhere")
+	var font: Font = preload("res://fonts/silkscreen.ttf")
+	var missing := {}
+	for x: String in texts:
+		for i in x.length():
+			if x[i] != "\n" and not font.has_char(x.unicode_at(i)):
+				missing[x[i]] = true
+	t.check(missing.is_empty(), "every shown character is in the font %s" % [missing.keys()])
+	var flyers_node: Control = main.get_node("%Flyers")
+	for c in flyers_node.get_children():
+		c.free()
+	Flyers.spawn(Flyers.Kind.SCRAP, Vector2(180, 400), 1.0)
+	GameState.credits = 1e6
+	await t.click(_buy(menu, "crew"))
+	var above := func(d: CanvasItem) -> bool: return flyers_node.z_index + d.z_index > menu.z_index
+	var discs := flyers_node.get_children()
+	t.check(not above.call(discs[0]) and discs.slice(1).all(above), "factory discs below the menu, purchase discs above it")
+	t.check(menu.get_child(0).color.a < 1.0, "menu background is see-through")
+	await t.wait(0.2)
+	await t.shot("m9_menu")
+	await t.click(main.get_node("%Upgrades"))
+
+	GameState.wave = 5
+	GameState.wave_hp = GameState.wave_max_hp()
+	await t.frames(2)
+	var hp: Label = field.find_child("HpLabel", true, false)
+	var dps: Label = field.find_child("DpsLabel", true, false)
+	t.check(hp.text == "WAVE 6" and dps.text.ends_with(" DMG/S"), "wave bar in plain words: %s / %s" % [hp.text, dps.text])
+	var flyers: Control = main.get_node("%Flyers")
+	t.check(flyers.z_index < hp.z_index and flyers.z_index < (main.get_node("%Hud")._credits as Label).z_index, "discs fly behind HUD and wave bar text")
+	t.check(flyers.z_index < main.get_node("%Settings").z_index, "and below the overlays")
+
+	var unlock: Button = main.find_child("UnlockLine", true, false)
+	GameState.credits = 0.0
+	await t.frames(2)
+	t.check(unlock.size.y <= 32.0, "UNLOCK LINE compact while unaffordable (%d)" % unlock.size.y)
+	GameState.credits = 1e9
+	await t.frames(2)
+	t.check(unlock.size.y >= 44.0 and unlock.theme_type_variation == &"LitButton", "full size and lit when affordable")
+	var heights := [field.size.y]
+	for i in 3:
+		GameState.buy_upgrade("lines")
+		await t.frames(2)
+		heights.append(field.size.y)
+	t.check(heights[0] > heights[1] and heights[-1] == Battlefield.HEIGHT, "battlefield shrinks back to 160 as lines are added %s" % [heights])
+	var content: Control = main.get_node("%Content")
+	t.check(content.get_child(-1) == unlock, "UNLOCK LINE sits below the lines")
+
+	await _fresh()
+	main = t.get_tree().current_scene
+	GameState.scrap = 1000.0
+	GameState.credits = 300.0
+	for i in 3:
+		await t.click(_build_button(main.line_view(0), i))
+	GameState.mechs_built = 1
+	GameState.debug_spawn_mechs(4)
+	await t.frames(30)
+	await t.shot("m9_revealed")
+	await _sizes("m9_revealed")
+	GameState.stalled_once = true
+	GameState.credits = 1e9
+	GameState.buy_upgrade("lines")
+	GameState.buy_upgrade("tier_plating")
+	GameState.credits = 5000.0
+	await t.frames(30)
+	await t.shot("m9_two_lines")
+	await _sizes("m9_two_lines")
+
+
+func _sizes(shot_name: String) -> void:
+	if t.shots_dir.is_empty() or DisplayServer.get_name() == "headless":
+		return
+	var window := t.get_window()
+	var base := window.size
+	for v: Array in [["tall", Vector2i(360, 780)], ["2x", Vector2i(720, 1280)]]:
+		window.size = v[1]
+		await t.frames(10)
+		await t.shot("%s_%s" % [shot_name, v[0]])
+	window.size = base
+	await t.frames(5)
+
+
 func tune() -> void:
 	t.get_tree().current_scene.free()
 	GameState.time_scale = 0.0
+	var args := OS.get_cmdline_user_args()
+	var only := args[args.find("--profile") + 1] if args.has("--profile") else ""
+	var runs := {}
+	for key: String in PROFILES:
+		if only.is_empty() or key == only:
+			runs[key] = _tune_run(PROFILES[key], key == only or (only.is_empty() and key == "baseline"))
+	print("  profile    nuke   bounty  starved phases  gap  fit1  final  maxed  taps  work")
+	for key: String in runs:
+		var r: Dictionary = runs[key]
+		print("  %-9s %5.1f   %4.0f%%    %4.1f%%  %3d  %4.0f  %4.0f  %5.0f  %5.1f  %4.0f%%  %3.0f%%" % [
+			key, r.time / 60.0, r.bounty * 100.0, r.starved * 100.0, r.phases, r.gap, r.first_fit, r.final_wait,
+			r.first_maxed / 60.0, r.tap_scrap * 100.0, r.tap_work * 100.0])
+	for key: String in runs:
+		var r: Dictionary = runs[key]
+		t.check(r.over and r.time >= 1800.0 and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
+	if not runs.has("baseline"):
+		GameState.new_game()
+		return
+	var base: Dictionary = runs.baseline
+	t.check(base.first_worker < 240.0, "first worker at %.1f min" % (base.first_worker / 60.0))
+	t.check(base.bounty >= 0.25 and base.bounty <= 0.4, "bounties %.0f%% of credits" % (base.bounty * 100.0))
+	t.check(base.starved >= 0.05 and base.starved <= 0.15 and base.phases >= 3, "scrap short %.1f%% of the run in %d phases" % [base.starved * 100.0, base.phases])
+	t.check(base.empty_windows == 0, "every 5 min window has buys (%d without)" % base.empty_windows)
+	t.check(base.gap <= 120.0, "longest wait between buys %.0f s" % base.gap)
+	t.check(base.first_fit <= 180.0, "first tier fit at %.0f s" % base.first_fit)
+	t.check(base.final_wait <= 90.0, "final wait %.0f s" % base.final_wait)
+	t.check(base.first_maxed >= 1200.0, "first regular row maxed at %.1f min" % (base.first_maxed / 60.0))
+	if runs.size() < PROFILES.size():
+		GameState.new_game()
+		return
+	t.check(absf(runs.field.time / base.time - 1.0) <= 0.2, "all-battlefield taps within 20%% of baseline (%.2f×)" % (runs.field.time / base.time))
+	t.check(runs.quit10.time >= base.time * 1.1, "stopping taps at 10 min costs %.0f%% more time" % ((runs.quit10.time / base.time - 1.0) * 100.0))
+	t.check(runs.no_arms.time > base.time, "fitting Arms beats not fitting them (%.1f vs %.1f min)" % [base.time / 60.0, runs.no_arms.time / 60.0])
+	t.check(runs.no_pause.time > base.time, "pausing beats never pausing (%.1f vs %.1f min)" % [base.time / 60.0, runs.no_pause.time / 60.0])
 	GameState.new_game()
-	var step := 0.25
+
+
+func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
+	GameState.new_game()
+	var tps: float = p.get("taps", TAPS_PER_S)
+	var r := {
+		"credits": {"fee": 0.0, "payout": 0.0, "bounty": 0.0},
+		"scrap": {"tap": 0.0, "yard": 0.0, "salvage": 0.0, "kill": 0.0},
+		"work": {"tap": 0.0},
+		"field_acc": 0.0,
+		"buys": [],
+		"events": [],
+		"maxed": {},
+	}
+	var on_deploy := func(m: MechState) -> void: r.credits.fee += m.deploy_fee
+	var on_income := func(_m: MechState, c: float) -> void: r.credits.payout += c
+	var on_bounty := func(b: float) -> void: r.credits.bounty += b
+	var on_died := func(_m: MechState, s: float) -> void: r.scrap.salvage += s
+	var on_kill := func(_i: int, s: float) -> void: r.scrap.kill += s
+	GameState.mech_deployed.connect(on_deploy)
+	GameState.mech_income.connect(on_income)
+	GameState.wave_cleared.connect(on_bounty)
+	GameState.mech_died.connect(on_died)
+	GameState.enemy_killed.connect(on_kill)
 	var taps := 0.0
-	var events := []
+	var starved_t := 0.0
+	var phases := []
 	var seen := {}
 	while not GameState.run_over and GameState.run_time < 5400.0:
-		taps += TAPS_PER_S * step
+		if GameState.run_time < p.get("stop", INF):
+			taps += tps * STEP
 		while taps >= 1.0:
 			taps -= 1.0
-			_bot_tap()
-		if fmod(GameState.run_time, 1.0) < step * 0.5:
-			_bot_manage(events)
-		GameState.advance(step)
+			_bot_tap(p, r)
+		if fmod(GameState.run_time, 1.0) < STEP * 0.5:
+			_bot_manage(p, r)
+		var yard_before := GameState.yard_chunks
+		var chunk := GameState.yard_chunk()
+		GameState.advance(STEP)
+		r.scrap.yard += (GameState.yard_chunks - yard_before) * chunk
+		if GameState.starved():
+			starved_t += STEP
+			if phases.is_empty() or GameState.run_time - phases[-1][1] > PHASE_GAP:
+				phases.append([GameState.run_time, GameState.run_time])
+			phases[-1][1] = GameState.run_time
 		var minute := int(GameState.run_time / 60.0)
-		if not seen.has(minute):
+		if verbose and not seen.has(minute):
 			seen[minute] = true
-			print("  %3d min  cr %s (%s) earned %s  scrap %s (%s)  wave %d  dps %s  field %d  lines %d  tiers %s" % [
-				minute, Fmt.num(GameState.credits), Fmt.rate(GameState.credits_rate), Fmt.num(GameState.credits_earned),
+			print("  %3d min  cr %s (%s)  scrap %s (%s)  wave %d  dps %s  field %d  lines %d  tiers %s" % [
+				minute, Fmt.num(GameState.credits), Fmt.rate(GameState.credits_rate),
 				Fmt.num(GameState.scrap), Fmt.rate(GameState.scrap_rate), GameState.wave + 1, Fmt.num(GameState.field_dps()),
 				GameState.field.size(), GameState.lines.size(),
 				Data.line_slots().map(func(k: String) -> int: return GameState.unlocked_tier(k) + 1)])
-	for e: Array in events:
-		print("  %5.1f min  %s" % [e[0] / 60.0, e[1]])
-	var first_worker: float = events.filter(func(e: Array) -> bool: return e[1].begins_with("hire")).front()[0]
-	t.check(first_worker < 240.0, "first worker at %.1f min" % (first_worker / 60.0))
-	t.check(GameState.run_over and GameState.run_time > 1800.0 and GameState.run_time < 3600.0, "nuke at %.1f min" % (GameState.run_time / 60.0))
-	GameState.new_game()
+	for c: Array in [[GameState.mech_deployed, on_deploy], [GameState.mech_income, on_income], [GameState.wave_cleared, on_bounty],
+			[GameState.mech_died, on_died], [GameState.enemy_killed, on_kill]]:
+		(c[0] as Signal).disconnect(c[1])
+	var end := GameState.run_time
+	if verbose:
+		for e: Array in r.events:
+			print("  %5.1f min  %s" % [e[0] / 60.0, e[1]])
+		print("  credits %s  scrap %s" % [_shares(r.credits), _shares(r.scrap)])
+		print("  scrap phases %s" % [phases.map(func(ph: Array) -> String: return "%.1f-%.1f" % [ph[0] / 60.0, ph[1] / 60.0])])
+	var buys: Array = r.buys
+	var gap := 0.0
+	var final_wait := 0.0
+	for i in range(1, buys.size()):
+		gap = maxf(gap, buys[i][0] - buys[i - 1][0])
+		if buys[i][1] == "final_arms":
+			final_wait = buys[i][0] - buys[i - 1][0]
+	var empty_windows := 0
+	for w in int(end / 300.0):
+		if not buys.any(func(b: Array) -> bool: return b[0] >= w * 300.0 and b[0] < (w + 1) * 300.0):
+			empty_windows += 1
+	var fits: Array = r.events.filter(func(e: Array) -> bool: return e[1].begins_with("apply"))
+	var hires: Array = r.events.filter(func(e: Array) -> bool: return e[1].begins_with("hire"))
+	var worker_work := 0.0
+	for line in GameState.lines:
+		for s in line.segments:
+			worker_work += s.chunks * GameState.stat("worker_chunk")
+	var credits_total: float = r.credits.values().reduce(func(a: float, b: float) -> float: return a + b, 0.0)
+	var scrap_total: float = r.scrap.values().reduce(func(a: float, b: float) -> float: return a + b, 0.0)
+	return {
+		"over": GameState.run_over,
+		"time": end,
+		"bounty": r.credits.bounty / credits_total,
+		"starved": starved_t / end,
+		"phases": phases.filter(func(ph: Array) -> bool: return ph[1] - ph[0] >= 10.0).size(),
+		"gap": gap,
+		"empty_windows": empty_windows,
+		"first_fit": fits[0][0] if fits.size() else INF,
+		"first_worker": hires[0][0] if hires.size() else INF,
+		"final_wait": final_wait,
+		"first_maxed": r.maxed.values().min() if r.maxed.size() else INF,
+		"tap_scrap": r.scrap.tap / scrap_total,
+		"tap_work": r.work.tap / maxf(r.work.tap + worker_work, 1.0),
+	}
 
 
-const TAPS_PER_S := 3.0
+func _shares(d: Dictionary) -> String:
+	var total: float = d.values().reduce(func(a: float, b: float) -> float: return a + b, 0.0)
+	return " ".join(d.keys().map(func(k: String) -> String: return "%s %.0f%%" % [k, d[k] / maxf(total, 1.0) * 100.0]))
 
 
-func _bot_tap() -> void:
-	if GameState.scrap < 30.0:
+func _bot_tap(p: Dictionary, r: Dictionary) -> void:
+	if GameState.revealed() and p.get("field", 0.0) > 0.0:
+		r.field_acc += p.field
+		if r.field_acc >= 1.0:
+			r.field_acc -= 1.0
+			GameState.tap_wave()
+			return
+	if GameState.scrap < maxf(30.0, r.get("want", 0.0)) or GameState.starved():
+		r.scrap.tap += GameState.tap_scrap()
 		GameState.tap_pile()
 		return
-	var best := [-1, -1]
-	var best_fill := 2.0
+	var best: SegmentState = null
+	var best_at := [-1, -1]
 	for li in GameState.lines.size():
 		var line := GameState.lines[li]
 		if line.paused or not line.is_complete():
 			continue
 		for i in line.segments.size():
 			var s := line.segments[i]
-			if s.built and not s.bar_full() and s.work / s.bar_size() < best_fill:
-				best_fill = s.work / s.bar_size()
-				best = [li, i]
-	if best[0] == -1:
+			if s.built and not s.bar_full() and (best == null or s.work / s.bar_size() < best.work / best.bar_size()):
+				best = s
+				best_at = [li, i]
+	if best == null:
+		r.scrap.tap += GameState.tap_scrap()
 		GameState.tap_pile()
-	else:
-		GameState.tap_segment(best[0], best[1])
+		return
+	var before := best.work
+	GameState.tap_segment(best_at[0], best_at[1])
+	r.work.tap += best.work - before
 
 
-func _bot_manage(events: Array) -> void:
+func _bot_manage(p: Dictionary, r: Dictionary) -> void:
 	var now := GameState.run_time
 	for li in GameState.lines.size():
 		for i in GameState.lines[li].segments.size():
 			if not GameState.lines[li].segments[i].built and GameState.build_segment(li, i):
-				events.append([now, "build L%d %s" % [li + 1, GameState.lines[li].segments[i].type_id]])
+				r.events.append([now, "build L%d %s" % [li + 1, GameState.lines[li].segments[i].type_id]])
 	var pending := INF
 	var nuke_ready: bool = GameState.unlocked_tier("arms") == Data.segment_type("arms").tiers.size() - 1
 	for li in GameState.lines.size():
 		for i in GameState.lines[li].segments.size():
-			if GameState.can_apply_tier(li, i) and (not nuke_ready or (li == 0 and i == 2)):
-				var cost := GameState.tier_apply_cost(li, i)
-				var s := GameState.lines[li].segments[i]
-				if GameState.apply_tier(li, i):
-					events.append([now, "apply L%d %s" % [li + 1, s.tier_data().part]])
-				else:
-					pending = minf(pending, cost)
+			var s := GameState.lines[li].segments[i]
+			if not GameState.can_apply_tier(li, i):
+				continue
+			if nuke_ready:
+				if li != 0 or i != 2:
+					continue
+			elif p.get("no_arms", false) and s.type_id == "arms":
+				continue
+			var cost := GameState.tier_apply_cost(li, i)
+			if GameState.apply_tier(li, i):
+				r.events.append([now, "apply L%d %s" % [li + 1, s.tier_data().part]])
+				r.buys.append([now, "apply"])
+			else:
+				pending = minf(pending, cost)
+	r.want = pending if pending < INF else 0.0
 	var save := pending < INF and GameState.scrap_rate * 60.0 < pending - GameState.scrap
 	if nuke_ready:
 		save = GameState.lines[0].segments[2].tier < GameState.unlocked_tier("arms")
+	if p.get("no_pause", false):
+		save = false
 	for li in GameState.lines.size():
 		if GameState.lines[li].paused != save:
 			GameState.toggle_pause(li)
@@ -938,9 +1245,9 @@ func _bot_manage(events: Array) -> void:
 					options.append([GameState.worker_cost(li, i), "hire", li, i])
 		if GameState.yard_workers < GameState.yard_slots():
 			options.append([GameState.yard_worker_cost(), "yard"])
-		for r: Dictionary in Data.upgrade_list:
-			if GameState.upgrade_visible(r.id) and not GameState.upgrade_maxed(r.id) and not GameState.upgrade_locked(r.id):
-				options.append([GameState.upgrade_cost(r.id), "buy", r.id])
+		for row: Dictionary in Data.upgrade_list:
+			if GameState.upgrade_visible(row.id) and not GameState.upgrade_maxed(row.id) and not GameState.upgrade_locked(row.id):
+				options.append([GameState.upgrade_cost(row.id), "buy", row.id])
 		options.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 		if options.is_empty() or options[0][0] > GameState.credits:
 			return
@@ -948,15 +1255,21 @@ func _bot_manage(events: Array) -> void:
 		match o[1]:
 			"hire":
 				GameState.hire_worker(o[2], o[3])
-				if not events.any(func(e: Array) -> bool: return e[1].begins_with("hire")):
-					events.append([now, "hire first worker"])
+				r.buys.append([now, "hire"])
+				if not r.events.any(func(e: Array) -> bool: return e[1].begins_with("hire")):
+					r.events.append([now, "hire first worker"])
 			"yard":
 				GameState.hire_yard_worker()
+				r.buys.append([now, "yard"])
 			"buy":
 				GameState.buy_upgrade(o[2])
-				var r := Data.upgrade_row(o[2])
-				if r.get("kind", "") != "" or o[2] in ["lines", "kill_scrap"]:
-					events.append([now, "%s %d" % [o[2], GameState.level(o[2])]])
+				r.buys.append([now, o[2]])
+				var row := Data.upgrade_row(o[2])
+				if row.get("kind", "") != "" or o[2] in ["lines", "kill_scrap"]:
+					r.events.append([now, "%s %d" % [o[2], GameState.level(o[2])]])
+				elif GameState.upgrade_maxed(o[2]):
+					r.maxed[o[2]] = now
+					r.events.append([now, "%s maxed" % o[2]])
 
 
 func shots() -> void:
@@ -1026,7 +1339,33 @@ func intro() -> void:
 		await t.click(pile)
 	GameState.advance(4.0)
 	await t.frames(2)
-	t.check(GameState.mechs_built == 1 and not guide.visible, "first mech deployed: guide gone")
+	var field: Control = main.get_node("%Battlefield")
+	t.check(GameState.mechs_built == 1 and guide.text() == "TAP THE BATTLEFIELD TO HIT THE WAVE", "first mech deployed: tap the battlefield (%s)" % guide.text())
+	var anchor: Control = field.hint_anchor()
+	t.check(absf(arrow_x.call() - anchor.get_global_rect().get_center().x) < 1.0 and guide.get("_down"), "arrow points down at the enemies")
+	await t.shot("intro_field")
+	var field_tap: Control = field.find_child("FieldTap", true, false)
+	for i in IntroGuide.FIELD_TAPS:
+		await t.click(field_tap)
+	await t.frames(1)
+	t.check(not guide.visible, "%d battlefield taps: hint gone" % IntroGuide.FIELD_TAPS)
+	var upgrades: Button = main.get_node("%Upgrades")
+	GameState.credits = 1000.0
+	await t.frames(2)
+	t.check(guide.text() == "UPGRADE AVAILABLE" and absf(arrow_x.call() - upgrades.get_global_rect().get_center().x) < 1.0, "affordable upgrade: arrow on UPGRADES (%s)" % guide.text())
+	await t.shot("intro_upgrade")
+	await t.click(upgrades)
+	await t.frames(2)
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	t.check(guide.text() == "BUY IT" and absf(arrow_x.call() - menu.first_affordable().get_global_rect().get_center().x) < 1.0, "menu open: arrow on the cheapest affordable row")
+	await t.shot("intro_buy")
+	await t.click(menu.first_affordable())
+	await t.frames(2)
+	t.check(not guide.visible, "first upgrade bought: guide gone for good")
+	GameState.field_taps = 0
+	GameState.field.clear()
+	await t.frames(1)
+	t.check(not guide.visible, "no field hint while the field is empty")
 
 
 func _fresh(frozen := true) -> void:
@@ -1037,7 +1376,7 @@ func _fresh(frozen := true) -> void:
 
 
 func _centered(line: LineView, n: int) -> bool:
-	var left := line.segment_view(0).position.x - LineView.PAUSE_W
+	var left: float = line.segment_view(0).position.x - line.call("_left")
 	var right := 360.0 - line.segment_view(n - 1).position.x - SegmentView.WIDTH
 	return absf(left - right) < 1.0 and left >= 0.0
 

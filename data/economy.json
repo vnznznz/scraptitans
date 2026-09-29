@@ -2,6 +2,7 @@
 	"start_scrap": 0,
 	"start_credits": 0,
 	"scrap_per_tap": 1,
+	"tap_yard_share": 0.15,
 	"work_per_tap": 1,
 	"assembly_time": 0.5,
 	"belt_time": 0.6,
@@ -15,12 +16,12 @@
 	"kill_scrap": 0,
 	"worker_chunk": 1,
 	"worker_slots": 3,
-	"tap_damage": 0.01,
+	"tap_damage": 0.2,
 	"worker_interval": 2.0,
 	"yard_chunk": 6,
 	"yard_slots": 2,
 	"yard_worker_base": 40,
 	"yard_worker_growth": 1.35,
 	"lines": 1,
-	"upgrade_cost_growth": 1.4
+	"upgrade_cost_growth": 2.3
 }

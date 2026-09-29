@@ -4,7 +4,8 @@ extends Control
 const SEG_Y := 0.0
 const SEG_STEP := 84.0
 const PAUSE_W := 24.0
-const USAGE_LEN := 50.0
+const METER := Rect2(8, 26, 8, 44)
+const METER_BG := Color(0.08, 0.07, 0.1, 0.6)
 const USAGE_COLOR := Color(0.86, 0.86, 0.82)
 const BELT_TEX := preload("res://art/line/belt.png")
 const PAUSE_TEX := preload("res://art/ui/pause.png")
@@ -14,7 +15,8 @@ var line_index := 0
 
 var _pause: Button
 var _pause_icon: TextureRect
-var _usage: Label
+var _usage: ColorRect
+var _strip := false
 var _segments: Array[SegmentView] = []
 var _mechs: Node2D
 var _fx: Node2D
@@ -39,14 +41,14 @@ func _ready() -> void:
 	scrap_icon.position = Vector2(4, 6)
 	scrap_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(scrap_icon)
-	_usage = Label.new()
+	var meter := ColorRect.new()
+	meter.color = METER_BG
+	meter.position = METER.position
+	meter.size = METER.size
+	meter.mouse_filter = MOUSE_FILTER_IGNORE
+	_pause.add_child(meter)
+	_usage = ColorRect.new()
 	_usage.name = "Usage"
-	_usage.position = Vector2(0, 24)
-	_usage.size = Vector2(PAUSE_W, USAGE_LEN)
-	_usage.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_usage.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_usage.add_theme_constant_override("line_spacing", -9)
-	_usage.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
 	_usage.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(_usage)
 	_pause_icon = TextureRect.new()
@@ -58,6 +60,8 @@ func _ready() -> void:
 	add_child(_mechs)
 	_fx = Node2D.new()
 	add_child(_fx)
+	_strip = GameState.stalled_once
+	_pause.visible = _strip
 	_sync_segments()
 	resized.connect(_layout)
 
@@ -151,11 +155,18 @@ func _process(delta: float) -> void:
 		return
 	if _segments.size() != _line().segments.size():
 		_sync_segments()
+	if _strip != GameState.stalled_once:
+		_strip = GameState.stalled_once
+		_pause.visible = _strip
+		_layout()
+		queue_redraw()
 	var paused := _line().paused
 	_pause_icon.texture = PLAY_TEX if paused else PAUSE_TEX
-	var rate := _line().scrap_used_rate
-	_usage.text = "\n".join(Fmt.whole(rate).split(""))
-	_usage.modulate = Hud.STARVED if _line().starved() else (USAGE_COLOR * Color(1, 1, 1, 0.5) if paused else USAGE_COLOR)
+	var share := clampf(_line().scrap_used_rate / maxf(GameState.scrap_gain_rate, 1.0), 0.0, 1.0)
+	var h := roundf(METER.size.y * share)
+	_usage.position = Vector2(METER.position.x, METER.end.y - h)
+	_usage.size = Vector2(METER.size.x, h)
+	_usage.color = Hud.STARVED if _line().starved() else (USAGE_COLOR * Color(1, 1, 1, 0.5) if paused else USAGE_COLOR)
 	var belt_y := SEG_Y + SegmentView.BELT_Y
 	var belt_time := Data.econ("belt_time")
 	var moving := false
@@ -194,7 +205,7 @@ func _draw() -> void:
 		return
 	var y := SEG_Y + SegmentView.BELT_Y
 	var w := BELT_TEX.get_width()
-	var x := PAUSE_W - w + _belt_offset
+	var x := _left() - w + _belt_offset
 	while x < size.x:
 		draw_texture(BELT_TEX, Vector2(x, y))
 		x += w
@@ -210,9 +221,13 @@ func _line() -> LineState:
 	return GameState.lines[line_index]
 
 
+func _left() -> float:
+	return PAUSE_W if _strip else 0.0
+
+
 func _seg_x(i: int) -> float:
 	var n := _segments.size()
-	return PAUSE_W + (size.x - PAUSE_W - (n - 1) * SEG_STEP - SegmentView.WIDTH) / 2.0 + i * SEG_STEP
+	return _left() + (size.x - _left() - (n - 1) * SEG_STEP - SegmentView.WIDTH) / 2.0 + i * SEG_STEP
 
 
 func _center(i: int) -> float:
