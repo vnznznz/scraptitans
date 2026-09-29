@@ -70,6 +70,15 @@ def ui():
         save(img, name)
 
     img, d = new(16, 16)
+    box(d, 5, 1, 10, 5, METAL_L)
+    d.rectangle([8, 3, 9, 3], fill=RED)
+    box(d, 3, 6, 12, 10, METAL)
+    box(d, 12, 7, 15, 8, METAL_D)
+    box(d, 4, 11, 6, 15, METAL_D)
+    box(d, 9, 11, 11, 15, METAL_D)
+    save(img, "ui/mech.png")
+
+    img, d = new(16, 16)
     d.ellipse([1, 1, 14, 14], fill=METAL_L, outline=INK)
     d.rectangle([7, 4, 8, 5], fill=INK)
     d.rectangle([7, 7, 8, 11], fill=INK)

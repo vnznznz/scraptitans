@@ -17,7 +17,8 @@
 - Views build their children in code; main adds one `LineView` per line, more on `line_added`
 - UPGRADES button toggles the menu (reads CLOSE while open); badge = `GameState.affordable_upgrades()` (visible, unmaxed, unlocked, affordable rows): red with count, grey "0" when none; hidden only while the menu is open
 - Progressive reveal: UPGRADES, UNLOCK LINE, YARD WORKER (+ yard slots) hidden until `GameState.revealed()` (`mechs_built > 0`)
-- HUD: scrap left, credits right
+- HUD columns: scrap (x 6) / mechs built + `mechs_per_min` (x 112, icon bumps on deploy) / credits (x 214), gear right
+- Window/tab title `(N) Scrap Titans` while N upgrades are affordable (after reveal, before the nuke); `DisplayServer.window_set_title` = `document.title` on web (inside Poki's iframe it won't reach the tab)
 - Upgrade menu: one list, re-sorted every frame (unmaxed by cost, maxed last); each row: title / effect, info button toggles the `desc` label
 - Line: no header row; pause strip (24 px, one button from name row to belt: scrap icon, line scrap use/s as upright stacked digits `Fmt.whole`, ⏸/▶) left of the stations; segments centered by count in the rest (step 84, 4 columns fit), re-laid out when a segment is appended; 136 px tall; paused → usage dimmed, machines dimmed; usage red while a station of the line is out of scrap
 - Segment rows: name / machine (tap; work bar overlays its top beam, hired workers stand inside behind the mech, empty slots not drawn) / belt / one fixed button row, never hidden or resized on built stations: hire (56 px, worker icon + cost; MAX + disabled when full) + ⬆ apply-tier (24 px, icon only; enabled when a higher tier is unlocked and affordable, dim green while short on scrap, faint when none); row spans 82 px (2 px gap at step 84); fit cost shown in the tier row desc
@@ -45,6 +46,7 @@
 - Deploy sums part tier stats (`lifetime`, `credits_per_sec`, `deploy_fee`, `dps`)
 - Field mech: payout `base·step^min(floor(age/interval), cap)` by `age`; death by `wear`, which grows `1 + wave_damage·wave` per s; income batched to `mech_income` once per second, salvage on death
 - Payout `cap` starts 0 (flat), Pay raises add steps
+- `mechs_per_min`: deploys in the last 60 one-second samples (unsaved)
 - Per-line scrap use: assembly costs → `LineState.use_scrap`, sampled each second with the global rates → `scrap_used_rate` (5 s window, unsaved); `LineState.starved()`
 - Rates over 5 s: `credits_rate`; `scrap_rate` net (assembly spend subtracts; HUD); `scrap_gain_rate` gross (disc tiers)
 - Stall icon: NO_SCRAP at once, BLOCKED only after 3 s of game time in that state (view-side timer)

@@ -11,6 +11,8 @@ const BADGE_OFF := Color(0.3, 0.3, 0.34)
 var _unlock: Button
 var _badge: Label
 var _badge_style: StyleBoxFlat
+var _title := ""
+var _app_name: String = ProjectSettings.get_setting("application/config/name")
 
 
 func _ready() -> void:
@@ -50,6 +52,10 @@ func _process(_delta: float) -> void:
 	var affordable := GameState.affordable_upgrades()
 	_badge.visible = not _menu.visible
 	_badge.text = str(affordable)
+	var title := "(%d) %s" % [affordable, _app_name] if affordable > 0 and GameState.revealed() and not GameState.run_over else _app_name
+	if title != _title:
+		_title = title
+		DisplayServer.window_set_title(title)
 	_badge_style.bg_color = BADGE_ON if affordable > 0 else BADGE_OFF
 	_badge.modulate.a = 1.0 if affordable > 0 else 0.6
 	_badge.reset_size()

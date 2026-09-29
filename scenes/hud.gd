@@ -13,6 +13,9 @@ var _credits: Label
 var _credits_rate: Label
 var _scrap: Label
 var _scrap_rate: Label
+var _mechs: Label
+var _mechs_rate: Label
+var _mech_icon: TextureRect
 
 
 func _ready() -> void:
@@ -21,10 +24,16 @@ func _ready() -> void:
 	bg.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(bg)
 
-	_credits = _amount(preload("res://art/ui/credits.png"), 168, Color(1.0, 0.83, 0.3))
-	_credits_rate = _rate(168)
-	_scrap = _amount(preload("res://art/ui/scrap.png"), 8, Color(0.86, 0.86, 0.82))
-	_scrap_rate = _rate(8)
+	_credits = _amount(preload("res://art/ui/credits.png"), 214, Color(1.0, 0.83, 0.3))
+	_credits_rate = _rate(214)
+	_scrap = _amount(preload("res://art/ui/scrap.png"), 6, Color(0.86, 0.86, 0.82))
+	_scrap_rate = _rate(6)
+	_mechs = _amount(preload("res://art/ui/mech.png"), 112, Color(0.75, 0.85, 1.0))
+	_mechs.name = "Mechs"
+	_mech_icon = _icons.pop_back()
+	_mechs_rate = _rate(112)
+	_mechs_rate.name = "MechsRate"
+	GameState.mech_deployed.connect(_on_deployed)
 
 	var gear := Button.new()
 	gear.name = "SettingsButton"
@@ -43,6 +52,8 @@ func _process(_delta: float) -> void:
 	_scrap.text = Fmt.num(GameState.scrap)
 	_scrap_rate.text = Fmt.rate(GameState.scrap_rate)
 	_scrap_rate.modulate = STARVED if GameState.starved() else RATE_COLOR
+	_mechs.text = Fmt.num(GameState.mechs_built)
+	_mechs_rate.text = "%d/MIN" % GameState.mechs_per_min
 
 
 func target(kind: Flyers.Kind) -> Vector2:
@@ -50,14 +61,19 @@ func target(kind: Flyers.Kind) -> Vector2:
 
 
 func pulse(kind: Flyers.Kind) -> void:
-	var icon := _icons[kind]
-	icon.scale = Vector2(1.4, 1.4)
-	icon.create_tween().tween_property(icon, "scale", Vector2.ONE, 0.15)
+	_bump(_icons[kind], 1.4)
 
 
 func pulse_out(kind: Flyers.Kind) -> void:
-	var icon := _icons[kind]
-	icon.scale = Vector2(0.7, 0.7)
+	_bump(_icons[kind], 0.7)
+
+
+func _on_deployed(_m: MechState) -> void:
+	_bump(_mech_icon, 1.4)
+
+
+func _bump(icon: TextureRect, from: float) -> void:
+	icon.scale = Vector2(from, from)
 	icon.create_tween().tween_property(icon, "scale", Vector2.ONE, 0.15)
 
 

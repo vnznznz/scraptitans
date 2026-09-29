@@ -738,10 +738,23 @@ func m8() -> void:
 	t.check(pile_x.call() < bar_center - 50.0, "it moves left when the buttons appear (%d)" % pile_x.call())
 	var badge: Label = main.get_node("%Upgrades").get_node("Badge")
 	t.check(badge.visible and badge.text == str(GameState.affordable_upgrades()) and GameState.affordable_upgrades() > 0, "UPGRADES shows %s affordable" % badge.text)
+	t.check(main.get("_title") == "(%d) Scrap Titans" % GameState.affordable_upgrades(), "window title shows the count: %s" % main.get("_title"))
 	await t.shot("m8_badge")
 	GameState.credits = 0.0
 	await t.frames(2)
 	t.check(badge.visible and badge.text == "0", "badge stays, reads 0 when nothing is affordable")
+	t.check(main.get("_title") == "Scrap Titans", "plain title when nothing is affordable")
+
+	var hud_mechs: Label = main.find_child("Mechs", true, false)
+	var hud_rate: Label = main.find_child("MechsRate", true, false)
+	var built := GameState.mechs_built
+	GameState.debug_spawn_mechs(3)
+	GameState.advance(1.1)
+	await t.frames(2)
+	t.check(hud_mechs.text == str(built + 3) and GameState.mechs_per_min == 3 and hud_rate.text == "3/MIN", "HUD: %s mechs, %s" % [hud_mechs.text, hud_rate.text])
+	GameState.advance(60.0)
+	await t.frames(2)
+	t.check(GameState.mechs_per_min == 0 and hud_rate.text == "0/MIN", "rate covers the last minute")
 
 	GameState.wave = 3
 	GameState.wave_hp = GameState.wave_max_hp()

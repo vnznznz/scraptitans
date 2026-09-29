@@ -13,6 +13,7 @@ signal nuke_launched(mech: MechState)
 const TICK := 1.0 / 30.0
 const MAX_FRAME_DELTA := 0.25
 const RATE_WINDOW := 5
+const MECH_WINDOW := 60
 
 var scrap := 0.0
 var credits := 0.0
@@ -31,6 +32,7 @@ var run_over := false
 var credits_rate := 0.0
 var scrap_rate := 0.0
 var scrap_gain_rate := 0.0
+var mechs_per_min := 0
 var time_scale := 1.0
 var yard_chunks := 0
 
@@ -43,6 +45,8 @@ var _scrap_gain_bucket := 0.0
 var _credits_history: Array[float] = []
 var _scrap_history: Array[float] = []
 var _scrap_gain_history: Array[float] = []
+var _mech_bucket := 0
+var _mech_history: Array[int] = []
 var _wave_list: Array[Dictionary] = []
 var _wave_listed := -1
 
@@ -461,6 +465,7 @@ func _deploy(m: MechState) -> void:
 	m.arrive_t = 0.0
 	field.append(m)
 	mechs_built += 1
+	_mech_bucket += 1
 	_gain_credits(m.deploy_fee)
 	mech_deployed.emit(m)
 	if m.is_nuclear():
@@ -567,6 +572,11 @@ func _step_rates(dt: float) -> void:
 	_rate_t -= 1.0
 	for line in lines:
 		line.sample_rate()
+	_mech_history.append(_mech_bucket)
+	mechs_per_min += _mech_bucket
+	_mech_bucket = 0
+	if _mech_history.size() > MECH_WINDOW:
+		mechs_per_min -= _mech_history.pop_front()
 	_credits_history.append(_credits_bucket)
 	_scrap_history.append(_scrap_bucket)
 	_scrap_gain_history.append(_scrap_gain_bucket)
@@ -597,6 +607,9 @@ func _reset_rates() -> void:
 	_credits_history = []
 	_scrap_history = []
 	_scrap_gain_history = []
+	_mech_bucket = 0
+	_mech_history = []
+	mechs_per_min = 0
 	credits_rate = 0.0
 	scrap_rate = 0.0
 	scrap_gain_rate = 0.0
