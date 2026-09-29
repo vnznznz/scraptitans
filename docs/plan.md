@@ -56,12 +56,12 @@ Test:
 
 Build: mechs grind down enemy waves for big credit bounties.
 
-- [ ] `data/enemies.json`: 3 types (Scrap Drones, Crawler Tanks, Junk Brute: count per wave, sprite); wave HP and bounty curves
-- [ ] Arms stat is `dps`; the sim drains the wave by the summed DPS of mechs on the field; wave state saved
-- [ ] Healthbar across the full width at the top of the battlefield: HP left / total, DPS
-- [ ] Enemies pop one by one as HP passes their share
-- [ ] Drained: credit bounty as a big disc burst, explosion and particles, next wave (next type, more HP) walks in from the right
-- [ ] Debug: kill wave
+- [x] `data/enemies.json`: 3 types (Scrap Drones, Crawler Tanks, Junk Brute: count per wave, sprite); wave HP and bounty curves
+- [x] Arms stat is `dps`; the sim drains the wave by the summed DPS of mechs on the field; wave state saved
+- [x] Healthbar across the full width at the top of the battlefield: HP left / total, DPS
+- [x] Enemies pop one by one as HP passes their share
+- [x] Drained: credit bounty as a big disc burst, explosion and particles, next wave (next type, more HP) walks in from the right
+- [x] Debug: kill wave
 
 Test:
 - The bar drains while mechs are alive and stops when the field is empty; DPS matches the mech count.
@@ -73,10 +73,10 @@ Test:
 
 Build: hire workers; the factory runs hands-off.
 
-- [ ] "+ WORKER" per segment, "+ YARD WORKER": credits, `base·growth^n` per station, fixed slot caps
-- [ ] A worker adds a chunk every few seconds, so bars visibly jump; yard workers add scrap chunks
-- [ ] Pause per line: no scrap consumed
-- [ ] Highlight the slowest segment (bottleneck)
+- [x] "+ WORKER" per segment, "+ YARD WORKER": credits, `base·growth^n` per station, fixed slot caps
+- [x] A worker adds a chunk every few seconds, so bars visibly jump; yard workers add scrap chunks
+- [x] Pause per line: no scrap consumed
+- [x] Highlight the slowest segment (bottleneck)
 
 Test:
 - First worker affordable within a few minutes.
@@ -88,10 +88,10 @@ Test:
 
 Build: spend credits in the upgrade menu, run several lines.
 
-- [ ] UPGRADES → tabbed overlay; unaffordable rows grey; cost `base·1.15^level`
-- [ ] `data/upgrades.json`: rows of tab, stat, delta per level, max level, base cost; the sim reads derived stats
-- [ ] Tabs: Segments (bar size, worker slots per type), Workers (chunk size, interval), Yard (scrap per tap, yard slots), Payout (step cap, interval, deploy fee), Salvage (40 → 90%), Lines
-- [ ] "+ UNLOCK LINE N" in the pane and in the Lines tab; new lines start with 3 empty pads
+- [x] UPGRADES → tabbed overlay; unaffordable rows grey; cost `base·1.15^level`
+- [x] `data/upgrades.json`: rows of tab, stat, delta per level, max level, base cost; the sim reads derived stats
+- [x] Tabs: Segments (bar size, worker slots per type), Workers (chunk size, interval), Yard (scrap per tap, yard slots), Payout (step cap, interval, deploy fee), Salvage (40 → 90%), Lines
+- [x] "+ UNLOCK LINE N" in the pane and in the Lines tab; new lines start with 3 empty pads
 
 Test:
 - One purchase per tab, each with a visible effect.
@@ -102,8 +102,15 @@ Test:
 
 Build: unlock better parts, apply them per segment, see mechs change.
 
+- [ ] Feedback from M2–M4 testing:
+  - [ ] Pause button at the front (left) of the assembly line, not the header's right end
+  - [ ] Worker hire button disappears when the segment's slots are full (no MAX button)
+  - [ ] Upgrade menu: one list, no tabs, sorted by current price (cheapest first); maxed rows at the bottom
+  - [ ] Segments centered in the line by count, no space kept for a 4th column; re-spaced when Plating appears
+  - [ ] Wave level damages mechs: they age faster, `1 + wave_damage·wave` (`enemies.json`), so higher waves shorten lifetime
+  - [ ] HUD scrap +/s turns red while any line is starved (a segment stalled on no scrap)
 - [ ] Tiers in `data/segments.json`: 6 × Frame/Core/Arms/Plating (part name, stat, scrap per mech, apply cost)
-- [ ] Tiers tab: unlock the next tier per type (credits, global); Atomic Missile row visible and locked
+- [ ] Tier rows in the upgrade list: unlock the next tier per type (credits, global); Atomic Missile row visible and locked
 - [ ] Segment tier button applies the next unlocked tier for scrap; ⬆ jumps to that type's tier row
 - [ ] Plating on the `[+]` pad after Arms, unlocked by its tier 1 row (the pitch doesn't say how Plating unlocks)
 - [ ] Layered mech sprites by part tier; an applied tier affects parts attached afterwards
@@ -112,6 +119,10 @@ Test:
 - Unlock Frame tier 2, pause to save scrap, apply → new mechs look different and live longer, scrap per mech rises.
 - ⬆ opens the menu on the right row.
 - Unlock Plating, build it on line 1 → mechs live longer.
+- Pause sits at the line's left; a full segment shows no hire button; the upgrade list is cheapest first.
+- Line segments are centered; with Plating built, all four fit.
+- Mechs die sooner on later waves.
+- Empty the scrap with a running line → scrap +/s turns red; refill → normal.
 
 ## M6 · Battlefield
 

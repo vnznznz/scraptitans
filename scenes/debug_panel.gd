@@ -15,15 +15,20 @@ func _ready() -> void:
 	var toggle := Button.new()
 	toggle.name = "DebugToggle"
 	toggle.text = "DBG"
-	toggle.position = Vector2(4, 52)
-	toggle.size = Vector2(56, 28)
+	toggle.set_anchors_and_offsets_preset(PRESET_BOTTOM_LEFT)
+	toggle.offset_left = 4
+	toggle.offset_right = 60
+	toggle.offset_top = -42
+	toggle.offset_bottom = -14
 	toggle.modulate = Color(1, 1, 1, 0.6)
-	toggle.pressed.connect(func() -> void: _panel.visible = not _panel.visible)
+	toggle.pressed.connect(func() -> void:
+		_panel.visible = not _panel.visible
+		_panel.position.y = toggle.position.y - _panel.get_combined_minimum_size().y - 4)
 	add_child(toggle)
 
 	_panel = PanelContainer.new()
 	_panel.name = "DebugPanel"
-	_panel.position = Vector2(4, 84)
+	_panel.position = Vector2(4, 0)
 	_panel.visible = false
 	add_child(_panel)
 
@@ -39,7 +44,11 @@ func _ready() -> void:
 	box.add_child(grants)
 	_button(grants, "+100 SCRAP", func() -> void: GameState.scrap += 100)
 	_button(grants, "+10K SCRAP", func() -> void: GameState.scrap += 10000)
-	_button(box, "+1K CREDITS", func() -> void: GameState.credits += 1000)
+	var more := HBoxContainer.new()
+	box.add_child(more)
+	_button(more, "+1K CR", func() -> void: GameState.credits += 1000)
+	_button(more, "+100K CR", func() -> void: GameState.credits += 100000)
+	_button(box, "KILL WAVE", GameState.kill_wave)
 
 
 func _process(_delta: float) -> void:

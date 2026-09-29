@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scenes/settings_overlay.gd" id="settings"]
 [ext_resource type="Script" path="res://scenes/debug_panel.gd" id="debug"]
 [ext_resource type="Script" path="res://ui/flyers.gd" id="flyers"]
+[ext_resource type="Script" path="res://scenes/upgrade_menu.gd" id="upgrade_menu"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -79,8 +80,19 @@ custom_minimum_size = Vector2(180, 40)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-disabled = true
 text = "UPGRADES"
+
+[node name="UpgradeMenu" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 48.0
+offset_bottom = -56.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("upgrade_menu")
 
 [node name="Flyers" type="Control" parent="." node_paths=PackedStringArray("hud")]
 unique_name_in_owner = true

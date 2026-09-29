@@ -86,6 +86,11 @@ def ui():
     d.line([1, 1, 4, 1], fill=(160, 230, 150, 255))
     save(img, "ui/bar_fill.png")
 
+    img, d = new(6, 6)
+    box(d, 0, 0, 5, 5, RED, outline=INK)
+    d.line([1, 1, 4, 1], fill=(240, 130, 110, 255))
+    save(img, "ui/hp_fill.png")
+
     for name, face, hi in [
         ("button", METAL, METAL_L),
         ("button_pressed", METAL_D, METAL),
@@ -194,12 +199,35 @@ def battlefield():
         d.point((px, py), fill=(56, 46, 40, 255))
     save(img, "battlefield/bg.png")
 
-    img, d = new(20, 20)
-    box(d, 2, 10, 17, 17, RED)
-    box(d, 6, 5, 14, 10, (170, 50, 44, 255))
-    box(d, 0, 7, 6, 8, METAL_D)
-    d.rectangle([2, 17, 17, 19], fill=INK)
-    save(img, "battlefield/enemy_1.png")
+    img, d = new(14, 10)
+    box(d, 3, 2, 10, 7, RED)
+    d.rectangle([5, 4, 6, 5], fill=GOLD)
+    d.line([0, 1, 13, 1], fill=METAL_L)
+    d.line([6, 0, 7, 0], fill=INK)
+    d.line([1, 8, 1, 9], fill=METAL_D)
+    save(img, "battlefield/enemy_drone.png")
+
+    img, d = new(22, 16)
+    box(d, 1, 10, 20, 15, METAL_D)
+    for x in range(3, 20, 4):
+        d.rectangle([x, 12, x + 1, 13], fill=METAL)
+    box(d, 4, 4, 17, 10, RED)
+    box(d, 7, 1, 13, 4, (170, 50, 44, 255))
+    box(d, 0, 2, 7, 3, METAL)
+    save(img, "battlefield/enemy_crawler.png")
+
+    img, d = new(36, 44)
+    box(d, 8, 30, 14, 43, METAL_D)
+    box(d, 22, 30, 28, 43, METAL_D)
+    box(d, 4, 12, 31, 31, RED)
+    d.line([5, 13, 30, 13], fill=(230, 110, 96, 255))
+    box(d, 12, 2, 24, 12, (170, 50, 44, 255))
+    d.rectangle([13, 6, 16, 8], fill=GOLD)
+    box(d, 0, 16, 8, 20, METAL)
+    box(d, 0, 22, 4, 34, METAL_D)
+    for x, y in [(10, 18), (20, 24), (26, 16)]:
+        box(d, x, y, x + 3, y + 3, RUST_L)
+    save(img, "battlefield/enemy_brute.png")
 
 
 def fx():
@@ -207,6 +235,41 @@ def fx():
     d.ellipse([1, 1, 14, 14], fill=(200, 200, 200, 255))
     d.ellipse([3, 3, 10, 10], fill=WHITE)
     save(img, "fx/puff.png")
+
+    img, d = new(3, 3)
+    d.rectangle([0, 0, 2, 2], fill=WHITE)
+    save(img, "fx/spark.png")
+
+
+def workers():
+    for name, shovel in [("line/worker.png", False), ("yard/worker.png", True)]:
+        img, d = new(10, 14)
+        box(d, 3, 0, 7, 2, GOLD)
+        box(d, 3, 3, 6, 5, (220, 170, 130, 255))
+        box(d, 2, 6, 7, 10, (60, 110, 200, 255))
+        box(d, 2, 11, 3, 13, METAL_D, outline=None)
+        box(d, 6, 11, 7, 13, METAL_D, outline=None)
+        if shovel:
+            d.line([8, 3, 8, 11], fill=RUST_L)
+            box(d, 7, 11, 9, 13, METAL_L)
+        save(img, name)
+
+    img, d = new(16, 16)
+    box(d, 5, 1, 10, 3, GOLD)
+    box(d, 5, 4, 9, 7, (220, 170, 130, 255))
+    box(d, 3, 8, 11, 14, (60, 110, 200, 255))
+    d.rectangle([12, 8, 14, 14], fill=GREEN)
+    d.rectangle([11, 10, 15, 12], fill=GREEN)
+    save(img, "ui/worker.png")
+
+    img, d = new(16, 16)
+    box(d, 3, 2, 6, 13, WHITE)
+    box(d, 9, 2, 12, 13, WHITE)
+    save(img, "ui/pause.png")
+
+    img, d = new(16, 16)
+    d.polygon([(4, 2), (13, 8), (4, 13)], fill=GREEN, outline=INK)
+    save(img, "ui/play.png")
 
 
 if __name__ == "__main__":
@@ -216,3 +279,4 @@ if __name__ == "__main__":
     yard()
     battlefield()
     fx()
+    workers()

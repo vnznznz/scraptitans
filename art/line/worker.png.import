@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://omidreoknvho"
-path="res://.godot/imported/enemy_1.png-63923e34a3dca03957e4ffbf0e457101.ctex"
+uid="uid://calv0otm1e8df"
+path="res://.godot/imported/worker.png-6a537e3217cf72cce7c05033e3af9d0e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/battlefield/enemy_1.png"
-dest_files=["res://.godot/imported/enemy_1.png-63923e34a3dca03957e4ffbf0e457101.ctex"]
+source_file="res://art/line/worker.png"
+dest_files=["res://.godot/imported/worker.png-6a537e3217cf72cce7c05033e3af9d0e.ctex"]
 
 [params]
 

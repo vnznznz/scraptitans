@@ -1,0 +1,28 @@
+{
+	"tabs": [
+		{"id": "segments", "name": "SEGMENTS"},
+		{"id": "workers", "name": "WORKERS"},
+		{"id": "yard", "name": "YARD"},
+		{"id": "payout", "name": "PAYOUT"},
+		{"id": "salvage", "name": "SALVAGE"},
+		{"id": "lines", "name": "LINES"}
+	],
+	"rows": [
+		{"id": "frame_bar", "tab": "segments", "name": "Frame bar", "stat": "frame.bar_size", "delta": -1, "max_level": 3, "base_cost": 60},
+		{"id": "core_bar", "tab": "segments", "name": "Core bar", "stat": "core.bar_size", "delta": -1, "max_level": 3, "base_cost": 60},
+		{"id": "arms_bar", "tab": "segments", "name": "Arms bar", "stat": "arms.bar_size", "delta": -1, "max_level": 3, "base_cost": 60},
+		{"id": "frame_slots", "tab": "segments", "name": "Frame slots", "stat": "frame.worker_slots", "delta": 1, "max_level": 5, "base_cost": 150},
+		{"id": "core_slots", "tab": "segments", "name": "Core slots", "stat": "core.worker_slots", "delta": 1, "max_level": 5, "base_cost": 150},
+		{"id": "arms_slots", "tab": "segments", "name": "Arms slots", "stat": "arms.worker_slots", "delta": 1, "max_level": 5, "base_cost": 150},
+		{"id": "chunk", "tab": "workers", "name": "Work chunk", "stat": "worker_chunk", "delta": 1, "max_level": 5, "base_cost": 200},
+		{"id": "interval", "tab": "workers", "name": "Chunk time", "stat": "worker_interval", "delta": -0.25, "max_level": 4, "base_cost": 150, "unit": "s"},
+		{"id": "tap", "tab": "yard", "name": "Scrap per tap", "stat": "scrap_per_tap", "delta": 1, "max_level": 9, "base_cost": 25},
+		{"id": "yard_chunk", "tab": "yard", "name": "Yard chunk", "stat": "yard_chunk", "delta": 1, "max_level": 8, "base_cost": 100},
+		{"id": "yard_slots", "tab": "yard", "name": "Yard slots", "stat": "yard_slots", "delta": 1, "max_level": 6, "base_cost": 150},
+		{"id": "step_cap", "tab": "payout", "name": "Payout steps", "stat": "payout_cap", "delta": 1, "max_level": 6, "base_cost": 100},
+		{"id": "step_interval", "tab": "payout", "name": "Step time", "stat": "payout_interval", "delta": -0.5, "max_level": 6, "base_cost": 120, "unit": "s"},
+		{"id": "deploy_fee", "tab": "payout", "name": "Deploy fee", "stat": "deploy_fee_mult", "delta": 0.5, "max_level": 10, "base_cost": 80, "unit": "x"},
+		{"id": "salvage", "tab": "salvage", "name": "Salvage", "stat": "salvage", "delta": 0.05, "max_level": 14, "base_cost": 60, "unit": "%"},
+		{"id": "lines", "tab": "lines", "name": "Lines", "stat": "lines", "delta": 1, "max_level": 4, "base_cost": 400}
+	]
+}

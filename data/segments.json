@@ -5,6 +5,9 @@
 			"name": "Frame",
 			"build_cost": 10,
 			"bar_size": 6,
+			"worker_base": 50,
+			"worker_growth": 1.35,
+			"worker_slots": 3,
 			"tiers": [
 				{"part": "Scrap Frame", "scrap_per_mech": 4, "lifetime": 20}
 			]
@@ -13,6 +16,9 @@
 			"name": "Core",
 			"build_cost": 15,
 			"bar_size": 5,
+			"worker_base": 50,
+			"worker_growth": 1.35,
+			"worker_slots": 3,
 			"tiers": [
 				{"part": "Junk Brain", "scrap_per_mech": 3, "credits_per_sec": 1, "deploy_fee": 5}
 			]
@@ -21,6 +27,9 @@
 			"name": "Arms",
 			"build_cost": 20,
 			"bar_size": 5,
+			"worker_base": 50,
+			"worker_growth": 1.35,
+			"worker_slots": 3,
 			"tiers": [
 				{"part": "Pipe Gun", "scrap_per_mech": 3, "dps": 1}
 			]

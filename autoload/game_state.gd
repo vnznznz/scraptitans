@@ -4,6 +4,8 @@ signal purchased
 signal mech_deployed(mech: MechState)
 signal mech_income(mech: MechState, credits: float)
 signal mech_died(mech: MechState, salvage: float)
+signal wave_cleared(bounty: float)
+signal line_added(index: int)
 
 const TICK := 1.0 / 30.0
 const MAX_FRAME_DELTA := 0.25
@@ -17,10 +19,17 @@ var next_mech_id := 1
 var run_time := 0.0
 var mechs_built := 0
 var credits_earned := 0.0
+var wave := 0
+var wave_hp := 0.0
+var yard_workers := 0
+var yard_t := 0.0
+var levels := {}
 var credits_rate := 0.0
 var scrap_rate := 0.0
 var time_scale := 1.0
+var yard_chunks := 0
 
+var _stats := {}
 var _acc := 0.0
 var _rate_t := 0.0
 var _credits_bucket := 0.0
@@ -50,11 +59,27 @@ func new_game() -> void:
 	run_time = 0.0
 	mechs_built = 0
 	credits_earned = 0.0
+	levels = {}
+	_stats = {}
+	wave = 0
+	wave_hp = wave_max_hp()
+	yard_workers = 0
+	yard_t = 0.0
 	_reset_rates()
 
 
+func stat(key: String) -> float:
+	if _stats.has(key):
+		return _stats[key]
+	var v := Data.base_stat(key)
+	for row: Dictionary in Data.rows_for_stat(key):
+		v += float(row.delta) * level(row.id)
+	_stats[key] = v
+	return v
+
+
 func tap_pile() -> void:
-	_gain_scrap(Data.econ("scrap_per_tap"))
+	_gain_scrap(stat("scrap_per_tap"))
 
 
 func tap_segment(line_index: int, seg_index: int) -> bool:
@@ -80,6 +105,114 @@ func build_segment(line_index: int, seg_index: int) -> bool:
 	return true
 
 
+func worker_cost(line_index: int, seg_index: int) -> float:
+	var s := lines[line_index].segments[seg_index]
+	var t := Data.segment_type(s.type_id)
+	return float(t.worker_base) * pow(float(t.worker_growth), s.workers)
+
+
+func hire_worker(line_index: int, seg_index: int) -> bool:
+	var s := lines[line_index].segments[seg_index]
+	var cost := worker_cost(line_index, seg_index)
+	if not s.built or s.workers >= s.worker_slots() or credits < cost:
+		return false
+	credits -= cost
+	s.workers += 1
+	purchased.emit()
+	return true
+
+
+func yard_slots() -> int:
+	return int(stat("yard_slots"))
+
+
+func yard_worker_cost() -> float:
+	return Data.econ("yard_worker_base") * pow(Data.econ("yard_worker_growth"), yard_workers)
+
+
+func hire_yard_worker() -> bool:
+	var cost := yard_worker_cost()
+	if yard_workers >= yard_slots() or credits < cost:
+		return false
+	credits -= cost
+	yard_workers += 1
+	purchased.emit()
+	return true
+
+
+func toggle_pause(line_index: int) -> void:
+	lines[line_index].paused = not lines[line_index].paused
+	purchased.emit()
+
+
+func segment_rate(s: SegmentState) -> float:
+	return s.workers * stat("worker_chunk") / stat("worker_interval") / s.bar_size()
+
+
+func bottlenecks(line_index: int) -> Array[int]:
+	var line := lines[line_index]
+	var result: Array[int] = []
+	if not line.is_complete():
+		return result
+	var rates := line.segments.map(segment_rate)
+	var lo: float = rates.min()
+	if is_equal_approx(lo, rates.max()):
+		return result
+	for i in rates.size():
+		if is_equal_approx(rates[i], lo):
+			result.append(i)
+	return result
+
+
+func level(id: String) -> int:
+	return int(levels.get(id, 0))
+
+
+func upgrade_cost(id: String) -> float:
+	return float(Data.upgrade_row(id).base_cost) * pow(Data.econ("upgrade_cost_growth"), level(id))
+
+
+func upgrade_maxed(id: String) -> bool:
+	return level(id) >= int(Data.upgrade_row(id).max_level)
+
+
+func buy_upgrade(id: String) -> bool:
+	var cost := upgrade_cost(id)
+	if upgrade_maxed(id) or credits < cost:
+		return false
+	credits -= cost
+	levels[id] = level(id) + 1
+	_stats = {}
+	while lines.size() < int(stat("lines")):
+		lines.append(LineState.create())
+		line_added.emit(lines.size() - 1)
+	purchased.emit()
+	return true
+
+
+func salvage_share() -> float:
+	return minf(stat("salvage"), Data.econ("salvage_cap"))
+
+
+func wave_max_hp() -> float:
+	return float(Data.enemies.base_hp) * pow(float(Data.enemies.hp_growth), wave)
+
+
+func wave_bounty() -> float:
+	return float(Data.enemies.base_bounty) * pow(float(Data.enemies.bounty_growth), wave)
+
+
+func field_dps() -> float:
+	var total := 0.0
+	for m in field:
+		total += m.dps
+	return total
+
+
+func kill_wave() -> void:
+	_clear_wave()
+
+
 func to_dict() -> Dictionary:
 	return {
 		"scrap": scrap,
@@ -90,6 +223,11 @@ func to_dict() -> Dictionary:
 		"run_time": run_time,
 		"mechs_built": mechs_built,
 		"credits_earned": credits_earned,
+		"wave": wave,
+		"wave_hp": wave_hp,
+		"yard_workers": yard_workers,
+		"yard_t": yard_t,
+		"levels": levels.duplicate(),
 	}
 
 
@@ -106,15 +244,52 @@ func from_dict(d: Dictionary) -> void:
 	run_time = float(d.run_time)
 	mechs_built = int(d.mechs_built)
 	credits_earned = float(d.credits_earned)
+	levels = {}
+	var saved_levels: Dictionary = d.get("levels", {})
+	for id: String in saved_levels:
+		levels[id] = int(saved_levels[id])
+	_stats = {}
+	wave = int(d.get("wave", 0))
+	wave_hp = float(d.get("wave_hp", wave_max_hp()))
+	yard_workers = int(d.get("yard_workers", 0))
+	yard_t = float(d.get("yard_t", 0.0))
 	_reset_rates()
 
 
 func _step(dt: float) -> void:
 	run_time += dt
 	for line in lines:
+		_step_workers(line, dt)
 		_step_line(line, dt)
+	_step_yard(dt)
 	_step_field(dt)
+	_step_wave(dt)
 	_step_rates(dt)
+
+
+func _step_workers(line: LineState, dt: float) -> void:
+	var interval := stat("worker_interval")
+	var chunk := stat("worker_chunk")
+	for s in line.segments:
+		if not s.built or s.workers == 0:
+			continue
+		s.worker_t += dt * s.workers
+		while s.worker_t >= interval:
+			s.worker_t -= interval
+			if not s.bar_full():
+				s.work = minf(s.bar_size(), s.work + chunk)
+				s.chunks += 1
+
+
+func _step_yard(dt: float) -> void:
+	if yard_workers == 0:
+		return
+	var interval := stat("worker_interval")
+	yard_t += dt * yard_workers
+	while yard_t >= interval:
+		yard_t -= interval
+		_gain_scrap(stat("yard_chunk"))
+		yard_chunks += 1
 
 
 func _step_line(line: LineState, dt: float) -> void:
@@ -144,7 +319,7 @@ func _step_line(line: LineState, dt: float) -> void:
 			else:
 				s.stall = SegmentState.Stall.BLOCKED
 				continue
-		if s.assembling or not s.bar_full():
+		if line.paused or s.assembling or not s.bar_full():
 			continue
 		if i == 0:
 			if s.mech == null and line.is_complete():
@@ -175,7 +350,7 @@ func _deploy(m: MechState) -> void:
 	var arms := Data.tier("arms", m.parts.get("arms", 0))
 	m.lifetime = float(frame.lifetime)
 	m.base_rate = float(core.credits_per_sec)
-	m.deploy_fee = float(core.deploy_fee)
+	m.deploy_fee = float(core.deploy_fee) * stat("deploy_fee_mult")
 	m.dps = float(arms.dps)
 	m.arrive_t = 0.0
 	field.append(m)
@@ -185,7 +360,7 @@ func _deploy(m: MechState) -> void:
 
 
 func payout_rate(m: MechState) -> float:
-	var steps := mini(int(floor(m.age / Data.econ("payout_interval"))), int(Data.econ("payout_cap")))
+	var steps := mini(int(floor(m.age / stat("payout_interval"))), int(stat("payout_cap")))
 	return m.base_rate * pow(Data.econ("payout_step"), steps)
 
 
@@ -202,10 +377,24 @@ func _step_field(dt: float) -> void:
 			m.pend_t = 0.0
 			m.pend_credits = 0.0
 		if dead:
-			var salvage := m.scrap_cost * Data.econ("salvage")
+			var salvage := m.scrap_cost * salvage_share()
 			_gain_scrap(salvage)
 			field.erase(m)
 			mech_died.emit(m, salvage)
+
+
+func _step_wave(dt: float) -> void:
+	wave_hp -= field_dps() * dt
+	if wave_hp <= 0.0:
+		_clear_wave()
+
+
+func _clear_wave() -> void:
+	var bounty := wave_bounty()
+	_gain_credits(bounty)
+	wave += 1
+	wave_hp = wave_max_hp()
+	wave_cleared.emit(bounty)
 
 
 func _gain_credits(amount: float) -> void:

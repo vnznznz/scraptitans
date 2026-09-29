@@ -8,5 +8,15 @@
 	"payout_step": 1.5,
 	"payout_interval": 5.0,
 	"payout_cap": 6,
-	"salvage": 0.2
+	"deploy_fee_mult": 1,
+	"salvage": 0.2,
+	"salvage_cap": 0.9,
+	"worker_chunk": 1,
+	"worker_interval": 2.0,
+	"yard_chunk": 2,
+	"yard_slots": 2,
+	"yard_worker_base": 40,
+	"yard_worker_growth": 1.35,
+	"lines": 1,
+	"upgrade_cost_growth": 1.15
 }

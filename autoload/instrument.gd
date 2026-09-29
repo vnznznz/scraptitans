@@ -42,6 +42,12 @@ func node(unique_name: String) -> Node:
 
 
 func click(target: Control) -> void:
+	var scroll := target.get_parent()
+	while scroll and not scroll is ScrollContainer:
+		scroll = scroll.get_parent()
+	if scroll:
+		scroll.ensure_control_visible(target)
+		await frames(1)
 	var pos := target.get_global_rect().get_center()
 	for pressed in [true, false]:
 		var ev := InputEventMouseButton.new()

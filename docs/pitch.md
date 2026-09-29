@@ -48,6 +48,7 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 - Mechs walk in from the left and fire at the enemy wave on the right. Enemies fire back.
 - No HP bars on mechs. Mech damage shows as smoke (3 intensities), then sparks, then explosion and debris. It follows remaining lifetime, not enemy fire.
 - No combat sim beyond the wave: lifetime, payout and damage come from the stats; visuals play along.
+- Later waves hit harder: mechs age faster the higher the wave, so they die sooner.
 
 ## Enemy waves
 
@@ -78,15 +79,15 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 
 ## Upgrade menu (credits)
 
-A fixed **UPGRADES** button opens a tabbed purchase menu. Everything here costs credits. Rows the player can't afford are greyed.
+A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**, cheapest first. Everything here costs credits. Rows the player can't afford are greyed.
 
-- **Tiers tab:** unlock the next tier of each segment type (global). The **Atomic Missile** is the last unlock in the list and is visible, locked, from the start.
-- **Segments tab:** smaller work bar, more worker slots, per segment type.
-- **Workers tab:** bigger work chunks, shorter chunk interval.
-- **Yard tab:** scrap per tap, yard slots.
-- **Payout tab:** step cap, step interval, deploy fee.
-- **Salvage tab:** 20% → 90%.
-- **Lines tab:** unlock line 2, 3, …
+- **Tiers:** unlock the next tier of each segment type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
+- **Segments:** smaller work bar, more worker slots, per segment type.
+- **Workers:** bigger work chunks, shorter chunk interval.
+- **Yard:** scrap per tap, yard slots.
+- **Payout:** step cap, step interval, deploy fee.
+- **Salvage:** 20% → 90%.
+- **Lines:** unlock line 2, 3, …
 
 Each segment has a small ⬆ icon that jumps to its tier row. Tapping the segment body only fills the work bar.
 
@@ -128,7 +129,7 @@ Each segment has a small ⬆ icon that jumps to its tier row. Tapping the segmen
 │  mechs →  smoke  ✸   ← enemy │  discs fly to the HUD
 ├──────────────────────────────┤
 │ ▼ ScrollContainer (vertical) │
-│ LINE 1                  ⏸    │  pause = stop burning scrap
+│ ⏸ LINE 1                     │  pause = stop burning scrap
 │ [FRAME]=[CORE]=[ARMS]=[+ ]→  │  belt connects segments,
 │  work ▓▓▓░ (tap / workers)   │  mech moves along, exits →
 │  tier ⬆  +worker             │  tier = apply unlocked tier (scrap)

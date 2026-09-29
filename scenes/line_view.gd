@@ -5,9 +5,13 @@ const SEG_Y := 22.0
 const SEG_X0 := 8.0
 const SEG_STEP := 88.0
 const BELT_TEX := preload("res://art/line/belt.png")
+const PAUSE_TEX := preload("res://art/ui/pause.png")
+const PLAY_TEX := preload("res://art/ui/play.png")
 
 var line_index := 0
 
+var _header: Label
+var _pause: Button
 var _segments: Array[SegmentView] = []
 var _mechs: Node2D
 var _views := {}
@@ -18,10 +22,19 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(0, SEG_Y + SegmentView.HEIGHT + 4)
 	mouse_filter = MOUSE_FILTER_PASS
 
-	var header := Label.new()
-	header.text = "LINE %d" % (line_index + 1)
-	header.position = Vector2(8, 2)
-	add_child(header)
+	_header = Label.new()
+	_header.position = Vector2(8, 2)
+	add_child(_header)
+
+	_pause = Button.new()
+	_pause.name = "Pause"
+	_pause.flat = true
+	_pause.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pause.position = Vector2(308, -4)
+	_pause.size = Vector2(44, 32)
+	_pause.mouse_filter = MOUSE_FILTER_PASS
+	_pause.pressed.connect(GameState.toggle_pause.bind(line_index))
+	add_child(_pause)
 
 	for i in _line().segments.size():
 		var v := SegmentView.new()
@@ -41,6 +54,10 @@ func segment_view(i: int) -> SegmentView:
 
 
 func _process(delta: float) -> void:
+	var paused := _line().paused
+	_header.text = "LINE %d%s" % [line_index + 1, "  PAUSED" if paused else ""]
+	_header.modulate = Color(1, 0.6, 0.4) if paused else Color.WHITE
+	_pause.icon = PLAY_TEX if paused else PAUSE_TEX
 	var belt_y := SEG_Y + SegmentView.BELT_Y
 	var belt_time := Data.econ("belt_time")
 	var moving := false

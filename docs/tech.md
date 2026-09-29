@@ -11,8 +11,10 @@
 - Theme `ui/theme.tres`: buttons/panels are nine-patch PNGs from `art/ui/`
 
 ## Layout
-- `scenes/main.tscn`: `Hud` (48) / `Battlefield` (160) / `Scroll` → `Content` (lines, `Scrapyard`) / `BottomBar` (56); overlays `Flyers`, `Debug`, `Settings`
-- Views build their children in code; main adds one `LineView` per line
+- `scenes/main.tscn`: `Hud` (48) / `Battlefield` (160) / `Scroll` → `Content` (lines, `UnlockLine`, `Scrapyard`) / `BottomBar` (56); overlays `UpgradeMenu` (between HUD and bottom bar), `Flyers`, `Debug`, `Settings`
+- Views build their children in code; main adds one `LineView` per line, more on `line_added`
+- UPGRADES button toggles the menu (reads CLOSE while open)
+- DBG toggle anchored bottom-left, panel opens upward
 - Positions hardcoded in base pixels
 
 ## Autoloads
@@ -25,16 +27,28 @@
 - `sim/`: `LineState` → `SegmentState` → `MechState`; plain `RefCounted`, `to_dict`/`from_dict`
 - Views never mutate state except through `GameState` methods; they read it every frame
 - Segment: work banks up to bar size; full bar + mech (Frame: free slot, line complete) + scrap → assemble; one mech per segment; `stall` NONE / NO_SCRAP / BLOCKED
-- Line processed last → first each tick
-- Field mech: payout `base·step^min(floor(age/interval), cap)`, income batched to `mech_income` once per second, salvage on death; `dps` stored (Arms), unused until waves
-- Signals: `purchased`, `mech_deployed`, `mech_income`, `mech_died`
+- Line processed last → first each tick; paused line starts no assembly (mechs already done still move/deploy)
+- Workers: per segment `workers`, `worker_t += dt·workers`, one chunk per `worker_interval` (round robin, so the bar jumps); no chunk while the bar is full. Yard workers same, add `yard_chunk` scrap. `chunks` / `yard_chunks` counters (unsaved) drive the view hops
+- Hire cost `worker_base·worker_growth^n` per station; caps from stats
+- Bottleneck: rate = workers·chunk/interval/bar; highlight the min unless all equal
+- Field mech: payout `base·step^min(floor(age/interval), cap)`, income batched to `mech_income` once per second, salvage on death
+- Wave: `wave`, `wave_hp`; drains by summed mech `dps`; ≤0 → bounty, `wave += 1`, full HP. `hp = base_hp·hp_growth^wave`, bounty likewise; type cycles `types[wave % n]`
+- Stats: `GameState.stat(key)` = base + Σ delta·level, cached, cleared on purchase/load. Key `type.field` → `segments.json`, else `economy.json`. Salvage clamped to `salvage_cap`
+- Upgrade cost `base_cost·upgrade_cost_growth^level`; `lines` stat > line count → append `LineState`, emit `line_added`
+- Signals: `purchased` (also pause; triggers save), `mech_deployed`, `mech_income`, `mech_died`, `wave_cleared`, `line_added`
 
 ## Data
-- Tunables only in `data/*.json`: `economy.json`, `segments.json` (`line_slots`, `types` → tiers array)
+- Tunables only in `data/*.json`: `economy.json` (global stat bases), `segments.json` (`line_slots`, `types` → worker cost/slots, tiers array), `enemies.json` (HP/bounty curves, `types`: count, sprite, flying), `upgrades.json` (`tabs`, `rows`: id, tab, stat, delta, max_level, base_cost, optional unit `s`/`x`/`%`)
+- New save fields read with `.get` defaults, so `version` stays 1
+
+## Battlefield
+- Wave bar at top (`WaveBar`): `W<n> hp/max` left, `DPS` right
+- Enemies right side; visible count = ceil(hp share · count), pops leftmost first; flyers bob
+- Wave cleared: puffs, `CPUParticles2D` sparks, bounty disc burst, shake, next wave walks in from the right
 
 ## Income feedback
 - No floating numbers. `Flyers.spawn(kind, global_pos, count)` (`ui/flyers.gd`): disc bursts up, flies to `Hud.target(kind)`, `Hud.pulse(kind)` on arrival; max 48 in flight
-- Pile tap: 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap
+- Pile tap: 1 scrap disc; yard chunk 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap; bounty 8–20 credits
 
 ## Input
 - Taps: `TapArea` (`ui/tap_area.gd`): fires on `ScreenTouch` press (multi-touch) or real mouse press; ignores touch-emulated mouse; `MOUSE_FILTER_PASS` so drags reach `ScrollContainer`
@@ -45,10 +59,11 @@
 - Mech parts: 24×32 canvas, feet at bottom, layered in `line_slots` order; `art/mech/<type>_<tier>.png`
 - Machines: `art/line/machine_<type>.png`, 80×56
 - HUD icons 16×16 `art/ui/`, discs 10×10 `art/fx/disc_<kind>.png`
+- Enemies `art/battlefield/enemy_<sprite>.png`, feet at bottom; workers 10×14 `art/line/worker.png`, `art/yard/worker.png`
 
 ## Commands
 - Import: `godot --headless --path . --import`
-- Scenario: `godot --headless --path . -- --scenario <m0|m1>`; exit code 1 on failure
+- Scenario: `godot --headless --path . -- --scenario <m0|m1|m2|m3|m4>`; exit code 1 on failure; `Instrument.click` scrolls the target into view first
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
 - Placeholders: `python3 tools/gen_placeholders.py`
 - Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel
