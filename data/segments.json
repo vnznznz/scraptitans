@@ -1,0 +1,29 @@
+{
+	"line_slots": ["frame", "core", "arms"],
+	"types": {
+		"frame": {
+			"name": "Frame",
+			"build_cost": 10,
+			"bar_size": 6,
+			"tiers": [
+				{"part": "Scrap Frame", "scrap_per_mech": 4, "lifetime": 20}
+			]
+		},
+		"core": {
+			"name": "Core",
+			"build_cost": 15,
+			"bar_size": 5,
+			"tiers": [
+				{"part": "Junk Brain", "scrap_per_mech": 3, "credits_per_sec": 1, "deploy_fee": 5}
+			]
+		},
+		"arms": {
+			"name": "Arms",
+			"build_cost": 20,
+			"bar_size": 5,
+			"tiers": [
+				{"part": "Pipe Gun", "scrap_per_mech": 3, "kills_per_sec": 0.25, "scrap_per_kill": 1}
+			]
+		}
+	}
+}

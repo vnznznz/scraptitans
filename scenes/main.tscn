@@ -1,0 +1,103 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/main.gd" id="main"]
+[ext_resource type="Script" path="res://scenes/hud.gd" id="hud"]
+[ext_resource type="Script" path="res://scenes/battlefield.gd" id="battlefield"]
+[ext_resource type="Script" path="res://scenes/scrapyard.gd" id="scrapyard"]
+[ext_resource type="Script" path="res://scenes/settings_overlay.gd" id="settings"]
+[ext_resource type="Script" path="res://scenes/debug_panel.gd" id="debug"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("main")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.13, 0.12, 0.15, 1)
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Hud" type="Control" parent="Layout"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+script = ExtResource("hud")
+
+[node name="Battlefield" type="Control" parent="Layout"]
+unique_name_in_owner = true
+clip_contents = true
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("battlefield")
+
+[node name="Scroll" type="ScrollContainer" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+scroll_deadzone = 8
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="Content" type="VBoxContainer" parent="Layout/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Scrapyard" type="Control" parent="Layout/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("scrapyard")
+
+[node name="BottomBar" type="PanelContainer" parent="Layout"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+
+[node name="Upgrades" type="Button" parent="Layout/BottomBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+disabled = true
+text = "UPGRADES"
+
+[node name="Debug" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("debug")
+
+[node name="Settings" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("settings")

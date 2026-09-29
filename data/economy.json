@@ -1,0 +1,12 @@
+{
+	"start_scrap": 0,
+	"start_credits": 0,
+	"scrap_per_tap": 1,
+	"work_per_tap": 1,
+	"assembly_time": 0.5,
+	"belt_time": 0.6,
+	"payout_step": 1.5,
+	"payout_interval": 5.0,
+	"payout_cap": 6,
+	"salvage": 0.4
+}
