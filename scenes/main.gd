@@ -1,5 +1,8 @@
 extends Control
 
+const BADGE_ON := Color(0.85, 0.25, 0.2)
+const BADGE_OFF := Color(0.3, 0.3, 0.34)
+
 @onready var _content: VBoxContainer = %Content
 @onready var _settings: SettingsOverlay = %Settings
 @onready var _menu: UpgradeMenu = %UpgradeMenu
@@ -7,6 +10,7 @@ extends Control
 
 var _unlock: Button
 var _badge: Label
+var _badge_style: StyleBoxFlat
 
 
 func _ready() -> void:
@@ -29,13 +33,12 @@ func _ready() -> void:
 	GameState.line_added.connect(_add_line)
 	_badge = Label.new()
 	_badge.name = "Badge"
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.85, 0.25, 0.2)
-	style.border_color = Color(0.08, 0.07, 0.1)
-	style.set_border_width_all(1)
-	style.content_margin_left = 5
-	style.content_margin_right = 5
-	_badge.add_theme_stylebox_override("normal", style)
+	_badge_style = StyleBoxFlat.new()
+	_badge_style.border_color = Color(0.08, 0.07, 0.1)
+	_badge_style.set_border_width_all(1)
+	_badge_style.content_margin_left = 5
+	_badge_style.content_margin_right = 5
+	_badge.add_theme_stylebox_override("normal", _badge_style)
 	_upgrades.add_child(_badge)
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.pressed.connect(_toggle_menu)
@@ -45,10 +48,12 @@ func _process(_delta: float) -> void:
 	_upgrades.visible = GameState.revealed() and not GameState.run_over
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	var affordable := GameState.affordable_upgrades()
-	_badge.visible = affordable > 0 and not _menu.visible
+	_badge.visible = not _menu.visible
 	_badge.text = str(affordable)
+	_badge_style.bg_color = BADGE_ON if affordable > 0 else BADGE_OFF
+	_badge.modulate.a = 1.0 if affordable > 0 else 0.6
 	_badge.reset_size()
-	_badge.position = Vector2(_upgrades.size.x - _badge.size.x + 2, -6)
+	_badge.position = Vector2(_upgrades.size.x - _badge.size.x + 4, -10)
 	_unlock.visible = GameState.revealed() and not GameState.upgrade_maxed("lines") and not GameState.run_over
 	if _unlock.visible:
 		var cost := GameState.upgrade_cost("lines")

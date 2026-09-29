@@ -13,14 +13,14 @@
 
 ## Layout
 - `scenes/main.tscn`: `Hud` (48) / `Battlefield` (160) / `Scroll` → `Content` (lines, `UnlockLine`) / `BottomBar` (100: `Scrapyard` left, `Upgrades` bottom-right); overlays `UpgradeMenu` (between HUD and bottom bar), `Flyers`, `Debug`, `Settings`, `Nuke` (topmost, blocks input)
-- Scrapyard always visible in the bottom bar; pile/workers/tap in child `Yard`, centered until reveal, then slides left (0.4 s): pile (tap), yard workers on both sides, hire button (icon + cost, hidden when full) above UPGRADES; pane starts at the top
+- Scrapyard always visible in the bottom bar; pile/workers/tap in child `Yard`, centered until reveal, then slides left (0.4 s): pile (tap), yard workers on both sides, hire button (icon + cost, MAX + disabled when full) above UPGRADES; pane starts at the top
 - Views build their children in code; main adds one `LineView` per line, more on `line_added`
-- UPGRADES button toggles the menu (reads CLOSE while open); red badge = `GameState.affordable_upgrades()` (visible, unmaxed, unlocked, affordable rows), hidden at 0 or while open
+- UPGRADES button toggles the menu (reads CLOSE while open); badge = `GameState.affordable_upgrades()` (visible, unmaxed, unlocked, affordable rows): red with count, grey "0" when none; hidden only while the menu is open
 - Progressive reveal: UPGRADES, UNLOCK LINE, YARD WORKER (+ yard slots) hidden until `GameState.revealed()` (`mechs_built > 0`)
 - HUD: scrap left, credits right
 - Upgrade menu: one list, re-sorted every frame (unmaxed by cost, maxed last); each row: title / effect, info button toggles the `desc` label
 - Line: no header row; pause strip (24 px: line number + ⏸/▶) left of the machine row; segments centered by count in the rest (step 84, 4 columns fit), re-laid out when a segment is appended; 136 px tall; paused → orange number, machines dimmed
-- Segment rows: name / machine (tap; work bar overlays its top beam, hired workers stand inside behind the mech, empty slots not drawn) / belt / one button row: hire (hidden when full) + apply-tier ⬆ (scrap, only when a higher tier is unlocked); both shown → hire narrows, ⬆ icon-only (no cost), row spans 82 px (2 px gap at step 84)
+- Segment rows: name / machine (tap; work bar overlays its top beam, hired workers stand inside behind the mech, empty slots not drawn) / belt / one fixed button row, never hidden or resized on built stations: hire (56 px, worker icon + cost; MAX + disabled when full) + ⬆ apply-tier (24 px, icon only; enabled when a higher tier is unlocked and affordable, dim green while short on scrap, faint when none); row spans 82 px (2 px gap at step 84); fit cost shown in the tier row desc
 - DBG toggle bottom-left just above the bottom bar, panel opens upward: time scale, +scrap/credits, kill wave, +50 mechs
 - Positions hardcoded in base pixels
 
@@ -40,7 +40,7 @@
 - Line processed last → first each tick; paused line starts no assembly (mechs already done still move/deploy)
 - Workers: per segment `workers`, `worker_t += dt·workers`, one chunk per `worker_interval` (round robin, so the bar jumps); no chunk while the bar is full. Yard workers same, add `yard_chunk` scrap. `chunks` / `yard_chunks` counters (unsaved) drive the view hops
 - Bar size = tier `bar_size` × stat `bar_mult` (grows with the segment's tier)
-- Yard chunk = `yard_chunk` × `worker_chunk`; worker slots: one global stat `worker_slots` (Crew size row)
+- Yard chunk = `yard_chunk` (Yard haul row) × `worker_chunk`; worker slots: one global stat `worker_slots` (Crew size row)
 - Hire cost `worker_base·worker_growth^n` per station; caps from stats
 - Deploy sums part tier stats (`lifetime`, `credits_per_sec`, `deploy_fee`, `dps`)
 - Field mech: payout `base·step^min(floor(age/interval), cap)` by `age`; death by `wear`, which grows `1 + wave_damage·wave` per s; income batched to `mech_income` once per second, salvage on death
@@ -100,7 +100,7 @@
 ## Commands
 - Import: `godot --headless --path . --import`
 - Scenario: `godot --headless --path . -- --scenario <m0..m8>`; exit code 1 on failure; `Instrument.click` scrolls the target into view first
-- Tuning: `godot --headless --path . -- --scenario tune`: bot plays a run (3 taps/s, builds, buys cheapest, applies tiers, pauses lines to save for applies); prints per-minute economy + purchase timeline; checks first worker < 4 min, nuke 30–60 min. Now: first worker 1.4 min, nuke ~35 min (1.5 taps/s: 2.5 / 39 min); the bot never taps the battlefield
+- Tuning: `godot --headless --path . -- --scenario tune`: bot plays a run (3 taps/s, builds, buys cheapest, applies tiers, pauses lines to save for applies); prints per-minute economy + purchase timeline; checks first worker < 4 min, nuke 30–60 min. Now: first worker 1.4 min, nuke ~33 min (1.5 taps/s: 2.5 / 36 min); the bot never taps the battlefield
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
 - Placeholders: `uv run --with pillow python3 tools/gen_placeholders.py`
 - Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel

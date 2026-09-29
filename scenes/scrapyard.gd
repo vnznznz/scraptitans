@@ -95,9 +95,10 @@ func _process(_delta: float) -> void:
 		_dig((GameState.yard_chunks - 1) % n)
 	_chunks_seen = GameState.yard_chunks
 	var cost := GameState.yard_worker_cost()
-	_hire.visible = GameState.revealed() and n < slots
-	_hire.text = Fmt.num(cost)
-	_hire.disabled = GameState.credits < cost
+	var full := n >= slots
+	_hire.visible = GameState.revealed()
+	_hire.text = "MAX" if full else Fmt.num(cost)
+	_hire.disabled = full or GameState.credits < cost
 
 
 func _yard_x() -> float:

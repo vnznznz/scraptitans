@@ -87,7 +87,7 @@ A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**
 - **Crew:** more worker slots on every station.
 - **Workers:** shorter chunk interval, lighter work bars (all stations).
 - **Tap damage:** battlefield taps hit harder.
-- **Yard:** scrap per tap, yard slots.
+- **Yard:** scrap per tap, yard slots, yard haul (scrap per worker trip).
 - **Payout:** step cap, step interval, deploy fee.
 - **Salvage:** 0% → 40%.
 - **Scrap per kill (late game):** each enemy destroyed pays scrap.

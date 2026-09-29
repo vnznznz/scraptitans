@@ -12,6 +12,8 @@
 			"desc": "Tap the battlefield to hit the wave. Each tap deals this share of the wave's HP and pays the same share of its bounty."},
 		{"id": "yard_crew", "name": "Yard crew", "stat": "yard_slots", "delta": 1, "max_level": 14, "base_cost": 120,
 			"desc": "One more yard worker slot."},
+		{"id": "yard_haul", "name": "Yard haul", "stat": "yard_chunk", "delta": 1, "max_level": 6, "base_cost": 100,
+			"desc": "Every yard worker carries 1 more scrap per trip."},
 		{"id": "raises", "name": "Pay raises", "stat": "payout_cap", "delta": 1, "max_level": 6, "base_cost": 100,
 			"desc": "Mechs on the field earn x1.5 more after every raise interval. Each level allows one more raise."},
 		{"id": "raise_time", "name": "Faster raises", "stat": "payout_interval", "delta": -0.5, "max_level": 6, "base_cost": 150, "unit": "s",

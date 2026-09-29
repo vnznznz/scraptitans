@@ -97,7 +97,7 @@ func _add_row(r: Dictionary) -> void:
 	buy.mouse_filter = MOUSE_FILTER_PASS
 	buy.pressed.connect(_on_buy.bind(r.id))
 	h.add_child(buy)
-	_row_nodes[r.id] = [panel, title, effect, buy]
+	_row_nodes[r.id] = [panel, title, effect, buy, desc]
 
 
 func _on_buy(id: String) -> void:
@@ -119,6 +119,8 @@ func _refresh() -> void:
 		var maxed := GameState.upgrade_maxed(id)
 		var cost := GameState.upgrade_cost(id)
 		_describe(r, nodes[1], nodes[2])
+		if r.get("kind", "") == "tier":
+			(nodes[4] as Label).text = _desc(r).to_upper()
 		buy.text = "MAX" if maxed else Fmt.num(cost)
 		buy.disabled = maxed or GameState.upgrade_locked(id) or GameState.credits < cost
 		panel.modulate = Color.WHITE if not buy.disabled else GREY
@@ -172,8 +174,9 @@ func _desc(r: Dictionary) -> String:
 		"tier":
 			var type := Data.segment_type(r.type)
 			var first := "The first level adds a %s pad to every line. " % type.name if type.get("optional", false) else ""
-			return "%sUnlocks the next %s part. Then tap the green arrow on each %s station to fit it for scrap. %s" \
-					% [first, type.name, type.name, type.desc]
+			var cost := float(type.tiers[mini(GameState.unlocked_tier(r.type) + 1, type.tiers.size() - 1)].apply_cost)
+			var fit := "Then tap the green arrow on each %s station to fit it for %s scrap. " % [type.name, Fmt.num(cost)] if cost > 0.0 else ""
+			return "%sUnlocks the next %s part. %s%s" % [first, type.name, fit, type.desc]
 		"final":
 			return Data.segment_type(r.type).tiers[-1].desc
 	return r.desc

@@ -359,7 +359,10 @@ func m5() -> void:
 	for i in 3:
 		await t.click(line.segment_view(0).get_node("Hire"))
 	await t.frames(1)
-	t.check(not line.segment_view(0).get_node("Hire").visible and line.segment_view(1).get_node("Hire").visible, "hire button gone when slots are full")
+	var full_hire: Button = line.segment_view(0).get_node("Hire")
+	var free_hire: Button = line.segment_view(1).get_node("Hire")
+	t.check(full_hire.visible and full_hire.disabled and full_hire.text == "MAX" and not free_hire.disabled, "full station: hire stays, reads MAX, disabled")
+	t.check(full_hire.get_rect() == free_hire.get_rect(), "hire buttons keep their size")
 
 	GameState.scrap = 0.0
 	await _fill_bar(line, 0)
@@ -372,7 +375,8 @@ func m5() -> void:
 	await t.frames(1)
 	t.check(not GameState.starved() and rate.modulate == Hud.RATE_COLOR, "scrap back: normal color")
 
-	t.check(not line.segment_view(0).get_node("Apply").visible, "no tier to apply yet")
+	var apply0: Button = line.segment_view(0).get_node("Apply")
+	t.check(apply0.visible and apply0.disabled, "no tier to apply yet: arrow shown, disabled")
 	await t.click(main.get_node("%Upgrades"))
 	GameState.credits = 300.0
 	await t.click(_buy(menu, "tier_frame"))
@@ -733,7 +737,7 @@ func m8() -> void:
 	await t.shot("m8_badge")
 	GameState.credits = 0.0
 	await t.frames(2)
-	t.check(not badge.visible, "no badge when nothing is affordable")
+	t.check(badge.visible and badge.text == "0", "badge stays, reads 0 when nothing is affordable")
 
 	GameState.wave = 3
 	GameState.wave_hp = GameState.wave_max_hp()

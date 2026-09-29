@@ -12,6 +12,8 @@ const WORKER_DX := 6.0
 const ROW_Y := 100.0
 const ROW_H := 32.0
 const APPLY_W := 24.0
+const NO_TIER := Color(0.3, 0.3, 0.33, 0.3)
+const TIER_WAITING := Color(1, 1, 1, 0.8)
 const PAUSED := Color(0.55, 0.55, 0.6)
 const WORKER_TEX := preload("res://art/line/worker.png")
 const TOOL_HEAD := Vector2(40, 56)
@@ -106,9 +108,13 @@ func _ready() -> void:
 	_hire = _row_button("Hire", WORKER_TEX)
 	_hire.pressed.connect(_on_hire)
 
+	_hire.position = Vector2(-1, ROW_Y)
+	_hire.size = Vector2(WIDTH + 2 - APPLY_W - 2, ROW_H)
+
 	_apply = _row_button("Apply", preload("res://art/ui/up.png"))
-	_apply.add_theme_color_override("font_color", Color(0.6, 1.0, 0.5))
-	_apply.add_theme_color_override("font_disabled_color", Color(0.6, 1.0, 0.5, 0.5))
+	_apply.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply.position = Vector2(WIDTH + 1 - APPLY_W, ROW_Y)
+	_apply.size = Vector2(APPLY_W, ROW_H)
 	_apply.pressed.connect(func() -> void: GameState.apply_tier(line_index, seg_index))
 	_chunks_seen = _state().chunks
 	_assemblies_seen = _state().assemblies
@@ -124,9 +130,10 @@ func _process(delta: float) -> void:
 	_bar.visible = built
 	_tap.visible = built
 	_hire.visible = built
-	_apply.visible = built and GameState.can_apply_tier(line_index, seg_index)
-	if _apply.visible:
-		_apply.disabled = GameState.scrap < GameState.tier_apply_cost(line_index, seg_index)
+	_apply.visible = built
+	var can_apply := built and GameState.can_apply_tier(line_index, seg_index)
+	_apply.disabled = not can_apply or GameState.scrap < GameState.tier_apply_cost(line_index, seg_index)
+	_apply.add_theme_color_override("icon_disabled_color", TIER_WAITING if can_apply else NO_TIER)
 	_pad.visible = not built
 	_build.visible = not built
 	if not built:
@@ -136,7 +143,6 @@ func _process(delta: float) -> void:
 		_stall.visible = false
 		return
 	_update_workers(s)
-	_layout_row()
 	_machine.modulate = PAUSED if GameState.lines[line_index].paused else Color.WHITE
 	if s.assemblies != _assemblies_seen:
 		_assemblies_seen = s.assemblies
@@ -177,10 +183,12 @@ func _update_workers(s: SegmentState) -> void:
 		tw.tween_property(w, "position:y", WORKERS_Y, 0.1)
 		_bump_t = 0.06
 	_chunks_seen = s.chunks
-	_hire.visible = s.workers < slots
+	var full := s.workers >= slots
 	var cost := GameState.worker_cost(line_index, seg_index)
-	_hire.text = Fmt.num(cost)
-	_hire.disabled = GameState.credits < cost
+	_hire.text = "MAX" if full else Fmt.num(cost)
+	_hire.icon = null if full else WORKER_TEX
+	_hire.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER if full else HORIZONTAL_ALIGNMENT_LEFT
+	_hire.disabled = full or GameState.credits < cost
 
 
 func _row_button(node_name: String, icon: Texture2D) -> Button:
@@ -191,22 +199,6 @@ func _row_button(node_name: String, icon: Texture2D) -> Button:
 	b.mouse_filter = MOUSE_FILTER_PASS
 	add_child(b)
 	return b
-
-
-func _layout_row() -> void:
-	var both := _hire.visible and _apply.visible
-	var cost := GameState.tier_apply_cost(line_index, seg_index) if _apply.visible else 0.0
-	_apply.text = "" if both else Fmt.num(cost)
-	_apply.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER if both else HORIZONTAL_ALIGNMENT_LEFT
-	if both:
-		_hire.position = Vector2(-1, ROW_Y)
-		_hire.size = Vector2(WIDTH + 2 - APPLY_W - 2, ROW_H)
-		_apply.position = Vector2(WIDTH + 1 - APPLY_W, ROW_Y)
-		_apply.size = Vector2(APPLY_W, ROW_H)
-	else:
-		for b in [_hire, _apply]:
-			b.position = Vector2(4, ROW_Y)
-			b.size = Vector2(WIDTH - 8, ROW_H)
 
 
 func _consume(s: SegmentState) -> void:
