@@ -17,7 +17,7 @@ func _ready() -> void:
 	add_child(dim)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(220, 0)
+	panel.custom_minimum_size = Vector2(280, 0)
 	panel.set_anchors_and_offsets_preset(PRESET_CENTER)
 	panel.grow_horizontal = GROW_DIRECTION_BOTH
 	panel.grow_vertical = GROW_DIRECTION_BOTH

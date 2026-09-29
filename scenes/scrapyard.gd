@@ -8,7 +8,7 @@ var _tap: TapArea
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(0, 150)
+	custom_minimum_size = Vector2(0, 160)
 	mouse_filter = MOUSE_FILTER_PASS
 
 	var header := Label.new()
@@ -37,14 +37,14 @@ func pile() -> TapArea:
 func _layout() -> void:
 	var cx := size.x / 2.0
 	_pile.size = PILE_TEX.get_size()
-	_pile.position = Vector2(cx - _pile.size.x / 2.0, 40)
+	_pile.position = Vector2(cx - _pile.size.x / 2.0, 50)
 	_pile.pivot_offset = Vector2(_pile.size.x / 2.0, _pile.size.y)
-	_tap.position = Vector2(cx - _tap.size.x / 2.0, 20)
+	_tap.position = Vector2(cx - _tap.size.x / 2.0, 30)
 
 
 func _on_tap(at: Vector2) -> void:
 	GameState.tap_pile()
-	Floater.spawn(self, _tap.position + at, "+" + Fmt.num(Data.econ("scrap_per_tap")), Floater.GREY)
+	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28))
 	var tw := _pile.create_tween()
 	_pile.scale = Vector2(1.06, 0.92)
 	tw.tween_property(_pile, "scale", Vector2.ONE, 0.12)

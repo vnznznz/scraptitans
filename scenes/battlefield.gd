@@ -9,10 +9,8 @@ const SLOT_DX := 24.0
 const WALK_SPEED := 40.0
 const ENTRY_X := -16.0
 const ENEMY_X := [300.0, 322.0, 344.0]
-const MAX_FLOATERS := 12
 
 var _mechs: Node2D
-var _floaters: Control
 var _enemies: Array[Sprite2D] = []
 var _views := {}
 var _slots := {}
@@ -35,9 +33,6 @@ func _ready() -> void:
 
 	_mechs = Node2D.new()
 	add_child(_mechs)
-	_floaters = Control.new()
-	_floaters.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(_floaters)
 
 	GameState.mech_deployed.connect(_on_deployed)
 	GameState.mech_income.connect(_on_income)
@@ -96,26 +91,23 @@ func _slot_pos(slot: int) -> Vector2:
 	return Vector2(x, BACK_Y if row else GROUND_Y)
 
 
-func _float(m: MechState, value: String, color: Color, dx: float) -> void:
+func _fly(m: MechState, kind: Flyers.Kind, count: int) -> void:
 	var view: MechView = _views.get(m.id)
-	if view == null:
-		return
-	if _floaters.get_child_count() >= MAX_FLOATERS:
-		_floaters.get_child(0).free()
-	Floater.spawn(_floaters, view.position + Vector2(dx, -34), value, color)
+	if view:
+		Flyers.spawn(kind, view.global_position + Vector2(0, -34), count)
 
 
 func _on_deployed(m: MechState) -> void:
 	var view := _add_view(m)
 	if view:
-		_float(m, "+" + Fmt.num(m.deploy_fee), Floater.GOLD, 0)
+		_fly(m, Flyers.Kind.CREDITS, 3)
 
 
 func _on_income(m: MechState, credits: float, scrap: float) -> void:
 	if credits > 0.0:
-		_float(m, "+" + Fmt.num(credits), Floater.GOLD, -6)
+		_fly(m, Flyers.Kind.CREDITS, 1)
 	if scrap > 0.0:
-		_float(m, "+" + Fmt.num(scrap), Floater.GREY, 8)
+		_fly(m, Flyers.Kind.SCRAP, 1)
 
 
 func _on_kill(_m: MechState) -> void:
@@ -128,7 +120,8 @@ func _on_died(m: MechState, salvage: float) -> void:
 	var view: MechView = _views.get(m.id)
 	if view == null:
 		return
-	_float(m, "+" + Fmt.num(salvage), Floater.GREY, 0)
+	if salvage > 0.0:
+		_fly(m, Flyers.Kind.SCRAP, 2)
 	_views.erase(m.id)
 	_slots.erase(m.id)
 	view.pop()

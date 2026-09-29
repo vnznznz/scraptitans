@@ -68,3 +68,7 @@ func shot(shot_name: String) -> void:
 	var path := shots_dir.path_join(shot_name + ".png")
 	get_viewport().get_texture().get_image().save_png(path)
 	print("  shot ", path)
+
+
+func wait(seconds: float) -> void:
+	await get_tree().create_timer(seconds).timeout

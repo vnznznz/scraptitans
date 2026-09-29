@@ -13,7 +13,7 @@ func m0() -> void:
 	var scroll: ScrollContainer = t.node("Scroll")
 	var content: Control = t.node("Content")
 	t.check(main.size == Vector2(360, 640), "viewport is 360x640 (got %s)" % main.size)
-	t.check(t.node("Hud").size.y == 32 and t.node("Battlefield").size.y == 160, "hud and battlefield heights")
+	t.check(t.node("Hud").size.y == 48 and t.node("Battlefield").size.y == 160, "hud and battlefield heights")
 	t.check(scroll.size.y > 300, "scroll pane fills the middle (%d px)" % scroll.size.y)
 	t.check(scroll.scroll_vertical + scroll.size.y >= content.size.y - 1, "starts scrolled to the bottom")
 	t.check(ProjectSettings.get_setting("display/window/stretch/aspect") == "keep_width", "aspect keep_width")
@@ -22,6 +22,9 @@ func m0() -> void:
 	for i in 5:
 		await t.click(pile)
 	t.check(is_equal_approx(GameState.scrap, 5.0), "5 clicks on the pile give 5 scrap (got %s)" % GameState.scrap)
+	t.check(t.node("Flyers").in_flight() == 5, "each pile tap launches a scrap disc to the HUD")
+	await t.wait(0.8)
+	t.check(t.node("Flyers").in_flight() == 0, "discs arrive and disappear")
 
 	t.touch(pile, 0, true)
 	t.touch(pile, 1, true)
@@ -159,6 +162,11 @@ func shots() -> void:
 	GameState.time_scale = 1.0
 	await t.frames(30)
 	await t.shot("running")
+	var pile: Control = main.find_child("Pile", true, false)
+	for i in 4:
+		await t.click(pile)
+	await t.wait(0.25)
+	await t.shot("discs")
 	await t.click(main.find_child("DebugToggle", true, false))
 	await t.shot("debug")
 	await t.click(main.find_child("DebugToggle", true, false))

@@ -43,16 +43,22 @@ def save(img, path):
 
 
 def ui():
-    img, d = new(8, 8)
-    d.ellipse([0, 0, 7, 7], fill=GOLD_D)
-    d.ellipse([1, 1, 6, 6], fill=GOLD)
-    d.rectangle([3, 2, 4, 5], fill=GOLD_D)
-    save(img, "ui/credits.png")
+    for name, size in [("ui/credits.png", 16), ("fx/disc_credits.png", 10)]:
+        img, d = new(size, size)
+        d.ellipse([0, 0, size - 1, size - 1], fill=GOLD_D, outline=INK)
+        d.ellipse([1, 1, size - 3, size - 3], fill=GOLD)
+        m = size // 2
+        d.rectangle([m - 1, 3, m, size - 4], fill=GOLD_D)
+        save(img, name)
 
-    img, d = new(8, 8)
-    d.polygon([(2, 0), (5, 0), (7, 2), (7, 5), (5, 7), (2, 7), (0, 5), (0, 2)], fill=METAL_L, outline=INK)
-    d.rectangle([3, 3, 4, 4], fill=INK)
-    save(img, "ui/scrap.png")
+    for name, size in [("ui/scrap.png", 16), ("fx/disc_scrap.png", 10)]:
+        img, d = new(size, size)
+        c = size // 3
+        e = size - 1
+        d.polygon([(c, 0), (e - c, 0), (e, c), (e, e - c), (e - c, e), (c, e), (0, e - c), (0, c)], fill=METAL_L, outline=INK)
+        m = size // 2
+        d.rectangle([m - 2, m - 2, m + 1, m + 1], fill=INK)
+        save(img, name)
 
     img, d = new(16, 16)
     for x, y in [(7, 1), (7, 13), (1, 7), (13, 7), (3, 3), (11, 3), (3, 11), (11, 11)]:

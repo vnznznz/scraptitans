@@ -15,15 +15,15 @@ func _ready() -> void:
 	var toggle := Button.new()
 	toggle.name = "DebugToggle"
 	toggle.text = "DBG"
-	toggle.position = Vector2(4, 36)
-	toggle.size = Vector2(36, 24)
+	toggle.position = Vector2(4, 52)
+	toggle.size = Vector2(56, 28)
 	toggle.modulate = Color(1, 1, 1, 0.6)
 	toggle.pressed.connect(func() -> void: _panel.visible = not _panel.visible)
 	add_child(toggle)
 
 	_panel = PanelContainer.new()
 	_panel.name = "DebugPanel"
-	_panel.position = Vector2(4, 64)
+	_panel.position = Vector2(4, 84)
 	_panel.visible = false
 	add_child(_panel)
 
@@ -44,7 +44,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if _panel.visible:
-		_speed.text = "SPEED X%d  MECHS %d" % [GameState.time_scale, GameState.field.size()]
+		_speed.text = "X%d  MECHS %d" % [GameState.time_scale, GameState.field.size()]
 
 
 func _button(parent: Control, label: String, action: Callable) -> void:

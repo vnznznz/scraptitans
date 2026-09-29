@@ -2,9 +2,10 @@ class_name SegmentView
 extends Control
 
 const WIDTH := 80.0
-const HEIGHT := 96.0
-const MACHINE_Y := 10.0
-const BELT_Y := 66.0
+const HEIGHT := 118.0
+const NAME_H := 36.0
+const MACHINE_Y := 38.0
+const BELT_Y := 94.0
 
 var line_index := 0
 var seg_index := 0
@@ -26,9 +27,12 @@ func _ready() -> void:
 	var type_id := _state().type_id
 
 	_name = Label.new()
-	_name.position = Vector2(0, 0)
-	_name.size = Vector2(WIDTH, 10)
+	_name.position = Vector2(-4, 0)
+	_name.size = Vector2(WIDTH + 8, NAME_H)
 	_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_name.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_name.autowrap_mode = TextServer.AUTOWRAP_WORD
+	_name.add_theme_constant_override("line_spacing", -4)
 	add_child(_name)
 
 	_machine = TextureRect.new()
@@ -47,8 +51,8 @@ func _ready() -> void:
 	_build.name = "Build"
 	_build.icon = preload("res://art/ui/scrap.png")
 	_build.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_build.position = Vector2(4, 14)
-	_build.size = Vector2(72, 40)
+	_build.position = Vector2(4, MACHINE_Y + 4)
+	_build.size = Vector2(72, 44)
 	_build.mouse_filter = MOUSE_FILTER_PASS
 	_build.pressed.connect(_on_build)
 	add_child(_build)
@@ -93,7 +97,7 @@ func _process(delta: float) -> void:
 	_build.visible = not built
 	if not built:
 		var cost := GameState.build_cost(line_index, seg_index)
-		_build.text = "BUILD %s" % Fmt.num(cost)
+		_build.text = Fmt.num(cost)
 		_build.disabled = GameState.scrap < cost
 		_stall.visible = false
 		return

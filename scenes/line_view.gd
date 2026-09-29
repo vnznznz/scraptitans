@@ -1,7 +1,7 @@
 class_name LineView
 extends Control
 
-const SEG_Y := 14.0
+const SEG_Y := 22.0
 const SEG_X0 := 8.0
 const SEG_STEP := 88.0
 const BELT_TEX := preload("res://art/line/belt.png")

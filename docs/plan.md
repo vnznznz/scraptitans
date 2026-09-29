@@ -38,7 +38,8 @@ Build: build line 1, tap mechs through it, watch them earn on the battlefield.
 - [x] Sim: bars bank work with no mech present; full bar + mech + scrap → pay, assemble 0.5 s, move on. One mech per segment; a mech waits while the next segment is busy, blocking upstream. Frame spawns mechs.
 - [x] Sim: deploy fee on arrival, stepped credits/s, scrap per kill, 40% salvage on death
 - [x] Line view: empty pads → build (scrap), tapping a segment fills its bar, belt moves mechs, stall icons (no scrap, blocked)
-- [x] Battlefield stub: mechs slide in, stand, pop at end of life; floaters (+cr gold, +scrap grey, one per mech per second)
+- [x] Battlefield stub: mechs slide in, stand, pop at end of life
+- [x] Income discs instead of the pitch's floating numbers: credit/scrap discs burst from the source (mech, pile) and fly to the HUD counter, which pulses
 - [x] HUD: credits, scrap, +/s, short suffixes (1.2K, 3.4M)
 - [x] Save every few seconds and after purchases. On web, `user://` writes reach IndexedDB on the next frame and hidden tabs get no frames, so save-on-hide can't be relied on.
 - [x] ⚙ → reset run (with confirm)
@@ -101,13 +102,13 @@ Build: the battlefield reads without UI.
 
 - [ ] Mechs walk in (4 frames), hold a slot, fire with muzzle flash; 2–3 enemy types fire back and pop at the mech's kill rate
 - [ ] Damage by remaining lifetime: smoke ×3 → sparks → explosion + debris
-- [ ] Floaters per pitch: per-mech columns, stack gap, oldest fades faster, neighbour offset, cap ~12 with merge
-- [ ] Draw at most N mechs (the pitch doesn't cap it); the rest are simulated only and their floaters merge
+- [ ] Income discs scale with amount (more or bigger discs for bigger payouts), readable at 50 mechs
+- [ ] Draw at most N mechs (the pitch doesn't cap it); the rest are simulated only
 - [ ] Debug: spawn 50 mechs
 
 Test:
 - 2 min of play shows who fires, who's hurt and what each mech earns.
-- 50 mechs: floaters readable, 60 fps on the iPhone.
+- 50 mechs: discs stay readable, 60 fps on the iPhone.
 
 ## M6 · Nuke
 
