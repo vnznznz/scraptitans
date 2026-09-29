@@ -804,6 +804,37 @@ func m8() -> void:
 	t.check(gear.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND and main.get_node("%Upgrades").mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND, "buttons show a hand cursor")
 
 
+	await _fresh()
+	main = t.get_tree().current_scene
+	line = main.line_view(0)
+	flyers = main.get_node("%Flyers")
+	GameState.scrap = 100.0
+	await t.click(_build_button(line, 0))
+	t.check(flyers.get_child_count() == 2 and flyers.get_children().all(func(d: TextureRect) -> bool: return d.texture == Flyers.TEXTURES[1][2]),
+			"building for 10 scrap sends 2 scrap discs (no scrap income yet: top tier)")
+	for i in 2:
+		await t.click(_build_button(line, i + 1))
+	await t.wait(0.8)
+	t.check(flyers.get_child_count() == 0, "spend discs land and disappear")
+	GameState.mechs_built = 1
+	GameState.credits = 5000.0
+	await t.frames(2)
+	var hire_button: Button = line.segment_view(1).get_node("Hire")
+	await t.click(hire_button)
+	var discs := flyers.get_children()
+	t.check(discs.size() == 2 and discs.all(func(d: TextureRect) -> bool: return Flyers.TEXTURES[0].has(d.texture)), "hiring for 50 credits sends 2 credit discs (%d)" % discs.size())
+	await t.wait(0.3)
+	await t.shot("m8_hire_discs")
+	await t.wait(0.3)
+	await t.click(main.get_node("%Upgrades"))
+	var menu_buy := _buy(main.get_node("%UpgradeMenu"), "crew")
+	for c in flyers.get_children():
+		c.free()
+	await t.click(menu_buy)
+	t.check(flyers.get_child_count() == 3, "a 300 credit upgrade sends 3 discs (%d)" % flyers.get_child_count())
+	await t.shot("m8_pay")
+
+
 func tune() -> void:
 	t.get_tree().current_scene.free()
 	GameState.time_scale = 0.0

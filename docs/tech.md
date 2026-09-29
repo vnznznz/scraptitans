@@ -83,6 +83,7 @@
 - No floating numbers. `Flyers.spawn(kind, global_pos, amount, count)` (`ui/flyers.gd`): disc bursts up, flies to `Hud.target(kind)`, `Hud.pulse(kind)` on arrival; max 48 in flight
 - Disc color tier by `amount` / current gross rate (`Flyers.tier`): <2 s of income tier 1, <10 s tier 2, else tier 3; `disc_<kind>_<1..3>.png`
 - Spending: `Flyers.spend(kind, to, amount)`: disc leaves the HUD counter (icon `pulse_out`) and flies into the target; ≤6/s, dropped at the in-flight cap
+- Purchases: `Flyers.pay(kind, button, amount)` after a successful buy (build, hire, fit tier, yard hire, upgrade rows, missile confirm, unlock line): 1 + log10(amount) discs (≤8, staggered 0.05 s), tier color by `amount` / income rate, not throttled; target = the button's center at purchase time
 - Segment assembly start (`SegmentState.assemblies`, unsaved counter): 1 scrap disc HUD → tool head (only if the head is inside the scroll pane) + scrap bits and sparks falling onto the mech (`LineView.scrap_bits`, fx layer above belt mechs)
 - Pile tap: 1 scrap disc, pile squashes + vibrates (±2 px); yard chunk: the worker runs into the pile, pile vibrates (±1 px), 1 scrap disc; mech: deploy 3 credits, per second 1 credit, salvage 2 scrap; bounty 8–20 credits
 

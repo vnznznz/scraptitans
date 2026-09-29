@@ -27,7 +27,7 @@ func _ready() -> void:
 	_unlock.custom_minimum_size = Vector2(300, 40)
 	_unlock.size_flags_horizontal = SIZE_SHRINK_CENTER
 	_unlock.mouse_filter = MOUSE_FILTER_PASS
-	_unlock.pressed.connect(func() -> void: GameState.buy_upgrade("lines"))
+	_unlock.pressed.connect(_on_unlock)
 	_content.add_child(_unlock)
 	_content.move_child(_unlock, 0)
 	for i in GameState.lines.size():
@@ -65,6 +65,12 @@ func _process(_delta: float) -> void:
 		var cost := GameState.upgrade_cost("lines")
 		_unlock.text = "+ UNLOCK LINE %d  %s" % [GameState.lines.size() + 1, Fmt.num(cost)]
 		_unlock.disabled = GameState.credits < cost
+
+
+func _on_unlock() -> void:
+	var cost := GameState.upgrade_cost("lines")
+	if GameState.buy_upgrade("lines"):
+		Flyers.pay(Flyers.Kind.CREDITS, _unlock, cost)
 
 
 func _on_node_added(n: Node) -> void:

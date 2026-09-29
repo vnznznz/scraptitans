@@ -38,6 +38,12 @@ static func spend(kind: Kind, to: Vector2, amount: float) -> void:
 		_instance._spend(kind, to, tier(kind, amount))
 
 
+static func pay(kind: Kind, target: Control, amount: float) -> void:
+	if _instance and amount > 0.0:
+		var count := clampi(1 + int(log(maxf(amount, 1.0)) / log(10.0)), 1, 8)
+		_instance._fly_out(kind, target.get_global_rect().get_center(), tier(kind, amount), count)
+
+
 static func tier(kind: Kind, amount: float) -> int:
 	var rate := GameState.credits_rate if kind == Kind.CREDITS else GameState.scrap_gain_rate
 	var seconds := amount / maxf(rate, 1.0)
@@ -77,20 +83,31 @@ func _spawn(kind: Kind, from: Vector2, count: int, disc_tier: int) -> void:
 
 func _spend(kind: Kind, to: Vector2, disc_tier: int) -> void:
 	var now := Time.get_ticks_msec()
-	if now - _last_spend < 1000.0 / SPENDS_PER_S or get_child_count() >= MAX_IN_FLIGHT:
+	if now - _last_spend < 1000.0 / SPENDS_PER_S:
 		return
 	_last_spend = now
+	_fly_out(kind, to, disc_tier, 1)
+
+
+func _fly_out(kind: Kind, to: Vector2, disc_tier: int, count: int) -> void:
 	var tex: Texture2D = TEXTURES[kind][disc_tier]
 	var half := tex.get_size() / 2.0
 	var from := hud.target(kind)
-	var disc := TextureRect.new()
-	disc.texture = tex
-	disc.mouse_filter = MOUSE_FILTER_IGNORE
-	disc.position = from - half
-	add_child(disc)
 	hud.pulse_out(kind)
-	var drop := from + Vector2(randf_range(-12, 12), randf_range(18, 30))
-	var tw := disc.create_tween()
-	tw.tween_property(disc, "position", drop - half, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(disc, "position", to - half, 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tw.tween_callback(disc.queue_free)
+	for i in count:
+		if get_child_count() >= MAX_IN_FLIGHT:
+			return
+		var disc := TextureRect.new()
+		disc.texture = tex
+		disc.mouse_filter = MOUSE_FILTER_IGNORE
+		disc.position = from - half
+		disc.visible = i == 0
+		add_child(disc)
+		var drop := from + Vector2(randf_range(-12, 12), randf_range(18, 30))
+		var tw := disc.create_tween()
+		tw.tween_interval(i * 0.05)
+		tw.tween_callback(disc.show)
+		tw.tween_property(disc, "position", drop - half, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(disc, "position", to - half + Vector2(randf_range(-4, 4), randf_range(-3, 3)), 0.32) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.tween_callback(disc.queue_free)

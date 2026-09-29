@@ -105,7 +105,13 @@ func _on_buy(id: String) -> void:
 		_confirm.set_meta("id", id)
 		_confirm.visible = true
 		return
-	GameState.buy_upgrade(id)
+	_buy(id, _row_nodes[id][3])
+
+
+func _buy(id: String, button: Control) -> void:
+	var cost := GameState.upgrade_cost(id)
+	if GameState.buy_upgrade(id):
+		Flyers.pay(Flyers.Kind.CREDITS, button, cost)
 
 
 func _refresh() -> void:
@@ -158,7 +164,7 @@ func _describe(r: Dictionary, title: Label, effect: Label) -> void:
 			elif GameState.upgrade_locked(id):
 				effect.text = "NEEDS %s" % str(tiers[-2].part).to_upper()
 			else:
-				effect.text = "ENDS THE RUN"
+				effect.text = "ENDS THE WAR"
 		_:
 			title.text = str(r.name).to_upper()
 			var lv := "LV %d/%d  " % [GameState.level(id), int(r.max_level)]
@@ -219,7 +225,7 @@ func _build_confirm() -> Control:
 	yes.text = "UNLOCK"
 	yes.custom_minimum_size = Vector2(0, 44)
 	yes.pressed.connect(func() -> void:
-		GameState.buy_upgrade(root.get_meta("id"))
+		_buy(root.get_meta("id"), yes)
 		root.visible = false)
 	box.add_child(yes)
 	var no := Button.new()

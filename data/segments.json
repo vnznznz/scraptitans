@@ -46,7 +46,7 @@
 				{"part": "Auto Cannon", "scrap_per_mech": 7, "dps": 4, "unlock_cost": 13000, "apply_cost": 200, "bar_size": 13},
 				{"part": "Rocket Pod", "scrap_per_mech": 10, "dps": 8, "unlock_cost": 90000, "apply_cost": 600, "bar_size": 20},
 				{"part": "Railgun", "scrap_per_mech": 15, "dps": 16, "unlock_cost": 450000, "apply_cost": 1500, "bar_size": 30},
-				{"part": "Atomic Missile", "scrap_per_mech": 500, "dps": 0, "unlock_cost": 5000000, "apply_cost": 10000, "final": true, "bar_size": 42, "desc": "Apply it to an Arms segment: that line's next mech is the Nuclear Mech. Its launch ends the run."}
+				{"part": "Atomic Missile", "scrap_per_mech": 500, "dps": 0, "unlock_cost": 5000000, "apply_cost": 10000, "final": true, "bar_size": 42, "desc": "Apply it to an Arms station: that line's next mech is the Nuclear Mech. Its launch (should) end the war."}
 			]
 		},
 		"plating": {

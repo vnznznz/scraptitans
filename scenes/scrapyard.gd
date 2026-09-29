@@ -49,7 +49,7 @@ func _ready() -> void:
 	_hire.icon = preload("res://art/ui/worker.png")
 	_hire.position = HIRE_RECT.position
 	_hire.size = HIRE_RECT.size
-	_hire.pressed.connect(func() -> void: GameState.hire_yard_worker())
+	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
 	_chunks_seen = GameState.yard_chunks
 
@@ -148,6 +148,12 @@ func _squash(y_scale: float, shake: float) -> void:
 	for k in 4:
 		tw.parallel().tween_property(_pile, "position:x", PILE_POS.x + shake * (1.0 if k % 2 == 0 else -1.0) * (1.0 - k * 0.25), 0.03).set_delay(k * 0.03)
 	tw.chain().tween_property(_pile, "position:x", PILE_POS.x, 0.03)
+
+
+func _on_hire() -> void:
+	var cost := GameState.yard_worker_cost()
+	if GameState.hire_yard_worker():
+		Flyers.pay(Flyers.Kind.CREDITS, _hire, cost)
 
 
 func _on_tap(at: Vector2) -> void:

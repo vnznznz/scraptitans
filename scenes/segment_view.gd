@@ -115,7 +115,7 @@ func _ready() -> void:
 	_apply.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply.position = Vector2(WIDTH + 1 - APPLY_W, ROW_Y)
 	_apply.size = Vector2(APPLY_W, ROW_H)
-	_apply.pressed.connect(func() -> void: GameState.apply_tier(line_index, seg_index))
+	_apply.pressed.connect(_on_apply)
 	_chunks_seen = _state().chunks
 	_assemblies_seen = _state().assemblies
 	_scroll = get_parent().get_parent().get_parent() as ScrollContainer
@@ -213,11 +213,21 @@ func _state() -> SegmentState:
 
 
 func _on_build() -> void:
-	GameState.build_segment(line_index, seg_index)
+	var cost := GameState.build_cost(line_index, seg_index)
+	if GameState.build_segment(line_index, seg_index):
+		Flyers.pay(Flyers.Kind.SCRAP, _build, cost)
 
 
 func _on_hire() -> void:
-	GameState.hire_worker(line_index, seg_index)
+	var cost := GameState.worker_cost(line_index, seg_index)
+	if GameState.hire_worker(line_index, seg_index):
+		Flyers.pay(Flyers.Kind.CREDITS, _hire, cost)
+
+
+func _on_apply() -> void:
+	var cost := GameState.tier_apply_cost(line_index, seg_index) if GameState.can_apply_tier(line_index, seg_index) else 0.0
+	if GameState.apply_tier(line_index, seg_index):
+		Flyers.pay(Flyers.Kind.SCRAP, _apply, cost)
 
 
 func _on_tap(_at: Vector2) -> void:
