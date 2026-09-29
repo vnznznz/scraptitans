@@ -1,6 +1,7 @@
 class_name Battlefield
 extends Control
 
+const WIDTH := 360.0
 const HEIGHT := 160.0
 const SKY := Pal.NAVY
 const GROUND_Y := 146.0
@@ -208,6 +209,10 @@ func _random_enemy() -> Sprite2D:
 	return alive.pick_random() if alive else null
 
 
+func enemy_xs() -> Array:
+	return _enemies.map(func(e: Sprite2D) -> float: return e.position.x)
+
+
 func _enemy_center(e: Sprite2D) -> Vector2:
 	return e.position + e.offset
 
@@ -252,7 +257,7 @@ func _show_wave(walk_in: bool) -> void:
 		var count: int = layer_sizes[en.flying]
 		layer_i[en.flying] += 1
 		var x := (ENEMY_X0 + ENEMY_X1) / 2.0 if count == 1 else lerpf(ENEMY_X0, ENEMY_X1, float(i) / (count - 1))
-		x = minf(x, size.x - e.texture.get_width() / 2.0 - 2.0)
+		x = minf(x, WIDTH - e.texture.get_width() / 2.0 - 2.0)
 		var y := (AIR_Y + (i % 2) * 18.0) if en.flying else GROUND_Y - (i % 2) * 7.0
 		e.position = Vector2(x, y)
 		var fx := DamageFx.new()

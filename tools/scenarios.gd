@@ -158,6 +158,8 @@ func m2() -> void:
 	GameState.advance(5.0)
 	t.check(is_equal_approx(GameState.wave_hp, hp0), "no mechs: the bar doesn't drain")
 	t.check(field.enemy_count() == 6, "Scrap Drones: 6 enemies")
+	var xs := field.enemy_xs()
+	t.check(xs.all(func(x: float) -> bool: return x > Battlefield.ENEMY_X0 - 8.0 and x < Battlefield.WIDTH), "enemies on screen (%s)" % [xs])
 
 	_spawn_mechs(3)
 	await t.frames(1)
@@ -427,6 +429,16 @@ func m5() -> void:
 		GameState.advance(3.0)
 	m = GameState.field[-1]
 	t.check(m.parts.has("plating") and is_equal_approx(m.lifetime, 36.0), "plated mechs live 36 s (%s)" % m.lifetime)
+	for i in 4:
+		await _fill_bar(line, i)
+	var deployed := GameState.field.size()
+	for k in 60:
+		GameState.advance(0.1)
+		await t.frames(1)
+		if GameState.field.size() > deployed:
+			break
+	var leaving := line._mechs.get_children().filter(func(v: Node) -> bool: return v is MechView and v._shown.has("plating"))
+	t.check(GameState.field.size() > deployed and not leaving.is_empty(), "mech leaves the belt with its plating shown")
 	await t.frames(30)
 	await t.shot("m5_plating")
 

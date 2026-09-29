@@ -21,6 +21,7 @@ var _segments: Array[SegmentView] = []
 var _mechs: Node2D
 var _fx: Node2D
 var _views := {}
+var _states := {}
 var _belt_offset := 0.0
 var _collapsed := false
 
@@ -169,6 +170,7 @@ func _process(delta: float) -> void:
 			view = MechView.new()
 			_mechs.add_child(view)
 			_views[m.id] = view
+			_states[m.id] = m
 		view.set_parts(m.parts)
 		var x := _center(i)
 		if m.arrive_t > 0.0 and i > 0:
@@ -177,8 +179,10 @@ func _process(delta: float) -> void:
 		view.position = Vector2(x, belt_y)
 	for id: int in _views.keys():
 		if not seen.has(id):
+			_views[id].set_parts(_states[id].parts)
 			_exit(_views[id])
 			_views.erase(id)
+			_states.erase(id)
 	if moving:
 		_belt_offset = fmod(_belt_offset + delta * GameState.time_scale * SEG_STEP / belt_time, BELT_TEX.get_width())
 	queue_redraw()
