@@ -31,6 +31,7 @@
 - `Instrument`: no-op unless `--scenario` user arg
 
 ## Sim
+- Naming: code "segment" = player-facing "station" (all UI text and the pitch say station)
 - `sim/`: `LineState` → `SegmentState` → `MechState`; plain `RefCounted`, `to_dict`/`from_dict`
 - Views never mutate state except through `GameState` methods; they read it every frame
 - Segment types in `line_slots` order; `optional` types (Plating) are appended to every line once their tier 1 is unlocked; line complete = all non-optional built; last built segment deploys
@@ -39,7 +40,7 @@
 - Line processed last → first each tick; paused line starts no assembly (mechs already done still move/deploy)
 - Workers: per segment `workers`, `worker_t += dt·workers`, one chunk per `worker_interval` (round robin, so the bar jumps); no chunk while the bar is full. Yard workers same, add `yard_chunk` scrap. `chunks` / `yard_chunks` counters (unsaved) drive the view hops
 - Bar size = tier `bar_size` × stat `bar_mult` (grows with the segment's tier)
-- Yard chunk = `yard_chunk` × `worker_chunk` (Worker strength boosts both)
+- Yard chunk = `yard_chunk` × `worker_chunk`; worker slots: one global stat `worker_slots` (Crew size row)
 - Hire cost `worker_base·worker_growth^n` per station; caps from stats
 - Deploy sums part tier stats (`lifetime`, `credits_per_sec`, `deploy_fee`, `dps`)
 - Field mech: payout `base·step^min(floor(age/interval), cap)` by `age`; death by `wear`, which grows `1 + wave_damage·wave` per s; income batched to `mech_income` once per second, salvage on death
@@ -49,6 +50,7 @@
 - `starved()`: any segment stalled NO_SCRAP → HUD scrap +/s red
 - Wave: `wave`, `wave_hp`; drains by summed mech `dps`; ≤0 → bounty, `wave += 1`, full HP. `hp = base_hp·hp_growth^wave`, bounty likewise
 - Wave enemies `Data.wave_enemies(wave)` (cached in `GameState.wave_enemies()`): type `types[wave % n]`, + next type from `mix_from`, + third from `mix_all_from`; count `type.count·(1 + count_growth·wave)/kinds`, scaled to ≤ `max_enemies`; variant `wave / variant_every` (fraction → that share already next variant), capped `variants − 1`; weight `type.weight·variant_tough^variant`; sorted by weight (weakest pops first)
+- Battlefield tap `tap_wave()`: `tap_damage` share of max HP as damage, same share of the bounty as credits; `_damage_wave` shared with DPS drain (kill scrap, clear)
 - `wave_alive()`: enemies whose cumulative weight share isn't drained yet. Each pop pays `kill_scrap`·max HP·weight share scrap (`enemy_killed`); a cleared wave pays the rest
 - Stats: `GameState.stat(key)` = base + Σ delta·level, cached, cleared on purchase/load. Key `type.field` → `segments.json`, else `economy.json`. Salvage clamped to `salvage_cap`
 - Upgrade cost `base_cost·growth^level`, growth = row `cost_growth` or `upgrade_cost_growth`; `lines` stat > line count → append `LineState`, emit `line_added`
@@ -84,6 +86,7 @@
 ## Input
 - Hand cursor on every button (via `Main` `node_added` hook → `Hover.button`; arrow while disabled) and tap area (`Hover.add`)
 - Hover: theme `hover` style (`button_hover.png`), flat buttons and tap areas tint (`self_modulate`, tap area lights its `highlight`: machine, pile); all hover off on touchscreens (emulated mouse would leave it stuck)
+- Battlefield: full-rect `TapArea` `FieldTap` → `tap_wave()`, nearest visible enemy flashes, puff, 1 credit disc
 - Taps: `TapArea` (`ui/tap_area.gd`): fires on `ScreenTouch` press (multi-touch) or real mouse press; ignores touch-emulated mouse; `MOUSE_FILTER_PASS` so drags reach `ScrollContainer`
 - Buttons in the scroll pane use `MOUSE_FILTER_PASS`; scroll deadzone 8
 
@@ -97,7 +100,7 @@
 ## Commands
 - Import: `godot --headless --path . --import`
 - Scenario: `godot --headless --path . -- --scenario <m0..m8>`; exit code 1 on failure; `Instrument.click` scrolls the target into view first
-- Tuning: `godot --headless --path . -- --scenario tune`: bot plays a run (3 taps/s, builds, buys cheapest, applies tiers, pauses lines to save for applies); prints per-minute economy + purchase timeline; checks first worker < 4 min, nuke 30–60 min. Now: first worker 1.4 min, nuke ~38 min (1.5 taps/s: 2.5 / 41 min)
+- Tuning: `godot --headless --path . -- --scenario tune`: bot plays a run (3 taps/s, builds, buys cheapest, applies tiers, pauses lines to save for applies); prints per-minute economy + purchase timeline; checks first worker < 4 min, nuke 30–60 min. Now: first worker 1.4 min, nuke ~35 min (1.5 taps/s: 2.5 / 39 min); the bot never taps the battlefield
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
 - Placeholders: `uv run --with pillow python3 tools/gen_placeholders.py`
 - Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel

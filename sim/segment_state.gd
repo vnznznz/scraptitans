@@ -30,7 +30,7 @@ func bar_full() -> bool:
 
 
 func worker_slots() -> int:
-	return int(GameState.stat(type_id + ".worker_slots"))
+	return int(GameState.stat("worker_slots"))
 
 
 func optional() -> bool:

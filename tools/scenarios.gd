@@ -260,9 +260,10 @@ func m3() -> void:
 	t.check(GameState.lines[0].segments.all(func(s: SegmentState) -> bool: return s.bar_full()), "paused: work banks up")
 	await t.frames(1)
 	await t.shot("m3_paused")
+	var assembled := GameState.lines[0].segments[0].assemblies
 	await t.click(line.get_node("Pause"))
 	GameState.advance(3.0)
-	t.check(GameState.scrap < scrap + 20.0 and not GameState.lines[0].paused, "unpaused: production resumes")
+	t.check(GameState.lines[0].segments[0].assemblies > assembled and not GameState.lines[0].paused, "unpaused: production resumes")
 
 	var before := JSON.stringify(GameState.to_dict(), "", true)
 	Save.save_game()
@@ -287,7 +288,7 @@ func m4() -> void:
 	GameState.credits = 1e6
 	var checks := [
 		["bar", "bar_mult", 0.9],
-		["chunk", "worker_chunk", 2.0],
+		["crew", "worker_slots", 4.0],
 		["tap", "scrap_per_tap", 2.0],
 		["raises", "payout_cap", 1.0],
 		["salvage", "salvage", 0.05],
@@ -348,7 +349,6 @@ func m5() -> void:
 	await t.frames(1)
 	t.check(_sorted(menu), "one list, cheapest first, maxed last")
 	t.check(menu.row("final_arms").visible and _buy(menu, "final_arms").disabled, "Atomic Missile row visible and locked")
-	t.check(not menu.row("plating_crew").visible, "plating rows hidden until plating is unlocked")
 	await t.shot("m5_menu")
 	await t.click(main.get_node("%Upgrades"))
 
@@ -734,6 +734,29 @@ func m8() -> void:
 	GameState.credits = 0.0
 	await t.frames(2)
 	t.check(not badge.visible, "no badge when nothing is affordable")
+
+	GameState.wave = 3
+	GameState.wave_hp = GameState.wave_max_hp()
+	GameState.credits = 0.0
+	await t.frames(30)
+	var field_tap: Control = main.find_child("FieldTap", true, false)
+	flyers = main.get_node("%Flyers")
+	for c in flyers.get_children():
+		c.free()
+	await t.click(field_tap)
+	t.check(is_equal_approx(GameState.wave_hp, GameState.wave_max_hp() * 0.99), "a battlefield tap deals 1% of the wave HP")
+	t.check(is_equal_approx(GameState.credits, GameState.wave_bounty() * 0.01), "and pays 1%% of the bounty (%.2f)" % GameState.credits)
+	t.check(flyers.get_child_count() == 1, "one credit disc flies from the hit")
+	GameState.credits = 1e6
+	for i in 4:
+		GameState.buy_upgrade("tap_damage")
+	var hp := GameState.wave_hp
+	await t.click(field_tap)
+	t.check(is_equal_approx(hp - GameState.wave_hp, GameState.wave_max_hp() * 0.05), "Tap damage chain: 5% per tap")
+	GameState.wave_hp = GameState.wave_max_hp() * 0.03
+	var wave := GameState.wave
+	await t.click(field_tap)
+	t.check(GameState.wave == wave + 1, "taps can finish a wave")
 
 	var pile: Control = main.find_child("Pile", true, false)
 	var motion := InputEventMouseMotion.new()

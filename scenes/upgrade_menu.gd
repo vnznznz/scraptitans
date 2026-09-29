@@ -172,7 +172,7 @@ func _desc(r: Dictionary) -> String:
 		"tier":
 			var type := Data.segment_type(r.type)
 			var first := "The first level adds a %s pad to every line. " % type.name if type.get("optional", false) else ""
-			return "%sUnlocks the next %s part. Then tap the green arrow on each %s segment to fit it for scrap. %s" \
+			return "%sUnlocks the next %s part. Then tap the green arrow on each %s station to fit it for scrap. %s" \
 					% [first, type.name, type.name, type.desc]
 		"final":
 			return Data.segment_type(r.type).tiers[-1].desc

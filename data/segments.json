@@ -7,15 +7,14 @@
 			"build_cost": 10,
 			"worker_base": 50,
 			"worker_growth": 1.35,
-			"worker_slots": 3,
 			"layer": 0,
 			"tiers": [
 				{"part": "Scrap Frame", "scrap_per_mech": 4, "lifetime": 20, "unlock_cost": 0, "apply_cost": 0, "bar_size": 6},
 				{"part": "Bolted Frame", "scrap_per_mech": 6, "lifetime": 26, "unlock_cost": 300, "apply_cost": 60, "bar_size": 10},
-				{"part": "Steel Walker", "scrap_per_mech": 9, "lifetime": 34, "unlock_cost": 12000, "apply_cost": 250, "bar_size": 16},
-				{"part": "Composite Strider", "scrap_per_mech": 14, "lifetime": 44, "unlock_cost": 80000, "apply_cost": 1000, "bar_size": 24},
-				{"part": "Titan Chassis", "scrap_per_mech": 20, "lifetime": 57, "unlock_cost": 400000, "apply_cost": 4000, "bar_size": 36},
-				{"part": "Atomic Colossus", "scrap_per_mech": 30, "lifetime": 74, "unlock_cost": 1500000, "apply_cost": 15000, "bar_size": 50}
+				{"part": "Steel Walker", "scrap_per_mech": 9, "lifetime": 34, "unlock_cost": 12000, "apply_cost": 200, "bar_size": 16},
+				{"part": "Composite Strider", "scrap_per_mech": 14, "lifetime": 44, "unlock_cost": 80000, "apply_cost": 600, "bar_size": 24},
+				{"part": "Titan Chassis", "scrap_per_mech": 20, "lifetime": 57, "unlock_cost": 400000, "apply_cost": 1500, "bar_size": 36},
+				{"part": "Atomic Colossus", "scrap_per_mech": 30, "lifetime": 74, "unlock_cost": 1000000, "apply_cost": 4000, "bar_size": 50}
 			]
 		},
 		"core": {
@@ -24,15 +23,14 @@
 			"build_cost": 15,
 			"worker_base": 50,
 			"worker_growth": 1.35,
-			"worker_slots": 3,
 			"layer": 2,
 			"tiers": [
 				{"part": "Junk Brain", "scrap_per_mech": 3, "credits_per_sec": 1, "deploy_fee": 5, "unlock_cost": 0, "apply_cost": 0, "bar_size": 5},
 				{"part": "Relay Box", "scrap_per_mech": 5, "credits_per_sec": 2, "deploy_fee": 10, "unlock_cost": 400, "apply_cost": 60, "bar_size": 8},
-				{"part": "Tube Core", "scrap_per_mech": 7, "credits_per_sec": 4, "deploy_fee": 20, "unlock_cost": 15000, "apply_cost": 250, "bar_size": 13},
-				{"part": "Silicon Mind", "scrap_per_mech": 10, "credits_per_sec": 8, "deploy_fee": 40, "unlock_cost": 100000, "apply_cost": 1000, "bar_size": 20},
-				{"part": "Quantum Core", "scrap_per_mech": 15, "credits_per_sec": 16, "deploy_fee": 80, "unlock_cost": 500000, "apply_cost": 4000, "bar_size": 30},
-				{"part": "Doom Core", "scrap_per_mech": 22, "credits_per_sec": 32, "deploy_fee": 160, "unlock_cost": 2000000, "apply_cost": 15000, "bar_size": 42}
+				{"part": "Tube Core", "scrap_per_mech": 7, "credits_per_sec": 4, "deploy_fee": 20, "unlock_cost": 15000, "apply_cost": 200, "bar_size": 13},
+				{"part": "Silicon Mind", "scrap_per_mech": 10, "credits_per_sec": 8, "deploy_fee": 40, "unlock_cost": 100000, "apply_cost": 600, "bar_size": 20},
+				{"part": "Quantum Core", "scrap_per_mech": 15, "credits_per_sec": 16, "deploy_fee": 80, "unlock_cost": 500000, "apply_cost": 1500, "bar_size": 30},
+				{"part": "Doom Core", "scrap_per_mech": 22, "credits_per_sec": 32, "deploy_fee": 160, "unlock_cost": 1200000, "apply_cost": 4000, "bar_size": 42}
 			]
 		},
 		"arms": {
@@ -41,15 +39,14 @@
 			"build_cost": 20,
 			"worker_base": 50,
 			"worker_growth": 1.35,
-			"worker_slots": 3,
 			"layer": 3,
 			"tiers": [
 				{"part": "Pipe Gun", "scrap_per_mech": 3, "dps": 1, "unlock_cost": 0, "apply_cost": 0, "bar_size": 5},
 				{"part": "Bolt Cannon", "scrap_per_mech": 5, "dps": 2, "unlock_cost": 350, "apply_cost": 60, "bar_size": 8},
-				{"part": "Auto Cannon", "scrap_per_mech": 7, "dps": 4, "unlock_cost": 13000, "apply_cost": 250, "bar_size": 13},
-				{"part": "Rocket Pod", "scrap_per_mech": 10, "dps": 8, "unlock_cost": 90000, "apply_cost": 1000, "bar_size": 20},
-				{"part": "Railgun", "scrap_per_mech": 15, "dps": 16, "unlock_cost": 450000, "apply_cost": 4000, "bar_size": 30},
-				{"part": "Atomic Missile", "scrap_per_mech": 500, "dps": 0, "unlock_cost": 4000000, "apply_cost": 20000, "final": true, "bar_size": 42, "desc": "Apply it to an Arms segment: that line's next mech is the Nuclear Mech. Its launch ends the run."}
+				{"part": "Auto Cannon", "scrap_per_mech": 7, "dps": 4, "unlock_cost": 13000, "apply_cost": 200, "bar_size": 13},
+				{"part": "Rocket Pod", "scrap_per_mech": 10, "dps": 8, "unlock_cost": 90000, "apply_cost": 600, "bar_size": 20},
+				{"part": "Railgun", "scrap_per_mech": 15, "dps": 16, "unlock_cost": 450000, "apply_cost": 1500, "bar_size": 30},
+				{"part": "Atomic Missile", "scrap_per_mech": 500, "dps": 0, "unlock_cost": 4000000, "apply_cost": 10000, "final": true, "bar_size": 42, "desc": "Apply it to an Arms segment: that line's next mech is the Nuclear Mech. Its launch ends the run."}
 			]
 		},
 		"plating": {
@@ -59,15 +56,14 @@
 			"build_cost": 200,
 			"worker_base": 80,
 			"worker_growth": 1.35,
-			"worker_slots": 3,
 			"layer": 1,
 			"tiers": [
 				{"part": "Tin Sheets", "scrap_per_mech": 3, "lifetime": 10, "unlock_cost": 150, "apply_cost": 0, "bar_size": 5},
 				{"part": "Boiler Plate", "scrap_per_mech": 5, "lifetime": 13, "unlock_cost": 1000, "apply_cost": 60, "bar_size": 8},
-				{"part": "Steel Plating", "scrap_per_mech": 7, "lifetime": 17, "unlock_cost": 30000, "apply_cost": 250, "bar_size": 13},
-				{"part": "Ceramic Armor", "scrap_per_mech": 10, "lifetime": 22, "unlock_cost": 200000, "apply_cost": 1000, "bar_size": 20},
-				{"part": "Reactive Armor", "scrap_per_mech": 15, "lifetime": 29, "unlock_cost": 800000, "apply_cost": 4000, "bar_size": 30},
-				{"part": "Lead-Lined Hull", "scrap_per_mech": 22, "lifetime": 37, "unlock_cost": 2500000, "apply_cost": 15000, "bar_size": 42}
+				{"part": "Steel Plating", "scrap_per_mech": 7, "lifetime": 17, "unlock_cost": 30000, "apply_cost": 200, "bar_size": 13},
+				{"part": "Ceramic Armor", "scrap_per_mech": 10, "lifetime": 22, "unlock_cost": 200000, "apply_cost": 600, "bar_size": 20},
+				{"part": "Reactive Armor", "scrap_per_mech": 15, "lifetime": 29, "unlock_cost": 800000, "apply_cost": 1500, "bar_size": 30},
+				{"part": "Lead-Lined Hull", "scrap_per_mech": 22, "lifetime": 37, "unlock_cost": 1500000, "apply_cost": 4000, "bar_size": 42}
 			]
 		}
 	}

@@ -507,12 +507,25 @@ func _step_field(dt: float) -> void:
 			mech_died.emit(m, salvage)
 
 
+func tap_wave() -> float:
+	if run_over:
+		return 0.0
+	var share := stat("tap_damage")
+	var pay := wave_bounty() * share
+	_gain_credits(pay)
+	_damage_wave(wave_max_hp() * share)
+	return pay
+
+
 func _step_wave(dt: float) -> void:
 	var dps := field_dps()
-	if dps <= 0.0:
-		return
+	if dps > 0.0:
+		_damage_wave(dps * dt)
+
+
+func _damage_wave(damage: float) -> void:
 	var alive := wave_alive()
-	wave_hp -= dps * dt
+	wave_hp -= damage
 	if wave_hp <= 0.0:
 		_clear_wave()
 		return

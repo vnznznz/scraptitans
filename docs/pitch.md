@@ -5,34 +5,34 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 ## Core loop
 
 1. Tap the **scrap pile** → scrap.
-2. **Line 1 is unlocked from the start.** Build its segments with scrap. Each segment has a **work bar** filled by player taps or its workers. When the bar is full and a mech is waiting, the segment consumes scrap, plays a short assembly animation and the mech moves along the belt to the next segment.
-3. After the last segment the mech **walks off the line** onto the **battlefield**. The player **receives a deploy fee** in credits.
+2. **Line 1 is unlocked from the start.** Build its stations with scrap. Each station has a **work bar** filled by player taps or its workers. When the bar is full and a mech is waiting, the station consumes scrap, plays a short assembly animation and the mech moves along the belt to the next station.
+3. After the last station the mech **walks off the line** onto the **battlefield**. The player **receives a deploy fee** in credits.
 4. On the battlefield it fires at the current **enemy wave** and takes fire. It earns **credits per second** (rising in steps while it lives), and its damage drains the wave's healthbar. A drained wave pays a big **credit bounty**.
 5. The mech explodes. Lifetime depends on its parts. **Salvage** returns a share of its scrap cost. Mechs pay no scrap while alive.
-6. Spend credits on workers, lines and unlocks; spend scrap on building, upgrading and operating segments.
+6. Spend credits on workers, lines and unlocks; spend scrap on building, upgrading and operating stations.
 7. Unlock and build the **Atomic Missile**. The nuke ends the run.
 
 ## Resources (only two)
 
 | Resource | Source | Spent on |
 |---|---|---|
-| **Scrap** | Pile taps, yard workers, salvage | Building segments, segment tier upgrades, per-mech production cost |
+| **Scrap** | Pile taps, yard workers, salvage | Building stations, station tier upgrades, per-mech production cost |
 | **Credits** | Deploy fee, battlefield payout, wave bounties | Workers, unlocking lines, unlocking upgrades in the menu |
 
 ## Assembly line
 
-- Segments in belt order: **Frame** (legs + torso) → **Core** (head) → **Arms** (weapons). Later types: **Plating**, **Reactor**, **Thrusters**, **Shields**. N segment types, data-driven.
+- Stations in belt order: **Frame** (legs + torso) → **Core** (head) → **Arms** (weapons). Later types: **Plating**, **Reactor**, **Thrusters**, **Shields**. N station types, data-driven.
 - A line produces mechs once Frame + Core + Arms are built.
-- Each segment owns one stat:
+- Each station owns one stat:
   - **Frame** → lifetime.
   - **Core** → credit payout.
   - **Arms** → damage per second against the enemy wave, so bounty rate.
   - **Plating** → lifetime.
-- **Work bar:** the only throughput gate. Fills from player taps (tap the segment) and from the segment's workers. It fills **even when no mech is present**, so work is banked. When full and a mech is waiting: deduct scrap, play the assembly animation (~0.5 s), attach the part, send the mech down the belt. Frame spawns the mech. The bar grows with the segment's tier.
-- A segment holds one mech. If the next segment is busy, the mech waits on the belt and blocks upstream.
-- **Stalls must be visible:** bar full but no scrap (segment flashes the scrap icon and waits), or downstream blocked.
-- Segments are **connected by a conveyor belt**. The mech gains parts as it moves and walks off the right edge at the end.
-- Throughput = slowest segment.
+- **Work bar:** the only throughput gate. Fills from player taps (tap the station) and from the station's workers. It fills **even when no mech is present**, so work is banked. When full and a mech is waiting: deduct scrap, play the assembly animation (~0.5 s), attach the part, send the mech down the belt. Frame spawns the mech. The bar grows with the station's tier.
+- A station holds one mech. If the next station is busy, the mech waits on the belt and blocks upstream.
+- **Stalls must be visible:** bar full but no scrap (station flashes the scrap icon and waits), or downstream blocked.
+- Stations are **connected by a conveyor belt**. The mech gains parts as it moves and walks off the right edge at the end.
+- Throughput = slowest station.
 - **Pause button per line** so the player can stop burning scrap while saving for a tier upgrade.
 - More lines are **unlocked with credits**. Line N unlock cost follows the cost curve below.
 
@@ -48,6 +48,7 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 - Mechs walk in from the left and fire at the enemy wave on the right. Enemies fire back.
 - No HP bars on mechs. Mech damage shows as smoke (3 intensities), then sparks, then explosion and debris. It follows remaining lifetime, not enemy fire.
 - No combat sim beyond the wave: lifetime, payout and damage come from the stats; visuals play along.
+- **Tapping the battlefield** (anywhere) hits the wave: a small share of its HP and the same share of its bounty as credits. The nearest enemy flashes.
 - Later waves hit harder: mechs age faster the higher the wave, so they die sooner.
 
 ## Enemy waves
@@ -82,22 +83,23 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 
 A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**, cheapest first. Everything here costs credits. Rows the player can't afford are greyed.
 
-- **Tiers:** unlock the next tier of each segment type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
-- **Segments:** more worker slots, per segment type.
-- **Workers:** bigger work chunks (line and yard workers), shorter chunk interval, lighter work bars (all segments).
+- **Tiers:** unlock the next tier of each station type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
+- **Crew:** more worker slots on every station.
+- **Workers:** shorter chunk interval, lighter work bars (all stations).
+- **Tap damage:** battlefield taps hit harder.
 - **Yard:** scrap per tap, yard slots.
 - **Payout:** step cap, step interval, deploy fee.
 - **Salvage:** 0% → 40%.
 - **Scrap per kill (late game):** each enemy destroyed pays scrap.
 - **Lines:** unlock line 2, 3, …
 
-Every row has an info button with a plain description. Tapping the segment body only fills the work bar.
+Every row has an info button with a plain description. Tapping the station body only fills the work bar.
 
-## Segment tiers (scrap, per segment, per line)
+## Station tiers (scrap, per station, per line)
 
-- A tier is **unlocked once with credits** in the menu, then **applied per segment on each line for a fixed scrap price** by tapping the segment's tier button. Simple, satisfying click.
+- A tier is **unlocked once with credits** in the menu, then **applied per station on each line for a fixed scrap price** by tapping the station's tier button. Simple, satisfying click.
 - A tier name **is the name of the part it produces**. A new game starts with a Frame that produces **Scrap Frames**.
-- Upgrading swaps the part sprite for every mech built afterwards and raises the segment's per-mech scrap cost.
+- Upgrading swaps the part sprite for every mech built afterwards and raises the station's per-mech scrap cost.
 
 | Tier | Frame | Core | Arms | Plating |
 |---|---|---|---|---|
@@ -111,11 +113,11 @@ Every row has an info button with a plain description. Tapping the segment body 
 ## Endgame: the nuke
 
 - The **Atomic Missile** is the final unlock in the menu. Unlocking it (credits) shows a confirmation: "This ends everything. Unlock?"
-- Applying it to an Arms segment (scrap) turns that line's next mech into the **Nuclear Mech**.
+- Applying it to an Arms station (scrap) turns that line's next mech into the **Nuclear Mech**.
 - **Sequence:**
   1. The Nuclear Mech walks onto the battlefield and fires. The missile arcs off-screen.
   2. White flash, mushroom cloud expanding from the battlefield.
-  3. A shockwave sweeps down the scroll pane, auto-scrolling with it. Lines, belts, segments and workers collapse into debris.
+  3. A shockwave sweeps down the scroll pane, auto-scrolling with it. Lines, belts, stations and workers collapse into debris.
   4. Only the **scrap pile** remains. "Start again" prompt.
 - Start again = fresh save. No prestige or carry-over for now; keep the save format open for it.
 - Optional run-stats card: time, mechs built, credits earned.
@@ -126,33 +128,31 @@ Every row has an info button with a plain description. Tapping the segment body 
 ┌──────────────────────────────┐
 │ HUD: scrap +/s  credits +/s ⚙│  fixed
 ├──────────────────────────────┤
-│ BATTLEFIELD (fixed, ~25%)    │  fixed, visuals only
+│ BATTLEFIELD (fixed, ~25%)    │  fixed, tap = hit the wave
 │ ▓▓▓▓▓▓▓▓░░░ 1.2K/3K  45 DPS  │  wave healthbar, full width
 │  mechs →  smoke  ✸   ← enemy │  discs fly to the HUD
 ├──────────────────────────────┤
 │ ▼ ScrollContainer (vertical) │
-│ ⏸ LINE 1                     │  pause = stop burning scrap
-│ [FRAME]=[CORE]=[ARMS]=[+ ]→  │  belt connects segments,
-│  work ▓▓▓░ (tap / workers)   │  mech moves along, exits →
-│  tier ⬆  +worker             │  tier = apply unlocked tier (scrap)
+│   FRAME  CORE   ARMS  PLATING│  station names
+│1 [▓▓▓▓]=[▓▓░░]=[░░░]=[+ ]→   │  pause strip, work bar = machine top,
+│⏸ [ww  ]  [w  ]  [ww ]        │  workers inside, belt, mech exits →
+│  [+w][⬆] [+w]   [+w]         │  hire + apply tier share one row
 │ [ + UNLOCK LINE 2 · credits ]│
-│ SCRAPYARD                    │
-│  workers ⛏  [ SCRAP PILE ]  □│  tap pile, empty slot pad
-│ [+ YARD WORKER] [BUY SLOT]   │
 ├──────────────────────────────┤
-│        [ ⬆ UPGRADES ]        │  fixed, thumb zone → menu
+│ w⛏ [SCRAP PILE] ⛏w  [+YARD W]│  fixed, always visible
+│                     [UPGRADES]│  thumb zone → menu
 └──────────────────────────────┘
 ```
 
-- Lines and the scrapyard share **one scroll pane**. The scrapyard sits at the bottom; a new game starts scrolled to it.
-- A new game shows line 1 with three empty segment slots to build, plus the scrapyard.
+- Lines share **one scroll pane**. The scrapyard is fixed in the bottom bar beside UPGRADES; it starts centered and slides left when the other buttons unlock.
+- A new game shows line 1 with three empty station pads to build, plus the scrapyard.
 - Desktop layout is out of scope for v1 (letterbox the portrait column).
 
 ## Tech (Godot 4)
 
 - **Rendering:** Compatibility renderer, for web export.
 - **Pixel art:** base viewport 360×640 (or 720×1280 at 2×), `stretch mode = canvas_items`, keep aspect, texture filter **Nearest**.
-- **Data:** segment types, tiers, upgrades and mech parts as `Resource` files. New segment types are data only.
+- **Data:** station types, tiers, upgrades and mech parts as `Resource` files. New station types are data only.
 - **Scene structure:** `Main` (HUD, `Battlefield`, `ScrollContainer` → `VBox` → `AssemblyLine` × N + `Scrapyard`, fixed `UpgradeButton`, `UpgradeMenu` overlay). `AssemblyLine` owns `Segment` nodes, the belt and mechs in transit. `Battlefield` owns active mechs, the enemy wave and its healthbar, and effects. A top-level `Flyers` layer draws income discs.
 - **Simulation:** one tick in a central autoload (`GameState`), separate from visuals. Workers fire on timers, not per frame.
 - **Save:** JSON in `user://` (IndexedDB on web). Save on change and on hide. No offline progress.
@@ -166,7 +166,7 @@ Every row has an info button with a plain description. Tapping the segment body 
 - Mech walk cycle (4 frames), firing, muzzle flash, smoke ×3, explosion, debris.
 - Enemies: 3 types (Scrap Drone, Crawler Tank, Junk Brute) with a death pop; wave explosion and particles.
 - Wave healthbar, credit and scrap discs.
-- Segment machines: gantry + tool per segment type, idle and working states. Empty slot pad.
+- Station machines: gantry + tool per station type, idle and working states. Empty slot pad.
 - Belt tile (animated), scrap pile (fill states), stall icon.
 - Worker: idle, shovel, carry.
 - Battlefield background layers.

@@ -31,6 +31,7 @@ var _bar: TextureProgressBar
 var _hp_label: Label
 var _dps_label: Label
 var _bg: TextureRect
+var _tap: TapArea
 
 
 func _ready() -> void:
@@ -39,6 +40,12 @@ func _ready() -> void:
 	_bg.texture = preload("res://art/battlefield/bg.png")
 	_bg.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_bg)
+
+	_tap = TapArea.new()
+	_tap.name = "FieldTap"
+	_tap.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_tap.tapped.connect(_on_tap)
+	add_child(_tap)
 
 	_enemy_layer = Node2D.new()
 	_enemy_layer.y_sort_enabled = true
@@ -210,6 +217,22 @@ func _show_wave(walk_in: bool) -> void:
 		for i in n - alive:
 			_enemies[i].visible = false
 		_enemy_count = alive
+
+
+func _on_tap(at: Vector2) -> void:
+	var pay := GameState.tap_wave()
+	if pay <= 0.0:
+		return
+	var target: Sprite2D = null
+	for e in _enemies:
+		if e.visible and (target == null or _enemy_center(e).distance_to(at) < _enemy_center(target).distance_to(at)):
+			target = e
+	var pos := _enemy_center(target) if target else at
+	if target:
+		target.modulate = Color(3, 3, 3)
+		target.create_tween().tween_property(target, "modulate", Color.WHITE, 0.12)
+	_puff(pos + Vector2(randf_range(-4, 4), randf_range(-4, 4)), 0.4, Color(1, 0.9, 0.6))
+	Flyers.spawn(Flyers.Kind.CREDITS, global_position + pos, pay)
 
 
 func _pop_enemy(i: int) -> void:
