@@ -1461,6 +1461,21 @@ func ui() -> void:
 	t.check(credits.is_visible_in_tree() and lines.size() >= 12 and wide.is_empty(), "credits: %d lines, all fit (%s)" % [lines.size(), wide.map(func(l: Label) -> String: return l.text)])
 	t.check(settings.get_global_rect().encloses(credits.get_global_rect()), "credits inside the screen")
 	await t.shot("ui_credits")
+	await t.click(settings.find_child("LicensesButton", true, false))
+	var licenses: Control = settings.find_child("Licenses", true, false)
+	var license_scroll: ScrollContainer = licenses.find_child("Scroll", true, false)
+	var text := SettingsOverlay.license_text()
+	await t.frames(2)
+	t.check(licenses.visible and text.length() > 50000 and "FreeType" in text and "Permission is hereby granted" in text,
+			"licenses popup: Godot license + third-party notices (%d chars, %d labels)" % [text.length(), license_scroll.get_child(0).get_child_count()])
+	license_scroll.scroll_vertical = 100000
+	await t.frames(2)
+	t.check(license_scroll.scroll_vertical > 10000, "license text scrolls (%d px)" % license_scroll.scroll_vertical)
+	license_scroll.scroll_vertical = 0
+	await t.frames(2)
+	await t.shot("ui_licenses")
+	await t.click(licenses.find_child("LicensesClose", true, false))
+	t.check(not licenses.visible and credits.is_visible_in_tree(), "BACK returns to credits")
 	await t.click(settings.find_child("Close", true, false))
 	t.check(settings.visible and not credits.is_visible_in_tree() and settings.find_child("Volume_music", true, false).is_visible_in_tree(), "BACK returns to settings")
 	await t.click(settings.find_child("Close", true, false))

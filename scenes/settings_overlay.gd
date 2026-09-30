@@ -4,6 +4,8 @@ extends Control
 enum Mode { SETTINGS, CONFIRM, CREDITS }
 
 const VOLUMES := [["music", "MUSIC"], ["sfx", "SOUNDS"], ["ambience", "AMBIENCE"]]
+const LICENSE_CHUNK := 1200
+const LICENSE_MARGIN := 8
 const CREDITS := [
 	["GAME DESIGN", ["VINZENZ SINAPIUS", "DISTCO.DE"]],
 	["SOUNDS AND MUSIC", ["SUBSPACEAUDIO", "MUSIC: JUHANI JUNKALA", "SUBSPACEAUDIO.ITCH.IO", "CC BY 4.0, MIXED TO MONO"]],
@@ -19,6 +21,7 @@ var _confirm: Button
 var _close: Button
 var _volumes: VBoxContainer
 var _credits: VBoxContainer
+var _licenses: Control
 var _pips := {}
 
 
@@ -90,6 +93,12 @@ func _ready() -> void:
 	box.add_child(_credits)
 	for section: Array in CREDITS:
 		_credits_section(section[0], section[1])
+	var licenses := Button.new()
+	licenses.name = "LicensesButton"
+	licenses.text = "OPEN SOURCE LICENSES"
+	licenses.custom_minimum_size = Vector2(0, 44)
+	licenses.pressed.connect(_open_licenses)
+	_credits.add_child(licenses)
 
 	_credits_button = _button(box, "CreditsButton", "CREDITS", func() -> void: _show(Mode.CREDITS))
 	_reset = _button(box, "Reset", "RESET RUN", func() -> void: _show(Mode.CONFIRM))
@@ -122,6 +131,8 @@ func close() -> void:
 
 func _show(mode: Mode) -> void:
 	_mode = mode
+	if _licenses:
+		_licenses.visible = false
 	_title.text = {Mode.SETTINGS: "SETTINGS", Mode.CONFIRM: "RESET RUN?\nALL PROGRESS IS LOST", Mode.CREDITS: "CREDITS"}[mode]
 	_volumes.visible = mode == Mode.SETTINGS
 	_credits_button.visible = mode == Mode.SETTINGS
@@ -129,6 +140,94 @@ func _show(mode: Mode) -> void:
 	_credits.visible = mode == Mode.CREDITS
 	_confirm.visible = mode == Mode.CONFIRM
 	_close.text = {Mode.SETTINGS: "CLOSE", Mode.CONFIRM: "CANCEL", Mode.CREDITS: "BACK"}[mode]
+
+
+func _open_licenses() -> void:
+	if _licenses == null:
+		_build_licenses()
+	(_licenses.find_child("Scroll", true, false) as ScrollContainer).scroll_vertical = 0
+	_licenses.visible = true
+
+
+func _build_licenses() -> void:
+	_licenses = Control.new()
+	_licenses.name = "Licenses"
+	_licenses.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	add_child(_licenses)
+	var dim := ColorRect.new()
+	dim.color = Color(Pal.INK, 0.75)
+	dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_licenses.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	panel.offset_left = LICENSE_MARGIN
+	panel.offset_top = LICENSE_MARGIN
+	panel.offset_right = -LICENSE_MARGIN
+	panel.offset_bottom = -LICENSE_MARGIN
+	_licenses.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	panel.add_child(box)
+	var title := Label.new()
+	title.text = "OPEN SOURCE LICENSES"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.scroll_deadzone = 8
+	scroll.size_flags_vertical = SIZE_EXPAND_FILL
+	box.add_child(scroll)
+	var text := VBoxContainer.new()
+	text.name = "Text"
+	text.size_flags_horizontal = SIZE_EXPAND_FILL
+	text.add_theme_constant_override("separation", 0)
+	scroll.add_child(text)
+	var chunk := ""
+	for paragraph in license_text().split("\n\n"):
+		if not chunk.is_empty() and chunk.length() + paragraph.length() > LICENSE_CHUNK:
+			_license_label(text, chunk)
+			chunk = ""
+		chunk += ("\n\n" if chunk else "") + paragraph
+	_license_label(text, chunk)
+	_button(box, "LicensesClose", "BACK", func() -> void: _licenses.visible = false)
+
+
+func _license_label(parent: Control, chunk: String) -> void:
+	var label := Label.new()
+	label.text = chunk + "\n"
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	parent.add_child(label)
+
+
+static func license_text() -> String:
+	var out := PackedStringArray(["This game uses Godot Engine, available under the following license:", _reflow(Engine.get_license_text()),
+			"Godot Engine includes these third-party components:"])
+	for c: Dictionary in Engine.get_copyright_info():
+		if c.name == "Godot Engine":
+			continue
+		var lines := PackedStringArray([c.name])
+		for part: Dictionary in c.parts:
+			for who: String in part.copyright:
+				lines.append("Copyright " + who)
+			lines.append("License: " + part.license)
+		out.append("\n".join(lines))
+	var texts := Engine.get_license_info()
+	for license_name: String in texts:
+		out.append("License " + license_name + ":")
+		out.append(_reflow(texts[license_name]))
+	return "\n\n".join(out)
+
+
+static func _reflow(text: String) -> String:
+	var paragraphs := PackedStringArray()
+	for p in text.strip_edges().split("\n\n"):
+		var lines := PackedStringArray()
+		for line in p.split("\n"):
+			lines.append(line.strip_edges())
+		paragraphs.append(" ".join(lines))
+	return "\n\n".join(paragraphs)
 
 
 func _credits_section(heading: String, lines: Array) -> void:
