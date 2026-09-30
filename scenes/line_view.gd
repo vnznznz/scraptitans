@@ -42,7 +42,8 @@ func _ready() -> void:
 	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
 	_pause.flat = true
 	_pause.mouse_filter = MOUSE_FILTER_PASS
-	_pause.pressed.connect(GameState.toggle_pause.bind(line_index))
+	_pause.set_meta(&"silent", true)
+	_pause.pressed.connect(_on_pause)
 	add_child(_pause)
 	var scrap_icon := TextureRect.new()
 	scrap_icon.texture = preload("res://art/ui/scrap.png")
@@ -75,6 +76,7 @@ func _ready() -> void:
 	_hire.icon = preload("res://art/line/worker.png")
 	_hire.mouse_filter = MOUSE_FILTER_PASS
 	Price.setup(_hire, Flyers.Kind.CREDITS, true)
+	_hire.set_meta(&"silent", true)
 	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
 
@@ -136,6 +138,12 @@ func _on_hire() -> void:
 	var cost := GameState.worker_cost(line_index)
 	if GameState.hire_worker(line_index):
 		Flyers.pay(Flyers.Kind.CREDITS, _hire, cost)
+		Sound.play(&"hire")
+
+
+func _on_pause() -> void:
+	GameState.toggle_pause(line_index)
+	Sound.play(&"pause" if _line().paused else &"resume")
 
 
 func scrap_bits(pos: Vector2) -> void:
@@ -272,6 +280,8 @@ func _draw_frame() -> void:
 
 
 func _exit(view: MechView) -> void:
+	if Sound.visible_share(self) > 0.5:
+		Sound.play(&"mech_exit")
 	var tw := view.create_tween()
 	tw.tween_property(view, "position:x", size.x + 16.0, Data.econ("belt_time") / maxf(GameState.time_scale, 1.0))
 	tw.tween_callback(view.queue_free)

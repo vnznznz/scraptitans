@@ -1223,6 +1223,25 @@ def ui():
     d.ellipse([6, 6, 9, 9], fill=INK)
     save(img, "ui/gear.png")
 
+    for name, on in [("sound_on", True), ("sound_off", False)]:
+        img, d = new(16, 16)
+        d.polygon([(1, 5), (4, 5), (8, 1), (8, 14), (4, 10), (1, 10)], fill=STEEL, outline=INK)
+        rect(d, 2, 6, 3, 6, STEEL_L)
+        d.line([5, 5, 7, 3], fill=STEEL_L)
+        if on:
+            rect(d, 10, 6, 10, 9, WHITE)
+            px(d, 12, 3, STEEL_L)
+            px(d, 13, 4, STEEL_L)
+            rect(d, 14, 5, 14, 10, STEEL_L)
+            px(d, 13, 11, STEEL_L)
+            px(d, 12, 12, STEEL_L)
+        else:
+            d.line([10, 5, 14, 9], fill=RED)
+            d.line([10, 9, 14, 5], fill=RED)
+            d.line([10, 6, 13, 9], fill=RED_D)
+            d.line([10, 10, 14, 6], fill=RED_D)
+        save(img, f"ui/{name}.png")
+
     for name, glyph in [("stall_scrap", "nut"), ("stall_blocked", "bar")]:
         img, d = new(12, 12)
         blob(d, 0, 0, 11, 11, R_RED)

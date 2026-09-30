@@ -56,6 +56,7 @@ func _ready() -> void:
 	_hire.position = HIRE_RECT.position
 	_hire.size = HIRE_RECT.size
 	Price.setup(_hire, Flyers.Kind.CREDITS)
+	_hire.set_meta(&"silent", true)
 	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
 	_chunks_seen = GameState.yard_chunks
@@ -147,6 +148,7 @@ func _dig(i: int) -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void:
 		_squash(0.97, 1.0, 0.2)
+		Sound.play(&"yard_hit")
 		Flyers.spawn(Flyers.Kind.SCRAP, w.global_position + Vector2(WORKER_TEX.get_width() / 2.0, -4), GameState.yard_chunk()))
 	tw.tween_property(w, "position", Vector2((hit_x + home.x) / 2.0, home.y - 4.0), 0.1 / speed) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -176,10 +178,12 @@ func _on_hire() -> void:
 	var cost := GameState.yard_worker_cost()
 	if GameState.hire_yard_worker():
 		Flyers.pay(Flyers.Kind.CREDITS, _hire, cost)
+		Sound.play(&"hire")
 
 
 func _on_tap(at: Vector2) -> void:
 	var amount := GameState.tap_scrap()
 	GameState.tap_pile()
+	Sound.play(&"pile_tap")
 	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), amount, 1, true)
 	_squash(0.92, 2.0, 0.06)

@@ -6,6 +6,7 @@ Idle/clicker prototype for Poki: web, portrait mobile, pixel art. Godot 4.7, GDS
 - `docs/plan.md`: milestones, worked in order
 - `docs/tech.md`: how it's built
 - `docs/web_build.md`: lightweight web export templates plan
+- `docs/audio.md`: sound design, rules against annoyance, sound assignment
 
 ## Rules
 

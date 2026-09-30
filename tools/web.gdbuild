@@ -30,8 +30,6 @@
 		"AudioBusLayout",
 		"AudioEffect",
 		"AudioListener2D",
-		"AudioStream",
-		"AudioStreamPlayer",
 		"AudioStreamPlayer2D",
 		"BackBufferCopy",
 		"BitMap",

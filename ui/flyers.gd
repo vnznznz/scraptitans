@@ -101,6 +101,8 @@ func _spawn(kind: Kind, from: Vector2, count: int, disc_tier: int, loud: bool) -
 		tw.tween_callback(func() -> void:
 			if not quiet:
 				hud.pulse(kind)
+				if kind == Kind.CREDITS:
+					Sound.play(&"coin_big" if disc_tier == TIER_SECONDS.size() else &"coin")
 			disc.queue_free())
 
 

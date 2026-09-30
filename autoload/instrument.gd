@@ -19,11 +19,15 @@ func _ready() -> void:
 	var runner: Object = script.new(self) if script and script.can_instantiate() else null
 	if runner == null or not runner.has_method(scenario):
 		printerr("Unknown scenario: ", scenario)
+		Sound.shutdown()
+		await wait(0.1)
 		get_tree().quit(2)
 		return
 	print("SCENARIO ", scenario)
 	await runner.call(scenario)
 	print("RESULT %s: %s" % [scenario, "FAIL (%d)" % failures if failures else "PASS"])
+	Sound.shutdown()
+	await wait(0.1)
 	get_tree().quit(1 if failures else 0)
 
 

@@ -22,6 +22,7 @@ Data="*res://autoload/data.gd"
 GameState="*res://autoload/game_state.gd"
 Save="*res://autoload/save.gd"
 Instrument="*res://autoload/instrument.gd"
+Sound="*res://autoload/sound.gd"
 
 [display]
 
@@ -36,6 +37,13 @@ window/handheld/orientation=1
 [gui]
 
 theme/custom="res://ui/theme.tres"
+
+[importer_defaults]
+
+wav={
+"compress/mode": 2,
+"force/mono": true
+}
 
 [rendering]
 

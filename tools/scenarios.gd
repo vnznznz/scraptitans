@@ -1452,6 +1452,20 @@ func ui() -> void:
 	await t.click(upgrades)
 	t.check(not menu.visible, "CLOSE on top of the menu closes it")
 
+	var settings: SettingsOverlay = main.get_node("%Settings")
+	await t.click(main.get_node("%Hud").get_node("SettingsButton"))
+	await t.click(settings.find_child("CreditsButton", true, false))
+	var credits: Control = settings.find_child("Credits", true, false)
+	var lines := credits.find_children("*", "Label", true, false)
+	var wide := lines.filter(func(l: Label) -> bool: return l.get_minimum_size().x > credits.size.x)
+	t.check(credits.is_visible_in_tree() and lines.size() >= 12 and wide.is_empty(), "credits: %d lines, all fit (%s)" % [lines.size(), wide.map(func(l: Label) -> String: return l.text)])
+	t.check(settings.get_global_rect().encloses(credits.get_global_rect()), "credits inside the screen")
+	await t.shot("ui_credits")
+	await t.click(settings.find_child("Close", true, false))
+	t.check(settings.visible and not credits.is_visible_in_tree() and settings.find_child("Volume_music", true, false).is_visible_in_tree(), "BACK returns to settings")
+	await t.click(settings.find_child("Close", true, false))
+	t.check(not settings.visible, "CLOSE closes settings")
+
 
 func art() -> void:
 	await _fresh()
@@ -1592,6 +1606,188 @@ func intro() -> void:
 	GameState.field.clear()
 	await t.frames(1)
 	t.check(not guide.visible, "no field hint while the field is empty")
+
+
+func audio() -> void:
+	var settings_backup := FileAccess.get_file_as_string(Sound.SETTINGS_PATH) if FileAccess.file_exists(Sound.SETTINGS_PATH) else ""
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var cfg: Dictionary = Data.audio
+	var missing := []
+	for id: String in cfg.sounds:
+		for s: AudioStream in Sound._sounds[StringName(id)].streams:
+			if s == null or s.get_length() <= 0.0:
+				missing.append(id)
+	t.check(missing.is_empty(), "every sound file loads (%s)" % [missing])
+	var loops := []
+	for id: String in Sound._beds:
+		var s: AudioStreamWAV = Sound._beds[id].player.stream
+		if s.loop_mode != AudioStreamWAV.LOOP_FORWARD:
+			loops.append(id)
+	t.check(loops.is_empty(), "beds import as forward loops (%s)" % [loops])
+	t.check(absf(Sound._music.stream.get_length() - 44.65) < 0.1, "Ending loads (%.1f s)" % Sound._music.stream.get_length())
+
+	var used := {}
+	for dir: String in ["res://scenes", "res://ui", "res://autoload"]:
+		for f in DirAccess.get_files_at(dir):
+			if not f.ends_with(".gd"):
+				continue
+			for line in FileAccess.get_file_as_string(dir.path_join(f)).split("\n"):
+				if "Sound.play" in line or "SHOT_SOUNDS" in line:
+					var parts := line.split("&\"")
+					for k in range(1, parts.size()):
+						used[parts[k].get_slice("\"", 0)] = true
+	for type_id: String in Data.line_slots():
+		used["assemble_" + type_id] = true
+	for e: Dictionary in Data.enemies.types:
+		used["enemy_shot_" + e.sprite] = true
+	var unknown := used.keys().filter(func(id: String) -> bool: return not cfg.sounds.has(id) and id != "silent")
+	var unused: Array = cfg.sounds.keys().filter(func(id: String) -> bool: return not used.has(id))
+	if OS.has_feature("editor"):
+		t.check(unknown.is_empty() and unused.is_empty(), "code and audio.json use the same ids (unknown %s, unused %s)" % [unknown, unused])
+
+	var pile: Control = main.find_child("Pile", true, false)
+	var before := Sound.plays.duplicate()
+	var played := func(id: StringName) -> int: return int(Sound.plays.get(id, 0)) - int(before.get(id, 0))
+	for i in 3:
+		await t.click(pile)
+		await t.wait(0.05)
+	t.check(played.call(&"pile_tap") == 3, "pile taps sound (%d, scrap %d)" % [played.call(&"pile_tap"), GameState.scrap])
+	GameState.scrap = 1000.0
+	await t.frames(2)
+	var line: LineView = main.line_view(0)
+	await t.click(_build_button(line, 0))
+	t.check(played.call(&"build") == 1 and played.call(&"click") == 0, "build plays its own sound, no click")
+	await t.frames(2)
+	await t.click(line.segment_view(0).get_node("Tap"))
+	t.check(played.call(&"station_tap") == 1, "station tap sounds")
+	var upgrades: Button = main.get_node("%Upgrades")
+	GameState.mechs_built = 1
+	await t.frames(2)
+	await t.click(upgrades)
+	await t.click(upgrades)
+	t.check(played.call(&"menu_open") == 1 and played.call(&"menu_close") == 1, "menu open/close sound")
+
+	var hud: Hud = main.get_node("%Hud")
+	var mute: Button = hud.get_node("MuteButton")
+	var gear: Button = hud.get_node("SettingsButton")
+	t.check(mute.get_global_rect().end.x <= gear.get_global_rect().position.x and mute.size.x >= 40.0, "mute button left of the gear")
+	var was_muted := Sound.muted
+	await t.click(mute)
+	t.check(Sound.muted != was_muted and AudioServer.is_bus_mute(0) == Sound.muted, "mute toggle mutes Master")
+	await t.frames(1)
+	t.check(mute.icon == (Hud.SOUND_OFF if Sound.muted else Hud.SOUND_ON), "mute icon follows")
+	await t.click(mute)
+	t.check(Sound.muted == was_muted, "mute toggles back")
+	GameState.credits = 99900.0
+	GameState.credits_rate = 99900.0
+	await t.frames(2)
+	await t.shot("audio_hud")
+	await t.click(gear)
+	var settings: SettingsOverlay = main.get_node("%Settings")
+	await t.shot("audio_settings")
+	var music_step := int(Sound.steps.music)
+	await t.click(settings.find_child("Volume_music", true, false).get_node("Down"))
+	t.check(int(Sound.steps.music) == music_step - 1, "settings MUSIC - lowers the step")
+	Sound.set_step("music", 0)
+	t.check(AudioServer.is_bus_mute(AudioServer.get_bus_index(&"Music")), "step 0 mutes the bus")
+	Sound.set_step("music", music_step)
+	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Sound.SETTINGS_PATH))
+	t.check(int(saved.music) == music_step and bool(saved.muted) == was_muted, "settings saved to %s" % Sound.SETTINGS_PATH)
+	await t.click(settings.find_child("Close", true, false))
+
+	var field: Battlefield = main.get_node("%Battlefield")
+	t.check(is_equal_approx(Sound.visible_share(field), 1.0), "battlefield fully present")
+	Sound.presence.field = 0.0
+	t.check(is_equal_approx(Sound._area_gain("field"), db_to_linear(cfg.areas.field.hidden_db)), "hidden area plays at hidden_db")
+	await t.frames(1)
+	t.check(Sound.presence.field == 1.0, "main keeps presence up to date")
+	t.check(Sound._beds.battle.gain < 0.05, "battle bed silent with no mechs (%.2f)" % Sound._beds.battle.gain)
+
+	GameState.time_scale = 10.0
+	GameState.scrap = 1e9
+	GameState.credits = 1e9
+	for i in 2:
+		GameState.buy_upgrade("lines")
+	for li in GameState.lines.size():
+		for si in GameState.lines[li].segments.size():
+			GameState.build_segment(li, si)
+		for k in 6:
+			GameState.hire_worker(li)
+	_spawn_mechs(50)
+	var field_ids: Array = cfg.sounds.keys().filter(func(id: String) -> bool: return cfg.sounds[id].get("group", "") == "field")
+	var field_count := func() -> int:
+		var n := 0
+		for id: String in field_ids:
+			n += int(Sound.plays.get(StringName(id), 0))
+		return n
+	var worst := 0
+	var over_voices := []
+	for sec in 8:
+		var start: int = field_count.call()
+		var t0 := Time.get_ticks_msec()
+		while Time.get_ticks_msec() - t0 < 1000:
+			await t.frames(1)
+			var now := Sound._now()
+			for id: StringName in Sound._sounds:
+				if Sound._voices(id, now) > int(Sound._sounds[id].cfg.get("voices", Sound.POOL)):
+					over_voices.append(id)
+		worst = maxi(worst, field_count.call() - start)
+	t.check(worst > 0 and worst <= int(cfg.groups.field), "busy battlefield: %d field sounds/s (budget %d)" % [worst, cfg.groups.field])
+	t.check(over_voices.is_empty(), "voice caps hold (%s)" % [over_voices])
+	t.check(Sound._beds.battle.gain > 0.5, "battle bed up with a full field (%.2f, %d drawn)" % [Sound._beds.battle.gain, field.mech_count()])
+	t.check(Sound._beds.factory.gain > 0.5, "factory bed up while lines assemble (%.2f, %.1f/s)" % [Sound._beds.factory.gain, Sound.drives.assembly_rate])
+	t.check(played.call(&"coin") > 0 and played.call(&"shot_pipe") > 0 and played.call(&"enemy_pop") > 0, "coins, shots and pops sound")
+	GameState.kill_wave()
+	await t.wait(0.5)
+	t.check(played.call(&"wave_clear") >= 1 and played.call(&"bounty") >= 1, "wave clear + bounty")
+
+	GameState.time_scale = 1.0
+	for li in GameState.lines.size():
+		if not GameState.lines[li].paused:
+			GameState.toggle_pause(li)
+	await t.wait(12.0)
+	t.check(Sound._beds.factory.gain < 0.08, "factory bed fades with all lines paused (%.2f)" % Sound._beds.factory.gain)
+
+	var music: Dictionary = cfg.music
+	t.check(Sound._music_wait > 0.0 and Sound._music_wait <= float(music.first_after), "music armed after the reveal (%.0f s)" % Sound._music_wait)
+	Sound._music_wait = 0.01
+	await t.wait(0.1)
+	t.check(Sound.music_playing and int(Sound.plays.get(&"music", 0)) == 1, "music starts when due")
+	await t.wait(float(music.fade_in) + 0.2)
+	var amb := AudioServer.get_bus_index(&"Ambience")
+	var amb_db := linear_to_db(pow(float(Sound.steps.ambience) / float(cfg.steps), 2.0))
+	t.check(absf(AudioServer.get_bus_volume_db(amb) - amb_db - float(music.duck_db)) < 0.5, "ambience ducks while music plays")
+	t.check(absf(Sound._music.volume_db - float(music.volume_db)) < 0.5, "music faded in to %.0f dB" % Sound._music.volume_db)
+	Sound._music_end = Sound._now() + float(music.fade_out)
+	await t.wait(float(music.fade_out) + 0.3)
+	t.check(not Sound.music_playing and Sound._music_wait >= float(music.gap[0]) - 1.0 and Sound._music_wait <= float(music.gap[1]),
+			"music fades out at the end, next in %.0f s" % Sound._music_wait)
+	GameState.run_over = true
+	Sound._music_wait = 0.01
+	await t.wait(0.1)
+	t.check(not Sound.music_playing, "no scheduled music once the run is over")
+	GameState.run_over = false
+
+	var sfx_step := int(Sound.steps.sfx)
+	Sound.set_muted(true)
+	Sound.steps.sfx = sfx_step % int(cfg.steps) + 1
+	Sound._load_settings()
+	t.check(Sound.muted and int(Sound.steps.sfx) == sfx_step, "settings reload from the file")
+	Save.reset_run()
+	await t.frames(3)
+	t.check(Sound.muted, "reset run keeps sound settings")
+	Sound.play_music()
+	Save.reset_run()
+	await t.wait(Sound.MUSIC_STOP_FADE + 0.3)
+	GameState.mechs_built = 1
+	await t.frames(2)
+	t.check(not Sound.music_playing and Sound._music_wait > float(music.first_after) - 1.0, "start again stops the music, the new run waits first_after")
+	if settings_backup:
+		FileAccess.open(Sound.SETTINGS_PATH, FileAccess.WRITE).store_string(settings_backup)
+	else:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(Sound.SETTINGS_PATH))
+	Sound._load_settings()
 
 
 func _fresh(frozen := true) -> void:

@@ -3,6 +3,7 @@ extends Control
 
 const SWEEP_TIME := 3.0
 const COUNT_TIME := 1.2
+const MUSIC_DELAY := 1.5
 
 @export var battlefield: Battlefield
 @export var scroll: ScrollContainer
@@ -102,6 +103,8 @@ func _play(m: MechState) -> void:
 	await battlefield.fire_missile(m.id)
 	await get_tree().create_timer(0.3).timeout
 	_flash.color = Color.WHITE
+	Sound.play(&"nuke_blast")
+	Sound.play(&"nuke_rumble")
 	battlefield.mushroom()
 	_shake(6.0, 1.6)
 	var tw := create_tween()
@@ -118,6 +121,8 @@ func _sweep() -> void:
 	_band.visible = true
 	_band.size = Vector2(size.x, _band.texture.get_height())
 	_shake(2.0, SWEEP_TIME)
+	Sound.play(&"shockwave")
+	Sound.play(&"shockwave_boom")
 	var targets := content.get_children().filter(func(c: Node) -> bool: return c is Control and c.visible)
 	var total := content.size.y
 	var tw := create_tween()
@@ -128,9 +133,12 @@ func _sweep() -> void:
 		for c: Control in targets.duplicate():
 			if y >= c.position.y + c.size.y / 2.0:
 				targets.erase(c)
+				if c.has_method("collapse"):
+					Sound.play(&"collapse")
 				_collapse(c), 0.0, 1.0, SWEEP_TIME)
 	await tw.finished
 	_band.visible = false
+	Sound.play(&"collapse")
 	scrapyard.collapse()
 
 
@@ -159,6 +167,8 @@ func _shake(strength: float, time: float) -> void:
 
 func _show_card() -> void:
 	visible = true
+	Sound.play(&"run_card")
+	create_tween().tween_callback(Sound.play_music).set_delay(MUSIC_DELAY)
 	var t := int(GameState.run_time)
 	var targets := [float(t), float(GameState.mechs_built), GameState.credits_earned]
 	_card.visible = true

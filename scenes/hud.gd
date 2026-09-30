@@ -4,8 +4,10 @@ extends Control
 signal settings_pressed
 
 const ICON_Y := 6.0
-const GEAR_W := 44.0
-const COLUMN_W := 105.0
+const BUTTON_W := 40.0
+const COLUMN_W := 91.0
+const SOUND_ON := preload("res://art/ui/sound_on.png")
+const SOUND_OFF := preload("res://art/ui/sound_off.png")
 const LEFT := 6.0
 const RATE_Y := 26.0
 const RATE_COLOR := Color(1, 1, 1, 0.7)
@@ -19,6 +21,7 @@ var _scrap_rate: Label
 var _mechs: Label
 var _mechs_rate: Label
 var _mech_icon: TextureRect
+var _mute: Button
 
 
 func _ready() -> void:
@@ -38,15 +41,11 @@ func _ready() -> void:
 	_mechs_rate.name = "MechsRate"
 	GameState.mech_deployed.connect(_on_deployed)
 
-	var gear := Button.new()
-	gear.name = "SettingsButton"
-	gear.icon = preload("res://art/ui/gear.png")
-	gear.flat = true
-	gear.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	gear.set_anchors_and_offsets_preset(PRESET_RIGHT_WIDE)
-	gear.offset_left = -GEAR_W
+	var gear := _icon_button("SettingsButton", preload("res://art/ui/gear.png"), 0)
+	gear.set_meta(&"silent", true)
 	gear.pressed.connect(settings_pressed.emit)
-	add_child(gear)
+	_mute = _icon_button("MuteButton", SOUND_OFF if Sound.muted else SOUND_ON, 1)
+	_mute.pressed.connect(func() -> void: Sound.set_muted(not Sound.muted))
 
 
 func _process(_delta: float) -> void:
@@ -57,6 +56,22 @@ func _process(_delta: float) -> void:
 	_scrap_rate.modulate = STARVED if GameState.starved() else RATE_COLOR
 	_mechs.text = Fmt.num(GameState.mechs_built)
 	_mechs_rate.text = "%d/MIN" % GameState.mechs_per_min
+	var icon := SOUND_OFF if Sound.muted else SOUND_ON
+	if _mute.icon != icon:
+		_mute.icon = icon
+
+
+func _icon_button(node_name: String, tex: Texture2D, slot: int) -> Button:
+	var b := Button.new()
+	b.name = node_name
+	b.icon = tex
+	b.flat = true
+	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.set_anchors_and_offsets_preset(PRESET_RIGHT_WIDE)
+	b.offset_left = -BUTTON_W * (slot + 1)
+	b.offset_right = -BUTTON_W * slot
+	add_child(b)
+	return b
 
 
 func _column(i: int) -> float:

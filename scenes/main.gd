@@ -9,6 +9,7 @@ const UNLOCK_GAP := 8.0
 const FLYERS_Z := 1
 const TEXT_Z := 2
 const OVERLAY_Z := 3
+const ASSEMBLY_WINDOW := 4.0
 
 @onready var _content: VBoxContainer = %Content
 @onready var _settings: SettingsOverlay = %Settings
@@ -24,11 +25,15 @@ var _badge: Label
 var _badge_style: StyleBoxFlat
 var _title := ""
 var _app_name: String = ProjectSettings.get_setting("application/config/name")
+var _assemblies := -1
+var _assembly_log: Array[Vector2] = []
+var _starved := false
 
 
 func _ready() -> void:
 	for b: BaseButton in find_children("*", "BaseButton", true, false):
 		Hover.button(b)
+		Sound.hook_button(b)
 	get_tree().node_added.connect(_on_node_added)
 	if not Hover.enabled():
 		var theme := ThemeDB.get_project_theme()
@@ -41,6 +46,7 @@ func _ready() -> void:
 	Price.setup(_unlock, Flyers.Kind.CREDITS)
 	_unlock.size_flags_horizontal = SIZE_SHRINK_CENTER
 	_unlock.mouse_filter = MOUSE_FILTER_PASS
+	_unlock.set_meta(&"silent", true)
 	_unlock.pressed.connect(_on_unlock)
 	_unlock_gap = Control.new()
 	_unlock_gap.name = "UnlockGap"
@@ -80,11 +86,13 @@ func _ready() -> void:
 	for overlay: Control in [%Debug, %Settings, %Nuke]:
 		overlay.z_index = OVERLAY_Z + 1
 	%Hud.settings_pressed.connect(_settings.open)
+	_upgrades.set_meta(&"silent", true)
 	_upgrades.pressed.connect(_toggle_menu)
 
 
 func _process(_delta: float) -> void:
 	_fit_battlefield()
+	_update_sound()
 	_upgrades.visible = GameState.revealed() and not GameState.run_over
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	var affordable := GameState.affordable_upgrades()
@@ -112,15 +120,42 @@ func _fit_battlefield() -> void:
 		_battlefield.custom_minimum_size.y = h
 
 
+func _update_sound() -> void:
+	Sound.presence.field = Sound.visible_share(_battlefield)
+	Sound.presence.factory = Sound.visible_share(_content)
+	Sound.presence.yard = Sound.visible_share(%Scrapyard)
+	Sound.drives.mechs = _battlefield.mech_count()
+	var total := 0
+	for line in GameState.lines:
+		for seg in line.segments:
+			total += seg.assemblies
+	var now := Time.get_ticks_msec() / 1000.0
+	if _assemblies >= 0 and total > _assemblies:
+		_assembly_log.append(Vector2(now, total - _assemblies))
+	_assemblies = total
+	while not _assembly_log.is_empty() and _assembly_log[0].x < now - ASSEMBLY_WINDOW:
+		_assembly_log.pop_front()
+	var count := 0.0
+	for e in _assembly_log:
+		count += e.y
+	Sound.drives.assembly_rate = count / ASSEMBLY_WINDOW
+	var starved := GameState.starved()
+	if starved and not _starved:
+		Sound.play(&"stall")
+	_starved = starved
+
+
 func _on_unlock() -> void:
 	var cost := GameState.upgrade_cost("lines")
 	if GameState.buy_upgrade("lines"):
 		Flyers.pay(Flyers.Kind.CREDITS, _unlock, cost)
+		Sound.play(&"unlock_line")
 
 
 func _on_node_added(n: Node) -> void:
 	if n is BaseButton:
 		Hover.button(n)
+		Sound.hook_button(n)
 
 
 func line_view(i: int) -> LineView:
@@ -138,5 +173,7 @@ func _add_line(i: int) -> void:
 func _toggle_menu() -> void:
 	if _menu.visible:
 		_menu.close()
+		Sound.play(&"menu_close")
 	else:
 		_menu.open()
+		Sound.play(&"menu_open")

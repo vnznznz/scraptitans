@@ -6,8 +6,9 @@ Custom Godot 4.7.2 web export templates with only the engine parts the game uses
 |---|---|---|---|
 | official 4.7.2 `web_nothreads_release` | 39.5 MB | 10.1 MB | 7.1 MB |
 | custom | 12.9 MB | 3.8 MB | 2.6 MB |
+| custom + audio | 13.0 MB | | 2.67 MB |
 
-`.pck` 188 → 208 KB (PNG instead of WebP); 305 KB after the M10 art.
+`.pck` 188 → 208 KB (PNG instead of WebP); 305 KB after the M10 art; 1.9 MB with audio (1.6 MB brotli; QOA barely compresses).
 
 ## Game needs
 
@@ -16,8 +17,9 @@ Custom Godot 4.7.2 web export templates with only the engine parts the game uses
 - `Tween`, `JSON`, `FileAccess`, GDScript
 - One TTF font (Silkscreen, ASCII only), dynamic via FreeType
 - Lossless PNG sprites
+- Audio: `AudioStreamPlayer`, `AudioStreamWAV` (QOA, core; no Ogg/MP3 modules), buses created via `AudioServer`; `JavaScriptBridge` callback for `visibilitychange`
 
-Not needed: 3D, physics (2D and 3D), navigation, XR, audio formats, video, networking, advanced GUI (dialogs, `RichTextLabel`, `Tree`, …), SVG/JPG at runtime, MSDF fonts, WOFF2.
+Not needed: 3D, physics (2D and 3D), navigation, XR, audio codec modules, video, networking, advanced GUI (dialogs, `RichTextLabel`, `Tree`, …), SVG/JPG at runtime, MSDF fonts, WOFF2.
 
 ## Gotchas (from engine source)
 
@@ -25,7 +27,7 @@ Not needed: 3D, physics (2D and 3D), navigation, XR, audio formats, video, netwo
 - "Detect from Project" always keeps the advanced text server (its class list contains `CanvasItem`), so the switch to the fallback text server is manual. Biggest single saving (ICU data, HarfBuzz).
 - Profile editor: "dynamic fonts" (FreeType) depends on the advanced text server, so disabling the advanced one can switch FreeType off too. Keep `module_freetype_enabled`: the fallback text server needs it for the TTF.
 - Default theme icons are SVG-generated; with the svg module off they're blank. The game's theme covers everything it shows.
-- `JavaScriptBridge` exists only with `javascript_eval` (default on); M11 Poki needs it.
+- `JavaScriptBridge` exists only with `javascript_eval` (default on); M12 Poki needs it.
 - Templates must match the editor version exactly: `~/work/source/godot` is at `4.7.2-stable`.
 - Emscripten: 4.0.11 (what 4.7.2's CI uses; the minimum is 4.0.0). The docs' "6.0.1+" is for the newer engine version.
 

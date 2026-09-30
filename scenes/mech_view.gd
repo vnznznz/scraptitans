@@ -13,6 +13,7 @@ const SHOTS := [
 const SHOT_SPEED := [320.0, 280.0, 480.0, 170.0]
 const BURST := 3
 const BURST_GAP := 0.07
+const SHOT_SOUNDS: Array[StringName] = [&"shot_pipe", &"shot_bolt", &"shot_burst", &"shot_rocket", &"shot_beam"]
 
 static var _rig: Dictionary
 
@@ -122,6 +123,7 @@ func fire(target: Vector2) -> void:
 	var arms := int(_shown.get("arms", 0))
 	var from := position + muzzle()
 	_flash(arms)
+	Sound.play(SHOT_SOUNDS[mini(arms, SHOT_SOUNDS.size() - 1)])
 	match arms:
 		2:
 			for i in BURST:
@@ -147,10 +149,11 @@ func _flash(arms: int) -> void:
 	var arm: Sprite2D = _sprites.get("arms")
 	if arm:
 		arm.position.x = -1.0
-	get_tree().create_timer(0.06).timeout.connect(func() -> void:
-		if is_instance_valid(_muzzle):
-			_muzzle.visible = false
-		if is_instance_valid(arm):
+	var tw := create_tween()
+	tw.tween_interval(0.06)
+	tw.tween_callback(func() -> void:
+		_muzzle.visible = false
+		if arm:
 			arm.position.x = 0.0)
 
 
@@ -185,6 +188,7 @@ func _rocket(from: Vector2, target: Vector2) -> void:
 		rocket.rotation = (p - rocket.position).angle()
 		rocket.position = p, 0.0, 1.0, from.distance_to(target) / SHOT_SPEED[3])
 	tw.tween_callback(func() -> void:
+		Sound.play(&"rocket_hit")
 		Fx.explosion(parent, target)
 		Fx.detach(trail)
 		rocket.queue_free())
@@ -219,6 +223,7 @@ func hit() -> void:
 
 
 func pop() -> void:
+	Sound.play(&"mech_death")
 	var parent := get_parent()
 	Fx.explosion(parent, position + chest(), true)
 	Fx.debris(parent, position + chest(), 8)

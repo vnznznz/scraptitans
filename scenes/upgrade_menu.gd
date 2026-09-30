@@ -168,6 +168,7 @@ func _add_row(r: Dictionary) -> void:
 	buy.icon = preload("res://art/ui/credits.png")
 	buy.custom_minimum_size = Vector2(104, 44)
 	buy.mouse_filter = MOUSE_FILTER_PASS
+	buy.set_meta(&"silent", true)
 	buy.pressed.connect(_on_buy.bind(r.id))
 	Price.setup(buy, Flyers.Kind.CREDITS)
 	h.add_child(buy)
@@ -178,6 +179,8 @@ func _on_buy(id: String) -> void:
 	var cost := GameState.upgrade_cost(id)
 	if GameState.buy_upgrade(id):
 		Flyers.pay(Flyers.Kind.CREDITS, _row_nodes[id][3], cost)
+		var kind: String = Data.upgrade_row(id).get("kind", "")
+		Sound.play(&"unlock_line" if id == "lines" else &"buy_tier" if kind in ["tier", "final"] else &"buy_upgrade")
 
 
 func _refresh() -> void:

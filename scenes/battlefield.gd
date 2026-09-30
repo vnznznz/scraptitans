@@ -29,6 +29,9 @@ const MECH_FIRE := Vector2(0.8, 1.6)
 const ENEMY_FIRE := Vector2(1.2, 2.4)
 const INCOME_DISCS_PER_S := 10.0
 const MUSHROOM_FRAMES := 8
+const BOUNTY_DELAY := 0.3
+const ARRIVE_DELAY := 0.6
+const ALARM_EVERY := 2.9
 
 var _world: Node2D
 var _mechs: Node2D
@@ -215,9 +218,11 @@ func _enemy_center(e: Sprite2D) -> Vector2:
 
 
 func _enemy_fire(e: Sprite2D) -> void:
-	var view: MechView = _views.values().pick_random()
+	var id: int = _views.keys().pick_random()
+	var view: MechView = _views[id]
 	if view.walking:
 		return
+	Sound.play(StringName("enemy_shot_" + e.get_meta("sprite")))
 	var bullet := Sprite2D.new()
 	bullet.texture = load("res://art/fx/enemy_shot_%s.png" % e.get_meta("sprite"))
 	bullet.position = _enemy_center(e) - Vector2(e.texture.get_width() / 2.0, 0)
@@ -227,8 +232,9 @@ func _enemy_fire(e: Sprite2D) -> void:
 	var tw := bullet.create_tween()
 	tw.tween_property(bullet, "position", target, bullet.position.distance_to(target) / 260.0)
 	tw.tween_callback(func() -> void:
-		if is_instance_valid(view):
-			view.hit()
+		var hit: MechView = _views.get(id)
+		if hit:
+			hit.hit()
 		Fx.hit(_mechs, target, Pal.PINK)
 		bullet.queue_free())
 
@@ -268,7 +274,9 @@ func _show_wave(walk_in: bool) -> void:
 			e.create_tween().tween_property(e, "position:x", x, ENEMY_WALK_IN / maxf(GameState.time_scale, 1.0)) \
 					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_enemy_count = n
-	if not walk_in:
+	if walk_in:
+		get_tree().create_timer(ARRIVE_DELAY).timeout.connect(Sound.play.bind(&"wave_arrive"))
+	else:
 		var alive := GameState.wave_alive()
 		for i in n - alive:
 			_enemies[i].visible = false
@@ -278,6 +286,7 @@ func _show_wave(walk_in: bool) -> void:
 func _on_tap(at: Vector2) -> void:
 	if GameState.tap_wave() <= 0.0:
 		return
+	Sound.play(&"field_tap")
 	var target: Sprite2D = null
 	at -= _world.position
 	for e in _enemies:
@@ -296,6 +305,7 @@ func _pop_enemy(i: int) -> void:
 	if not e.visible:
 		return
 	var big := e.texture.get_height() > 30
+	Sound.play(&"enemy_pop_big" if big else &"enemy_pop")
 	Fx.explosion(_mechs, _enemy_center(e), big)
 	Fx.debris(_mechs, _enemy_center(e), 10 if big else 5)
 	e.visible = false
@@ -315,6 +325,8 @@ func _on_wave_cleared(bounty: float) -> void:
 	Fx.explosion(_mechs, center + Vector2(-18, 10), true, 0.5)
 	Fx.puff(_mechs, center, 2.5, Pal.ORANGE)
 	Fx.sparks(_mechs, center)
+	Sound.play(&"wave_clear")
+	get_tree().create_timer(BOUNTY_DELAY).timeout.connect(Sound.play.bind(&"bounty"))
 	Flyers.spawn(Flyers.Kind.CREDITS, _world.global_position + center, bounty, clampi(8 + GameState.wave, 8, 20))
 	shake()
 	_show_wave(true)
@@ -331,9 +343,15 @@ func fire_missile(id: int) -> void:
 	var view: MechView = _views.get(id)
 	if view == null:
 		return
+	var alarm_t := 0.0
 	while is_instance_valid(view) and view.walking:
+		alarm_t -= get_process_delta_time()
+		if alarm_t <= 0.0:
+			Sound.play(&"nuke_alarm")
+			alarm_t = ALARM_EVERY
 		await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
+	Sound.play(&"nuke_launch")
 	var missile := Sprite2D.new()
 	missile.texture = preload("res://art/fx/missile.png")
 	var start := view.position + view.muzzle() + Vector2(0, missile.texture.get_height() / 2.0)

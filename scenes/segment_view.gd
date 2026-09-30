@@ -89,6 +89,7 @@ func _ready() -> void:
 	_build.position = Vector2(4, MACHINE_Y + 4)
 	_build.size = Vector2(72, 44)
 	_build.mouse_filter = MOUSE_FILTER_PASS
+	_build.set_meta(&"silent", true)
 	_build.pressed.connect(_on_build)
 	add_child(_build)
 
@@ -128,6 +129,7 @@ func _ready() -> void:
 	_apply.size = Vector2(WIDTH + 2, NAME_H)
 	_apply.mouse_filter = MOUSE_FILTER_PASS
 	Price.setup(_apply, Flyers.Kind.SCRAP, true)
+	_apply.set_meta(&"silent", true)
 	_apply.pressed.connect(_on_apply)
 	add_child(_apply)
 	_chunks_seen = _state().chunks
@@ -217,6 +219,7 @@ func _consume(s: SegmentState) -> void:
 	var head := global_position + TOOL_HEAD
 	if _scroll == null or _scroll.get_global_rect().has_point(head):
 		Flyers.spend(Flyers.Kind.SCRAP, head, s.scrap_cost())
+		Sound.play(StringName("assemble_" + s.type_id))
 
 
 func _state() -> SegmentState:
@@ -227,14 +230,17 @@ func _on_build() -> void:
 	var cost := GameState.build_cost(line_index, seg_index)
 	if GameState.build_segment(line_index, seg_index):
 		Flyers.pay(Flyers.Kind.SCRAP, _build, cost)
+		Sound.play(&"build")
 
 
 func _on_apply() -> void:
 	var cost := GameState.tier_apply_cost(line_index, seg_index) if GameState.can_apply_tier(line_index, seg_index) else 0.0
 	if GameState.apply_tier(line_index, seg_index):
 		Flyers.pay(Flyers.Kind.SCRAP, _apply, cost)
+		Sound.play(&"fit")
 
 
 func _on_tap(_at: Vector2) -> void:
 	if GameState.tap_segment(line_index, seg_index):
 		_bump_t = 0.06
+		Sound.play(&"station_tap")

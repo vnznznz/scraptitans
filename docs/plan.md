@@ -250,13 +250,36 @@ Test:
 - Station types are told apart without their labels.
 - In a full field (24 mechs) a hurt mech and the Nuclear Mech are spotted at a glance.
 
-## M11 · Poki
+## M11 · Audio
+
+Build: ambience that carries the factory and the battlefield, sounds for every action, the Ending track now and then. Design and assignment in [audio.md](audio.md).
+
+- [x] 64 sounds from the pack + Ending in `audio/` (mono, 32 kHz; beds 22.05 kHz, looped), QOA import
+- [x] `data/audio.json`: sounds (files, volume, per-file offsets, pitch jitter, cooldown, voices, group, area), beds, music schedule, areas, settings defaults
+- [x] `Sound` autoload: buses, player pool, limits, beds driven by factory activity and drawn mechs, area presence (ready for one scroll pane), music schedule with fades and ducking, settings file, hidden-tab mute, `ad_mute`
+- [x] Hooks: pile, yard, stations, assembly per type, deploy, stall, pause, shots per Arms tier, enemy fire per type, pops, deaths, wave clear + bounty, wave arrival, coins, buys, menus, clicks, nuke sequence, run card
+- [x] HUD mute toggle, settings volume rows (MUSIC / SOUNDS / AMBIENCE)
+- [x] Build profile: audio classes on; templates rebuilt; smoke passes (incl. `audio`)
+- [x] `--scenario audio`
+- [x] Fix on the way: 45 art textures were imported as WebP (editor open during the M10 reimport) → broke the stripped template; reimported as PNG
+
+Test (browser + iPhone):
+- First tap starts the sound; mute toggle works and survives a reload
+- 10 min of play: factory and battlefield audible as ambience, nothing grates; taps feel crisp
+- A full field (DBG +50 mechs) sounds like a steady battle, not a wall of noise
+- Pausing all lines quiets the factory hum
+- Ending plays ~90 s after the first mech, fades in and out, returns minutes later; the run card plays it, START AGAIN stops it
+- Tab switch: silence while hidden, sound back on return
+- Volume rows change their bus; 0 silences it
+- iPhone: ring/silent switch off, or Web Audio stays silent
+
+## M12 · Poki
 
 Build: Poki integration.
 
 - [ ] `html/head_include` loads the Poki SDK; `Poki` autoload wraps it via `JavaScriptBridge`, no-op off web
 - [ ] `gameLoadingFinished`; `gameplayStart` on first tap and when menus close, `gameplayStop` while the menu or end card is open
-- [ ] `commercialBreak` before Start again; game paused during ads
+- [ ] `commercialBreak` before Start again; game paused and `Sound.ad_mute` during ads
 - [ ] Rewarded: 2× payout for 5 min (HUD timer, saved), fill all work bars
 
 Test:
@@ -265,4 +288,4 @@ Test:
 
 ## Not in the prototype
 
-Audio and a full tutorial (neither is in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.
+A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.

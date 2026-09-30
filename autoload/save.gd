@@ -52,6 +52,7 @@ func load_game() -> bool:
 
 
 func reset_run() -> void:
+	Sound.stop_music()
 	GameState.new_game()
 	save_game()
 	get_tree().reload_current_scene.call_deferred()

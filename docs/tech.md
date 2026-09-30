@@ -28,12 +28,13 @@
 - Intro guide (`scenes/intro_guide.gd`, above `Layout`, no input): yellow pulsing label + bobbing arrow, step derived from state: short on scrap for the next build / a station stalled NO_SCRAP → pile; affordable → that station's Build button; all built → first station at or past the mech (past it once assembling / part fitted) whose bar isn't full, no arrow when none
 - After the reveal: nothing bought yet (`levels` empty) and an upgrade affordable → `UPGRADE AVAILABLE` on UPGRADES, then `BUY IT` on the cheapest affordable row (`UpgradeMenu.first_affordable()`); else mechs on the field and `field_taps` < 3 → `TAP THE FIELD TO HIT THE WAVE` pointing down at the enemies (`Battlefield.hint_anchor()`); otherwise hidden
 - Progressive reveal: UPGRADES, UNLOCK LINE, YARD WORKER (+ yard slots), line crew bars hidden until `GameState.revealed()` (`mechs_built > 0`); pause strips hidden until `stalled_once` (first NO_SCRAP stall, saved)
-- HUD columns (`Hud.COLUMN_W` 105 from x 6, rate under the icon): scrap / mechs built + `mechs_per_min` (icon bumps on deploy) / credits, gear right (44)
+- HUD columns (`Hud.COLUMN_W` 91 from x 6, rate under the icon; widest rate `+99.9K/S` 90 px): scrap / mechs built + `mechs_per_min` (icon bumps on deploy) / credits; mute toggle + gear right (40 each, flat)
 - Window/tab title `(N) Scrap Titans` while N upgrades are affordable (after reveal, before the nuke); `DisplayServer.window_set_title` = `document.title` on web (inside Poki's iframe it won't reach the tab)
 - Upgrade menu: one list of unmaxed rows, re-sorted every frame by cost; maxed rows hidden, listed in a `MAXED` footer (tier rows by their part name); no MAX text anywhere; footer strip (`Footer` Panel, `FOOTER_H` 54, blocks the pile) under CLOSE, list ends 6 px above it
 - Menu rows: title / effect, info button toggles the `desc` label. Tier row: next part name / `LIFE a » b S`, `PAY a » b/S` or `DMG a » b` (from its stat, `0` before a first unlock); final row: `ENDS THE WAR` / `NEEDS ALL PARTS`; lines row `LINE n`; other rows `a » b` + level pips (3 px, `Pips` in `upgrade_menu.gd`)
 - Line: crew bar on top (26 px, after reveal): `CREW n/slots` left (dimmed at 0 slots), hire button (worker icon + cost, 120 px) flush right, hidden when full; pause strip (24 px, flat button from under the bar to the belt: scrap icon, meter = line scrap use / gross scrap gain, ⏸/▶) left of the stations; bar + strip drawn as one L frame (`_draw_frame`: SLATE_D fill, SLATE top/left light, INK inner edge); segments centered by count right of the strip (full width while it's hidden; step 84, 4 columns fit), re-laid out when a segment is appended, the strip or the bar appears; 115 px tall (89 before reveal); paused → meter dimmed, machines dimmed; meter red while a station of the line is out of scrap
 - Segment rows (89 px): header 25 (type name, condensed, + stat icon: `life` / `credits` / `damage` by the tier's stat; PLATING spills 1 px into the gutter), replaced by the ⬆ fit button (82 px, scrap price) while a higher tier is unlocked / machine (tap; work bar overlays its top beam, the line's crew stands inside behind the mech, `LineState.station_workers`) / belt
+- Settings overlay (⚙, `scenes/settings_overlay.gd`): modes SETTINGS (volume rows, CREDITS, RESET RUN, CLOSE) / CONFIRM (YES, RESET, CANCEL) / CREDITS (`CREDITS` const: gold headings, condensed lines, BACK); URLs are plain text, no links out of the game (Poki)
 - DBG toggle top-left under the wave bar (hidden while the menu is open), panel opens downward: time scale, +scrap/credits, kill wave, +50 mechs
 - Positions hardcoded in base pixels
 
@@ -41,7 +42,8 @@
 - `Data`: loads `data/*.json`
 - `GameState`: sim; fixed tick 1/30 s × `time_scale`; frame delta clamped to 0.25 s (no offline progress); `advance(s)` for instrumentation
 - `Save`: `user://save.json`, `version` 1; every 5 s, after purchases, on focus out/close
-- `Instrument`: no-op unless `--scenario` user arg
+- `Instrument`: no-op unless `--scenario` user arg; `Sound.shutdown()` + 0.1 s before quitting (streams still playing at exit leak)
+- `Sound`: audio (see Audio)
 
 ## Sim
 - Naming: code "segment" = player-facing "station" (all UI text and the pitch say station)
@@ -72,6 +74,20 @@
 - Upgrade cost `base_cost·growth^level`, growth = row `cost_growth` or `upgrade_cost_growth`; `lines` stat > line count → append `LineState`, emit `line_added`
 - Nuke: a deployed mech with a `final` part sets `run_over` (sim stops, saved) and emits `nuke_launched`
 - Signals: `purchased` (also pause, nuke; triggers save), `mech_deployed`, `mech_income`, `mech_died`, `wave_cleared`, `enemy_killed`, `line_added`, `segment_added`, `nuke_launched`
+
+## Audio
+- Design, rules, sound assignment: [audio.md](audio.md); tunables `data/audio.json` (`Data.audio`)
+- Files: `audio/sfx/<pack file name>.wav` (converted with ffmpeg from `assets/__import`: mono 32 kHz, beds 22.05 kHz), `audio/music/ending.wav` (mono 32 kHz); `importer_defaults/wav` = QOA + mono; beds `edit/loop_mode=2` (Forward) in their `.import`
+- Buses `Music`, `Sfx`, `Ambience` → `Master`, created in code (no `default_bus_layout.tres`, `AudioBusLayout` stays out of the build)
+- `Sound.play(id, gain_db)`: dropped inside `cooldown`, at `voices`, over its `group`'s plays/s, or with the 16-player pool full; random file without direct repeat, `pitch` jitter × `pitch_base`, `volume_db` + `file_db[file]` + area gain; a player counts as busy until stream length / pitch (own clock, not `playing`)
+- Areas: `Sound.presence[area]` 0..1 set by Main each frame from `Sound.visible_share(control)` (share of its height inside the viewport and every `ScrollContainer` above it): `field` = Battlefield, `factory` = Content, `yard` = Scrapyard; gain lerps `hidden_db` → 0 dB; applies to beds and sounds with an `area`. A single scroll pane later only needs these three controls
+- Beds (bus Ambience, looped, started at boot): gain `clamp(drive / full)` smoothed over `smooth` s × area gain; `Sound.drives` set by Main: `assembly_rate` (assemblies in the last 4 s real time / 4: pausing or starving quiets the factory), `mechs` (drawn mechs)
+- Music: armed `first_after` s after the reveal, then `gap` after each play; fade in/out on its own clock (playback position isn't reliable for web samples); ducks `Ambience`; `stop_music` on nuke launch and `Save.reset_run` (next run waits `first_after` again); run card plays it after 1.5 s (tween on the card, so a reload cancels it)
+- Settings `user://settings.json` (`muted`, `music`/`sfx`/`ambience` steps 0–5), not in the run save; step → `linear_to_db((step / 5)²)`, 0 mutes the bus; HUD mute = `Master` mute; settings rows `-` pips `+`
+- Buttons: `Sound.hook_button` via Main's node hook plays `click`, unless meta `silent` (buttons with their own sound: build, fit, hire, buy rows, unlock line, UPGRADES, pause, gear, settings close)
+- On screen only: assembly when the tool head is inside the scroll pane (same check as the scrap disc), `mech_exit` when > half the line is visible; shots only from drawn mechs
+- Nuke alarm repeats every 2.9 s while the Nuclear Mech walks in (the file doesn't loop)
+- Web: sample playback (Godot default for web): no bus effects; music registered as a sample at boot (`register_stream_as_sample`, decode hitch), the rest on first play; hidden tab → `Master` muted via `visibilitychange` (`JavaScriptBridge`), since Web Audio loops play on without frames; audio starts on the first input; `Sound.ad_mute(on)` for Poki ads
 
 ## Data
 - Tunables only in `data/*.json`: `economy.json` (global stat bases, line worker cost), `segments.json` (`line_slots`, `types` → desc, tiers array with `bar_size`), `enemies.json` (HP/bounty curves, wave mix/growth/variants, `types`: count, weight, sprite, flying), `upgrades.json` (`rows`: id, name, desc, stat, delta, max_level, base_cost, optional `cost_growth`, unit `s`/`x`/`%`; rows on an optional type's stat hidden until it unlocks)
@@ -128,7 +144,8 @@
 
 ## Commands
 - Import: `godot --headless --path . --import`
-- Scenario: `godot --headless --path . -- --scenario <m0..m9|intro|ui|art>`; exit code 1 on failure (2 on unknown scenario or script parse error); `Instrument.click` scrolls the target into view first; windowed `m9 --shots <dir>` also saves tall-phone (360×780) and 2× (720×1280) shots
+- Scenario: `godot --headless --path . -- --scenario <m0..m9|intro|ui|art|audio>`; exit code 1 on failure (2 on unknown scenario or script parse error); `Instrument.click` scrolls the target into view first; windowed `m9 --shots <dir>` also saves tall-phone (360×780) and 2× (720×1280) shots
+- Audio check: `--scenario audio` (windowed `--shots` for `audio_hud`, `audio_settings`): files load, beds loop, code and `audio.json` use the same ids (editor only: exported scripts are binary), taps/buys/menu sounds, mute + volume steps + settings file, area gain, busy field (3 lines, 50 mechs, ×10) within the field budget and voice caps, beds follow drives, music schedule/duck/fades, reset run stops music
 - UI check: `--scenario ui` (windowed `--shots` for `ui_lines`, `ui_menu`, `ui_menu_end`): caps centered in the font line box, every visible price group centered in its button (±1 px), bottom bar buttons, menu to the bottom, footer, CLOSE clickable over the menu
 - Tuning: `godot --headless --path . -- --scenario tune [--profile <name>]`: bot runs (3 taps/s: pile while short on scrap or saving for a fit, else the emptiest station bar; builds, buys cheapest, fits tiers, pauses all lines while a fit isn't reachable in 60 s of net scrap but is within 30 s of gross). Profiles: `baseline`, `casual` (1.5 taps/s), `field` / `third` (all / ⅓ of taps on the battlefield after the reveal), `quit10` (no taps after 10 min), `no_arms` (never fits Arms, except the missile), `no_pause`. Prints a summary row per profile (nuke min, bounty share of credits, NO_SCRAP share, phases ≥ 10 s (stalls < 30 s apart merge), longest wait between buys, first fit, final wait before the missile, first regular row maxed, tap share of scrap / of station work); per-minute economy + timeline for baseline or the named profile; checks the M9 targets
 - Pause checks: pausing gets some L1 fit ≥ 60 s sooner than never pausing; never pausing ends within 10 % of baseline with no wait between buys > 150 s
@@ -137,14 +154,14 @@
 - Art: `uv run --with pillow python3 tools/gen_art.py`, then import
 - Art shots: `godot --path . -- --scenario art --shots <dir>` (windowed): full mixed-tier field at wave 27 with one hurt mech, 3 lines of high-tier stations, then the whole nuke sequence
 - Templates: `tools/build_templates.sh [web|smoke]` → `build/templates/`; scons in `~/work/source/godot` (`GODOT_SRC`, at `4.7.2-stable`); web via emsdk 4.0.11 in `~/work/source/emsdk` (`EMSDK_DIR`), ~25 min for both; smoke = Linux `template_debug` in a `fedora:43` podman container (no host g++), `x11=no wayland=no vulkan=no accesskit=no` (vulkan=no: link error without x11/wayland)
-- Template smoke: `tools/smoke_templates.sh [binary]` (default `build/templates/linux_smoke.x86_64`): "Linux smoke" preset (includes `tools/`) → `build/smoke/smoke.pck` next to the binary, runs m0–m9, intro, ui, art headless (templates refuse `--main-pack`)
+- Template smoke: `tools/smoke_templates.sh [binary]` (default `build/templates/linux_smoke.x86_64`): "Linux smoke" preset (includes `tools/`) → `build/smoke/smoke.pck` next to the binary, runs m0–m9, intro, ui, art, audio headless (templates refuse `--main-pack`); the templates have no regex module, so scenarios can't use `RegEx`
 - Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel; `build/.gdignore` keeps the editor from importing the exported PNGs
 - Deploy: `tools/deploy_web.sh` → release build, `lftp` FTPS mirror (`--delete`, temp file + rename per file, `index.html` put last) via `www161.your-server.de` to `https://distco.de/games/scraptitans/`; credentials in gitignored `tools/deploy.env` (`FTP_HOST/USER/PASS/DIR`, FTP user chrooted to the game folder, so `FTP_DIR=/`); `FTP_VERIFY_CERT=false` if the host cert doesn't match
 - Serve: `tools/serve_web.sh` → Caddy, `tls internal` (cert generated on the fly, untrusted: accept the browser warning), `https://localhost:8443`, `https://<lan-ip>:8443`, `Cache-Control: no-cache`; `LAN_IP` overrides detection
 
 ## Web templates
-- Web preset uses `build/templates/web_{debug,release}.zip` (not in git: run `tools/build_templates.sh` first); release wasm 12.9 MB (brotli 2.6 MB) vs official 39.5 MB (7.1 MB)
-- Profile `tools/web.gdbuild`: editor "Detect from Project" output minus `Script`, `ScrollBar` (kept to be safe) + fallback text server, advanced off, no brotli/graphite
+- Web preset uses `build/templates/web_{debug,release}.zip` (not in git: run `tools/build_templates.sh` first); release wasm 13.0 MB (brotli 2.67 MB) vs official 39.5 MB (7.1 MB); pck 1.9 MB (brotli 1.6 MB, mostly QOA audio)
+- Profile `tools/web.gdbuild`: editor "Detect from Project" output minus `Script`, `ScrollBar` (kept to be safe) + fallback text server, advanced off, no brotli/graphite; `AudioStream`, `AudioStreamPlayer` removed from `disabled_classes` by hand for audio (a disabled class disables its subclasses, `is_class_enabled` follows `super_type`)
 - Flags: `threads=no production=yes lto=full optimize=size_extra deprecated=no disable_advanced_gui=yes modules_enabled_by_default=no` + gdscript, freetype, text_server_fb
 - Textures: `lossless_compression/force_png` (default stores WebP, which would need the webp module); an editor opened before the setting keeps importing WebP until restarted → textures fail to load on web (scripts preloading them fail to compile). `export_web.sh` fails on WebP in the pack; fix: delete the WebP `.ctex` + `.md5` in `.godot/imported`, reimport
 - No svg module: default theme icons blank (game theme covers all used)
