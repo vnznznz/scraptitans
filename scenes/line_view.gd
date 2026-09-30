@@ -24,8 +24,8 @@ var _hire: Button
 var _crew: Label
 var _pause_icon: TextureRect
 var _usage: ColorRect
-var _strip := false
-var _bar := false
+var _strip_k := 0.0
+var _bar_k := 0.0
 var _top := 0.0
 var _segments: Array[SegmentView] = []
 var _mechs: Node2D
@@ -86,9 +86,8 @@ func _ready() -> void:
 	add_child(_mechs)
 	_fx = Node2D.new()
 	add_child(_fx)
-	_strip = GameState.stalled_once
-	_pause.visible = _strip
-	_bar = GameState.revealed()
+	_strip_k = Reveal.step(0.0, GameState.stalled_once, INF)
+	_bar_k = Reveal.step(0.0, GameState.shown("crew"), INF)
 	_sync_segments()
 	resized.connect(_layout)
 
@@ -119,7 +118,8 @@ func _sync_segments() -> void:
 
 
 func _layout() -> void:
-	_top = CREW_H if _bar else 0.0
+	_top = roundf(CREW_H * Reveal.eased(_bar_k))
+	var bar_y := _top - CREW_H
 	var right := size.x
 	for i in range(_segments.size() - 1, -1, -1):
 		var seg := _segments[i]
@@ -129,12 +129,14 @@ func _layout() -> void:
 		seg.place_header(x - _seg_x(i))
 		right = x - HEADER_GAP
 	custom_minimum_size = Vector2(0, _top + SegmentView.BELT_Y + 8.0)
-	_pause.position = Vector2(0, _top)
+	_pause.visible = _strip_k > 0.0
+	_pause.position = Vector2(_left() - PAUSE_W, _top)
 	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
-	_crew.position = Vector2(_left() + 6.0, 0)
+	_crew.position = Vector2(_left() + 6.0, bar_y)
 	_crew.size = Vector2(maxf(size.x - HIRE_W - _left() - 6.0, 0.0), CREW_H - 1.0)
-	_hire.position = Vector2(size.x - HIRE_W, 1)
+	_hire.position = Vector2(size.x - HIRE_W, bar_y + 1.0)
 	_hire.size = Vector2(HIRE_W, CREW_H - 1.0)
+	clip_contents = Reveal.moving(_strip_k) or Reveal.moving(_bar_k)
 	queue_redraw()
 
 
@@ -200,20 +202,18 @@ func _process(delta: float) -> void:
 		return
 	if _segments.size() != _line().segments.size():
 		_sync_segments()
-	if _strip != GameState.stalled_once:
-		_strip = GameState.stalled_once
-		_pause.visible = _strip
+	var strip := Reveal.step(_strip_k, GameState.stalled_once, delta)
+	var bar := Reveal.step(_bar_k, GameState.shown("crew"), delta)
+	if strip != _strip_k or bar != _bar_k:
+		_strip_k = strip
+		_bar_k = bar
 		_layout()
-	if _bar != GameState.revealed():
-		_bar = GameState.revealed()
-		_layout()
-		queue_redraw()
 	var line := _line()
 	var slots := line.worker_slots()
 	_crew.text = "CREW %d/%d" % [line.workers, slots]
-	_crew.visible = _bar
+	_crew.visible = _bar_k > 0.0
 	_crew.modulate.a = 1.0 if slots > 0 else 0.5
-	_hire.visible = _bar and line.workers < slots
+	_hire.visible = _bar_k > 0.0 and line.workers < slots
 	if _hire.visible:
 		var cost := GameState.worker_cost(line_index)
 		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
@@ -274,21 +274,22 @@ func _draw() -> void:
 
 func _draw_frame() -> void:
 	var bottom := _top + SegmentView.BELT_Y + 8.0
-	if _bar:
-		draw_bar(self, size.x, _left())
-	if _strip:
-		draw_rect(Rect2(0, 0, PAUSE_W, bottom), L_FILL)
-		draw_rect(Rect2(0, 0, 1, bottom), L_LIGHT)
-		draw_rect(Rect2(PAUSE_W - 1.0, _top, 1, bottom - _top), L_EDGE)
-		draw_rect(Rect2(0, bottom - 1.0, PAUSE_W, 1), L_EDGE)
-		if not _bar:
-			draw_rect(Rect2(0, 0, PAUSE_W, 1), L_LIGHT)
+	if _bar_k > 0.0:
+		draw_bar(self, size.x, _left(), _top - CREW_H)
+	if _strip_k > 0.0:
+		var x := _left() - PAUSE_W
+		draw_rect(Rect2(x, 0, PAUSE_W, bottom), L_FILL)
+		draw_rect(Rect2(x, 0, 1, bottom), L_LIGHT)
+		draw_rect(Rect2(x + PAUSE_W - 1.0, _top, 1, bottom - _top), L_EDGE)
+		draw_rect(Rect2(x, bottom - 1.0, PAUSE_W, 1), L_EDGE)
+		if _bar_k <= 0.0:
+			draw_rect(Rect2(x, 0, PAUSE_W, 1), L_LIGHT)
 
 
-static func draw_bar(ci: CanvasItem, width: float, left: float) -> void:
-	ci.draw_rect(Rect2(0, 0, width, CREW_H), L_FILL)
-	ci.draw_rect(Rect2(0, 0, width, 1), L_LIGHT)
-	ci.draw_rect(Rect2(left, CREW_H - 1.0, width - left, 1), L_EDGE)
+static func draw_bar(ci: CanvasItem, width: float, left: float, y := 0.0) -> void:
+	ci.draw_rect(Rect2(0, y, width, CREW_H), L_FILL)
+	ci.draw_rect(Rect2(0, y, width, 1), L_LIGHT)
+	ci.draw_rect(Rect2(left, y + CREW_H - 1.0, width - left, 1), L_EDGE)
 
 
 func _exit(view: MechView) -> void:
@@ -304,7 +305,7 @@ func _line() -> LineState:
 
 
 func _left() -> float:
-	return PAUSE_W if _strip else 0.0
+	return roundf(PAUSE_W * Reveal.eased(_strip_k))
 
 
 func _seg_x(i: int) -> float:

@@ -14,6 +14,7 @@ const TICK := 1.0 / 30.0
 const MAX_FRAME_DELTA := 0.25
 const RATE_WINDOW := 5
 const MECH_WINDOW := 60
+const REVEALS := ["factory", "crew", "yard_crew", "upgrades", "unlock"]
 
 var scrap := 0.0
 var credits := 0.0
@@ -30,6 +31,7 @@ var yard_t := 0.0
 var levels := {}
 var run_over := false
 var stalled_once := false
+var seen := {}
 var field_taps := 0
 var credits_rate := 0.0
 var scrap_rate := 0.0
@@ -59,6 +61,7 @@ var _wave_listed := -1
 func _process(delta: float) -> void:
 	if run_over:
 		return
+	_update_seen()
 	_acc += minf(delta, MAX_FRAME_DELTA) * time_scale
 	while _acc >= TICK:
 		_acc -= TICK
@@ -70,6 +73,7 @@ func advance(seconds: float) -> void:
 		if run_over:
 			return
 		_step(TICK)
+	_update_seen()
 
 
 func new_game() -> void:
@@ -85,6 +89,7 @@ func new_game() -> void:
 	credits_earned = 0.0
 	run_over = false
 	stalled_once = false
+	seen = {}
 	field_taps = 0
 	wave = 0
 	wave_hp = wave_max_hp()
@@ -161,6 +166,27 @@ func starved() -> bool:
 
 func revealed() -> bool:
 	return mechs_built > 0
+
+
+func shown(key: String) -> bool:
+	return seen.has(key)
+
+
+func _update_seen() -> void:
+	if lines.is_empty():
+		return
+	if not seen.has("factory") and (scrap >= build_cost(0, 0) or lines[0].segments.any(func(s: SegmentState) -> bool: return s.built)):
+		seen.factory = true
+	if not revealed():
+		return
+	if not seen.has("crew") and credits >= worker_cost(0):
+		seen.crew = true
+	if not seen.has("yard_crew") and credits >= yard_worker_cost():
+		seen.yard_crew = true
+	if not seen.has("upgrades") and affordable_upgrades() > 0:
+		seen.upgrades = true
+	if not seen.has("unlock") and credits >= upgrade_cost("lines"):
+		seen.unlock = true
 
 
 func aging() -> float:
@@ -370,6 +396,7 @@ func to_dict() -> Dictionary:
 		"levels": levels.duplicate(),
 		"run_over": run_over,
 		"stalled_once": stalled_once,
+		"seen": seen.keys(),
 		"field_taps": field_taps,
 	}
 
@@ -398,6 +425,9 @@ func from_dict(d: Dictionary) -> void:
 	yard_t = float(d.get("yard_t", 0.0))
 	run_over = d.get("run_over", false)
 	stalled_once = d.get("stalled_once", false)
+	seen = {}
+	for key: String in d.get("seen", REVEALS if mechs_built > 0 else []):
+		seen[key] = true
 	field_taps = int(d.get("field_taps", 0))
 	_reset_rates()
 

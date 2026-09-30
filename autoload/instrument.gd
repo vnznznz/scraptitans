@@ -24,6 +24,7 @@ func _ready() -> void:
 		get_tree().quit(2)
 		return
 	print("SCENARIO ", scenario)
+	Reveal.instant = true
 	await runner.call(scenario)
 	print("RESULT %s: %s" % [scenario, "FAIL (%d)" % failures if failures else "PASS"])
 	Sound.shutdown()

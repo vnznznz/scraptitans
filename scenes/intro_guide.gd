@@ -108,6 +108,6 @@ func _hint() -> Array:
 		var buy := menu.first_affordable()
 		if buy:
 			return ["BUY IT", buy, false]
-	if GameState.field_taps < FIELD_TAPS and not GameState.field.is_empty() and battlefield and not (menu and menu.visible):
+	if GameState.field_taps < FIELD_TAPS and not GameState.field.is_empty() and battlefield and battlefield.size.y >= Battlefield.HEIGHT and not (menu and menu.visible):
 		return ["TAP THE FIELD TO HIT THE WAVE", battlefield.hint_anchor(), true]
 	return []

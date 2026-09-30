@@ -20,7 +20,7 @@ var _pile: TextureRect
 var _tap: TapArea
 var _hire: Button
 var _crew: Label
-var _bar := false
+var _bar_k := 0.0
 var _top := 0.0
 var _workers: Array[TextureRect] = []
 var _chunks_seen := 0
@@ -69,7 +69,7 @@ func _ready() -> void:
 	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
 	_chunks_seen = GameState.yard_chunks
-	_bar = GameState.revealed()
+	_bar_k = Reveal.step(0.0, GameState.shown("yard_crew"), INF)
 	resized.connect(_layout)
 	_layout()
 
@@ -88,13 +88,15 @@ func collapse() -> void:
 
 
 func _layout() -> void:
-	_top = LineView.CREW_H if _bar else 0.0
+	_top = roundf(LineView.CREW_H * Reveal.eased(_bar_k))
+	var bar_y := _top - LineView.CREW_H
 	custom_minimum_size.y = _top + BODY_H
 	_yard.position = Vector2(roundf(size.x / 2.0 - (PILE_POS.x + PILE_TEX.get_width() / 2.0)), _top)
-	_crew.position = Vector2(6, 0)
+	_crew.position = Vector2(6, bar_y)
 	_crew.size = Vector2(maxf(size.x - LineView.HIRE_W - 6.0, 0.0), LineView.CREW_H - 1.0)
-	_hire.position = Vector2(size.x - LineView.HIRE_W, 1)
+	_hire.position = Vector2(size.x - LineView.HIRE_W, bar_y + 1.0)
 	_hire.size = Vector2(LineView.HIRE_W, LineView.CREW_H - 1.0)
+	clip_contents = Reveal.moving(_bar_k)
 	queue_redraw()
 
 
@@ -102,8 +104,8 @@ func _draw() -> void:
 	draw_rect(Rect2(0, _top, size.x, BODY_H), FLOOR)
 	draw_rect(Rect2(0, _top + GROUND_Y, size.x, BODY_H - GROUND_Y), GROUND)
 	draw_rect(Rect2(0, _top + GROUND_Y, size.x, 1), GROUND_LIGHT)
-	if _bar and not _collapsed:
-		LineView.draw_bar(self, size.x, 0.0)
+	if _bar_k > 0.0 and not _collapsed:
+		LineView.draw_bar(self, size.x, 0.0, _top - LineView.CREW_H)
 
 
 func _process(delta: float) -> void:
@@ -124,8 +126,9 @@ func _process(delta: float) -> void:
 		_yard.add_child(w)
 		_yard.move_child(w, _pile.get_index())
 		_workers.append(w)
-	if _bar != GameState.revealed():
-		_bar = GameState.revealed()
+	var bar := Reveal.step(_bar_k, GameState.shown("yard_crew"), delta)
+	if bar != _bar_k:
+		_bar_k = bar
 		_layout()
 	var n := GameState.yard_workers
 	for i in _workers.size():
@@ -133,10 +136,10 @@ func _process(delta: float) -> void:
 	if GameState.yard_chunks != _chunks_seen and n > 0:
 		_dig((GameState.yard_chunks - 1) % n)
 	_chunks_seen = GameState.yard_chunks
-	_crew.visible = _bar
+	_crew.visible = _bar_k > 0.0
 	_crew.text = "YARD CREW %d/%d" % [n, slots]
 	var cost := GameState.yard_worker_cost()
-	_hire.visible = _bar and n < slots
+	_hire.visible = _bar_k > 0.0 and n < slots
 	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
 
 

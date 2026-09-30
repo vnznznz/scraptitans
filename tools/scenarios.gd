@@ -13,10 +13,9 @@ func m0() -> void:
 	var scroll: ScrollContainer = t.node("Scroll")
 	var content: Control = t.node("Content")
 	t.check(main.size == Vector2(360, 640), "viewport is 360x640 (got %s)" % main.size)
-	var field_h: float = t.node("Battlefield").size.y
-	t.check(t.node("Hud").size.y == 48 and field_h == 320.0, "hud 48, battlefield takes the spare height, capped at 2× (%d)" % field_h)
+	t.check(t.node("Hud").size.y == 48 and not t.node("Battlefield").visible, "hud 48, no battlefield before the first mech")
 	t.check(scroll.size.y >= content.get_combined_minimum_size().y and scroll.size.y == 592.0, "one scroll pane from the HUD to the screen bottom (%d px)" % scroll.size.y)
-	t.check(content.get_children().map(func(c: Node) -> String: return c.name) == ["Battlefield", "Lines", "Scrapyard"], "pane holds battlefield, lines, scrapyard")
+	t.check(content.get_children().map(func(c: Node) -> String: return c.name) == ["Battlefield", "Lines", "Scrapyard", "YardSpacer"], "pane holds battlefield, lines, scrapyard")
 	t.check(scroll.scroll_vertical == 0, "pane starts at the top")
 	t.check(ProjectSettings.get_setting("display/window/stretch/aspect") == "keep_width", "aspect keep_width")
 
@@ -247,7 +246,7 @@ func m3() -> void:
 	for i in 3:
 		await t.click(_build_button(line, i))
 	GameState.credits = 10000.0
-	GameState.mechs_built = 1
+	_reveal_all()
 	while GameState.lines[0].workers < 9:
 		await t.click(line.hire_button())
 	for i in 2:
@@ -292,7 +291,7 @@ func m4() -> void:
 	await _fresh()
 	var main := t.get_tree().current_scene
 	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
-	GameState.mechs_built = 1
+	_reveal_all()
 	await t.frames(1)
 	await t.click(main.get_node("%Upgrades"))
 	t.check(menu.visible, "UPGRADES opens the menu")
@@ -368,7 +367,7 @@ func m5() -> void:
 	var pause_rect: Rect2 = line.get_node("Pause").get_rect()
 	t.check(is_zero_approx(pause_rect.position.y) and pause_rect.end.y >= SegmentView.BELT_Y and pause_rect.end.x <= line.segment_view(0).position.x, "pause strip spans names to belt, left of the stations")
 
-	GameState.mechs_built = 1
+	_reveal_all()
 	await t.frames(1)
 	await t.click(main.get_node("%Upgrades"))
 	await t.frames(1)
@@ -550,7 +549,7 @@ func m7() -> void:
 		await t.click(_build_button(line, i))
 	for i in 3:
 		GameState.hire_worker(0)
-	GameState.mechs_built = 1
+	_reveal_all()
 	await t.frames(1)
 	await t.click(main.get_node("%Upgrades"))
 	for i in 4:
@@ -642,7 +641,11 @@ func m8() -> void:
 	GameState.advance(3.0)
 	await t.frames(1)
 	hidden.append(line.get_node("Crew"))
-	t.check(GameState.mechs_built == 1 and hidden.all(func(c: Control) -> bool: return c.visible), "first mech deployed: the buttons and crew row appear")
+	t.check(GameState.mechs_built == 1 and main.get_node("%Battlefield").visible and hidden.all(func(c: Control) -> bool: return not c.is_visible_in_tree()),
+			"first mech deployed: battlefield in, buying UI still hidden")
+	GameState.credits = 1000.0
+	await t.frames(2)
+	t.check(hidden.all(func(c: Control) -> bool: return c.is_visible_in_tree()), "credits for them: the buttons and crew row appear")
 
 	t.check(line.size.y < 200.0, "line takes %d px (M7: 238)" % line.size.y)
 	t.check(line.segment_view(0).find_child("Jump", false, false) == null and line.segment_view(0).find_child("Bottleneck", false, false) == null, "no jump button, no bottleneck box")
@@ -689,7 +692,7 @@ func m8() -> void:
 	await _fresh()
 	main = t.get_tree().current_scene
 	line = main.line_view(0)
-	GameState.mechs_built = 1
+	_reveal_all()
 	GameState.scrap = 45.0
 	for i in 3:
 		await t.click(_build_button(line, i))
@@ -818,7 +821,7 @@ func m8() -> void:
 	t.check(absf(pile_x.call() - yard_x.call()) < 2.0, "pile centered in the yard (%d vs %d)" % [pile_x.call(), yard_x.call()])
 	await t.shot("m8_yard_centered")
 	GameState.credits = 100.0
-	GameState.mechs_built = 1
+	_reveal_all()
 	await t.frames(2)
 	var hire: Button = scrapyard.get_node("HireYard")
 	t.check(absf(pile_x.call() - yard_x.call()) < 2.0 and scrapyard.get_node("Crew").visible and hire.visible
@@ -885,7 +888,7 @@ func m8() -> void:
 	t.check(not is_equal_approx(pile_sprite.position.x, rest_x), "pile vibrates on tap")
 	await t.wait(0.3)
 	t.check(is_equal_approx(pile_sprite.position.x, rest_x), "and settles back")
-	GameState.mechs_built = 1
+	_reveal_all()
 	GameState.yard_workers = 20
 	GameState.levels["yard_crew"] = 20
 	GameState.levels["interval"] = 10
@@ -931,7 +934,7 @@ func m8() -> void:
 		await t.click(_build_button(line, i + 1))
 	await t.wait(0.8)
 	t.check(flyers.get_child_count() == 0, "spend discs land and disappear")
-	GameState.mechs_built = 1
+	_reveal_all()
 	GameState.credits = 5000.0
 	await t.frames(2)
 	var hire_button: Button = line.hire_button()
@@ -1018,7 +1021,7 @@ func m9() -> void:
 	await t.frames(1)
 	t.check(not apply.visible and line.segment_view(0).get_node("Header").visible, "fitted: the name is back")
 
-	GameState.mechs_built = 1
+	_reveal_all()
 	GameState.credits = 1e9
 	GameState.buy_upgrade("tier_plating")
 	for i in 10:
@@ -1083,8 +1086,11 @@ func m9() -> void:
 		GameState.buy_upgrade("lines")
 		await t.frames(2)
 		heights.append(field.size.y)
-	t.check(heights[0] > heights[1] and heights[-1] == Battlefield.HEIGHT, "battlefield shrinks back to 160 as lines are added %s" % [heights])
-	t.check(unlock.get_index() == GameState.lines.size() + 1 and main.get_node("%Lines").get_child(-1).name == "UnlockGap1", "UNLOCK LINE sits below the lines, gaps above and below")
+	t.check(heights.all(func(h: float) -> bool: return h == Battlefield.HEIGHT), "battlefield stays 160 as lines are added %s" % [heights])
+	var slot := unlock.get_parent() as Control
+	t.check(slot.get_index() == GameState.lines.size() and slot == main.get_node("%Lines").get_child(-1)
+			and unlock.position.y == Main.UNLOCK_GAP and slot.size.y == unlock.size.y + 2.0 * Main.UNLOCK_GAP,
+			"UNLOCK LINE sits below the lines, gaps above and below")
 	var l0: LineView = main.line_view(0)
 	var l1: LineView = main.line_view(1)
 	t.check(is_equal_approx(l1.position.y, l0.get_rect().end.y), "lines stack with no gap (%d, %d)" % [l0.get_rect().end.y, l1.position.y])
@@ -1095,7 +1101,7 @@ func m9() -> void:
 	GameState.credits = 300.0
 	for i in 3:
 		await t.click(_build_button(main.line_view(0), i))
-	GameState.mechs_built = 1
+	_reveal_all()
 	GameState.debug_spawn_mechs(4)
 	await t.frames(30)
 	await t.shot("m9_revealed")
@@ -1412,7 +1418,7 @@ func ui() -> void:
 	var main := t.get_tree().current_scene
 	var font: Font = ThemeDB.get_project_theme().default_font
 	t.check(absf(font.get_ascent(16) - 5.0 - font.get_height(16) / 2.0) < 0.5, "caps centered in the line box (ascent %d, height %d)" % [font.get_ascent(16), font.get_height(16)])
-	GameState.mechs_built = 1
+	_reveal_all()
 	GameState.stalled_once = true
 	GameState.credits = 5000.0
 	GameState.scrap = 60.0
@@ -1493,8 +1499,106 @@ func ui() -> void:
 	t.check(not settings.visible, "CLOSE closes settings")
 
 
+func progression() -> void:
+	await _fresh()
+	Reveal.instant = false
+	var main := t.get_tree().current_scene
+	var yard: Scrapyard = t.node("Scrapyard")
+	var field: Battlefield = t.node("Battlefield")
+	var rail: ScrollRail = t.node("Rail")
+	var bar: Control = t.node("Bar")
+	var column: Control = t.node("Column")
+	var hud: Control = t.node("Hud")
+	var line: LineView = main.line_view(0)
+	var unlock: Control = main.find_child("UnlockSlot", true, false)
+	var yard_hire: Control = yard.get_node("HireYard")
+	var col := column.get_global_rect()
+	t.check(not field.visible and not line.visible and not rail.visible and not bar.visible and not unlock.visible,
+			"new game: battlefield, line, scroll bar, UPGRADES, UNLOCK LINE hidden")
+	t.check(absf(yard.get_global_rect().get_center().y - col.get_center().y) <= 1.0 and absf(yard.get_global_rect().get_center().x - 180.0) <= 1.0,
+			"only the scrapyard, centered (%s)" % yard.get_global_rect())
+	t.check(not hud.get_node("Mechs").visible and not hud.get_node("MechsRate").visible, "HUD: scrap only")
+	await t.shot("start_pile")
+	var pile: Control = yard.pile()
+	for i in 9:
+		await t.click(pile)
+	await t.frames(2)
+	t.check(not line.visible and not GameState.shown("factory"), "9 scrap: still only the pile")
+	await t.click(pile)
+	await t.frames(2)
+	t.check(GameState.shown("factory") and line.visible and line.modulate.a < 1.0, "scrap for the first station: the line fades in")
+	await t.wait(Reveal.SLIDE_TIME / 2.0)
+	var mid := yard.get_global_rect().end.y
+	t.check(mid > yard.get_global_rect().size.y and mid < col.end.y, "the yard slides down (bottom at %d)" % mid)
+	await t.shot("start_factory_mid")
+	await t.wait(Reveal.SLIDE_TIME)
+	t.check(line.modulate.a == 1.0 and yard.get_global_rect().end.y == col.end.y and line.get_global_rect().end.y == yard.get_global_rect().position.y,
+			"yard at the bottom, the line right above it")
+	await t.shot("start_factory")
+
+	GameState.scrap = 45.0
+	for i in 3:
+		await t.click(_build_button(line, i))
+	GameState.debug_spawn_mechs(1)
+	await t.frames(2)
+	t.check(field.visible and field.size.y < Battlefield.HEIGHT and rail.visible and rail.size.x < ScrollRail.WIDTH, "first mech: battlefield and scroll bar slide in")
+	await t.wait(Reveal.SLIDE_TIME / 2.0)
+	await t.shot("start_field_mid")
+	await t.wait(Reveal.SLIDE_TIME)
+	t.check(field.size.y == Battlefield.HEIGHT and field.get_global_rect().position.y == col.position.y and rail.size.x == ScrollRail.WIDTH,
+			"battlefield attached under the HUD, scroll bar in")
+	t.check(yard.get_global_rect().end.y == col.end.y and line.get_global_rect().end.y == yard.get_global_rect().position.y
+			and line.get_global_rect().position.y > field.get_global_rect().end.y,
+			"factory and yard stay at the bottom, the gap sits between battlefield and factory")
+	t.check(hud.get_node("Mechs").visible and hud.get_node("Mechs").self_modulate.a == 1.0, "HUD: mechs and credits faded in")
+	t.check(not bar.visible and not line.hire_button().visible and not yard_hire.visible and not unlock.visible, "nothing affordable: no crew bars, UPGRADES, UNLOCK LINE")
+	await t.shot("start_field")
+
+	GameState.credits = GameState.yard_worker_cost()
+	await t.frames(2)
+	t.check(yard_hire.visible and not line.hire_button().visible, "yard crew bar at the yard hire price, line crew bar not yet")
+	await t.wait(Reveal.TIME + 0.1)
+	GameState.credits = GameState.worker_cost(0)
+	await t.wait(Reveal.TIME + 0.1)
+	t.check(line.hire_button().visible and line.segment_view(0).position.y == LineView.CREW_H and not bar.visible, "line crew bar at the line hire price")
+	GameState.credits = 60.0
+	await t.frames(2)
+	t.check(GameState.affordable_upgrades() > 0 and bar.visible and bar.size.y < Main.BAR_H, "UPGRADES rises at the first affordable upgrade")
+	await t.wait(Reveal.TIME + 0.1)
+	t.check(bar.size.y == Main.BAR_H and (t.node("Upgrades") as Control).get_global_rect().end.y == 634.0, "UPGRADES in place")
+	GameState.credits = GameState.upgrade_cost("lines")
+	await t.wait(Reveal.TIME + 0.1)
+	t.check(unlock.visible and unlock.size.y == Main.UNLOCK_GAP * 2.0 + Main.UNLOCK_BIG.y, "UNLOCK LINE grows in once affordable")
+	GameState.credits = 0.0
+	await t.frames(2)
+	t.check(bar.visible and unlock.visible and yard_hire.visible and line.hire_button().visible, "revealed parts stay when credits drop")
+	await t.shot("start_buying")
+
+	Save.save_game()
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
+	main = t.get_tree().current_scene
+	t.check((t.node("Bar") as Control).size.y == Main.BAR_H and (t.node("Battlefield") as Control).size.y == Battlefield.HEIGHT
+			and main.find_child("UnlockSlot", true, false).visible, "reload: everything seen is in place at once")
+	var old := GameState.to_dict()
+	old.erase("seen")
+	GameState.from_dict(old)
+	t.check(GameState.REVEALS.all(GameState.shown), "old save with mechs built: everything counts as seen")
+	old.mechs_built = 0
+	GameState.from_dict(old)
+	t.check(GameState.seen.is_empty(), "old save before the first mech: nothing seen yet")
+
+	Save.reset_run()
+	await t.frames(4)
+	t.check(not (t.node("Battlefield") as Control).visible and not (t.node("Bar") as Control).visible and not t.get_tree().current_scene.line_view(0).visible,
+			"START AGAIN: back to the pile alone")
+	Reveal.instant = true
+
+
 func pane() -> void:
 	await _fresh()
+	_reveal_all()
+	await t.frames(2)
 	var main := t.get_tree().current_scene
 	var scroll: ScrollContainer = t.node("Scroll")
 	var column: Control = t.node("Column")
@@ -1506,9 +1610,9 @@ func pane() -> void:
 	var field_pin := rail.pin_button(0)
 	var yard_pin := rail.pin_button(1)
 	t.check(rail.size == Vector2(20, column.size.y) and rail.get_global_rect().end.x == 360.0 and column.size.x == 340.0, "rail 20 px right of the pane, full height (%s)" % rail.size)
-	t.check(rail.state(0) == ScrollRail.Pin.SHOWN and rail.state(1) == ScrollRail.Pin.SHOWN and not rail._thumb().has_area(), "fresh game: everything fits, no thumb, both pins plain")
+	t.check(rail.state(0) == ScrollRail.Pin.SHOWN and rail.state(1) == ScrollRail.Pin.SHOWN and not rail._thumb().has_area(), "one line: everything fits, no thumb, both pins plain")
 
-	GameState.mechs_built = 1
+	_reveal_all()
 	GameState.stalled_once = true
 	GameState.credits = 1e9
 	for i in 4:
@@ -1627,7 +1731,7 @@ func art() -> void:
 	await _fresh()
 	var main := t.get_tree().current_scene
 	var nuke: Nuke = main.get_node("%Nuke")
-	GameState.mechs_built = 1
+	_reveal_all()
 	GameState.stalled_once = true
 	GameState.credits = 1e9
 	GameState.scrap = 1e9
@@ -1818,7 +1922,7 @@ func audio() -> void:
 	await t.click(line.segment_view(0).get_node("Tap"))
 	t.check(played.call(&"station_tap") == 1, "station tap sounds")
 	var upgrades: Button = main.get_node("%Upgrades")
-	GameState.mechs_built = 1
+	_reveal_all()
 	await t.frames(2)
 	await t.click(upgrades)
 	await t.click(upgrades)
@@ -1936,7 +2040,7 @@ func audio() -> void:
 	Sound.play_music()
 	Save.reset_run()
 	await t.wait(Sound.MUSIC_STOP_FADE + 0.3)
-	GameState.mechs_built = 1
+	_reveal_all()
 	await t.frames(2)
 	t.check(not Sound.music_playing and Sound._music_wait > float(music.first_after) - 1.0, "start again stops the music, the new run waits first_after")
 	if settings_backup:
@@ -1944,6 +2048,12 @@ func audio() -> void:
 	else:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(Sound.SETTINGS_PATH))
 	Sound._load_settings()
+
+
+func _reveal_all() -> void:
+	GameState.mechs_built = maxi(GameState.mechs_built, 1)
+	for key: String in GameState.REVEALS:
+		GameState.seen[key] = true
 
 
 func _fresh(frozen := true) -> void:

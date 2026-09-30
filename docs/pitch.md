@@ -148,8 +148,13 @@ Every row has an info button with a plain description. Tapping the station body 
 
 - Battlefield, lines and scrapyard share **one scroll pane**, with a pixel-art scroll bar beside it. Its two pins (battlefield top, scrapyard bottom) fix their area to the top / bottom of the pane while it's in view; while it's scrolled away the pin lights up as a quick-access button that scrolls there.
 - What's in view sets the soundscape: scrolled-away areas fade to a low level.
-- UPGRADES spans the bottom, always visible.
-- A new game shows line 1 with three empty station pads to build, plus the scrapyard.
+- The battlefield sits right under the HUD; factory and scrapyard stay at the bottom near the thumb; spare height is a gap between battlefield and factory.
+- UPGRADES spans the bottom.
+- **Staged start**, nothing shown before it can be used, everything eases in and stays:
+  1. A new game (and START AGAIN: "only scrap remains") shows only the scrap pile, centered; the HUD shows only scrap.
+  2. Once the pile has paid for the first station, line 1 fades in with all three pads while the scrapyard slides down to the bottom.
+  3. The first mech deployed: the battlefield slides down from under the HUD (the mech walks onto it), with the scroll bar and the HUD's mechs and credits.
+  4. Each purchase appears the first time it's affordable: yard crew, line crew, UPGRADES, UNLOCK LINE; pause strips at the first stall.
 - Desktop layout is out of scope for v1 (letterbox the portrait column).
 
 ## Tech (Godot 4)

@@ -3,7 +3,6 @@ extends Control
 
 const WIDTH := 340.0
 const HEIGHT := 160.0
-const SKY := Pal.NAVY
 const GROUND_Y := 146.0
 const AIR_Y := 70.0
 const ROWS := 3
@@ -107,6 +106,7 @@ func _ready() -> void:
 	add_child(_bar)
 	_hp_label = _bar_label("HpLabel", HORIZONTAL_ALIGNMENT_LEFT)
 	_dps_label = _bar_label("DpsLabel", HORIZONTAL_ALIGNMENT_RIGHT)
+	_on_resized()
 
 	GameState.mech_deployed.connect(_on_deployed)
 	GameState.mech_income.connect(_on_income)
@@ -127,12 +127,10 @@ func hint_anchor() -> Control:
 
 
 func _on_resized() -> void:
-	_world.position.y = maxf(0.0, size.y - HEIGHT)
-	queue_redraw()
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), SKY * _bg.modulate)
+	_world.position.y = size.y - HEIGHT
+	for c: Control in [_bar, _hp_label, _dps_label]:
+		if c:
+			c.position.y = BAR_RECT.position.y + _world.position.y
 
 
 func mech_count() -> int:
@@ -404,7 +402,6 @@ func scorch() -> void:
 	_dps_label.visible = false
 	_bg.modulate = Color(1.2, 0.7, 0.5)
 	_smoke.modulate = Color(0.4, 0.2, 0.2)
-	queue_redraw()
 
 
 func _bar_label(node_name: String, align: HorizontalAlignment) -> Label:

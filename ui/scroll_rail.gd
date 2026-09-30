@@ -3,6 +3,7 @@ extends Control
 
 enum Pin { SHOWN, PINNED, AWAY }
 
+const WIDTH := 20.0
 const PIN_H := 44.0
 const GAP := 2.0
 const THUMB_W := 14.0
@@ -24,6 +25,7 @@ const STYLES := [&"", &"PinnedButton", &"LitButton"]
 var pinned := [false, false]
 
 var _areas: Array[Control] = []
+var _homes: Array[Node] = []
 var _pins: Array[Button] = []
 var _marks: Array[TextureRect] = []
 var _drag := -1.0
@@ -33,12 +35,17 @@ var _tween: Tween
 
 func _ready() -> void:
 	_areas = [top, bottom]
+	var content := scroll.get_child(0)
+	_homes = [content.get_child(top.get_index() + 1), content.get_child(bottom.get_index() + 1) if bottom.get_index() + 1 < content.get_child_count() else null]
+	clip_contents = true
 	mouse_entered.connect(func() -> void: _hover = true)
 	mouse_exited.connect(func() -> void: _hover = false)
 	for i in 2:
 		var b := Button.new()
 		b.name = ["PinField", "PinYard"][i]
-		b.set_anchors_and_offsets_preset(PRESET_TOP_WIDE if i == 0 else PRESET_BOTTOM_WIDE)
+		b.set_anchors_and_offsets_preset(PRESET_TOP_LEFT if i == 0 else PRESET_BOTTOM_LEFT)
+		b.offset_left = 0.0
+		b.offset_right = WIDTH
 		if i == 0:
 			b.offset_top = GAP
 			b.offset_bottom = GAP + PIN_H
@@ -80,6 +87,8 @@ func state(i: int) -> Pin:
 
 
 func reach(c: Control) -> Control:
+	if not is_visible_in_tree():
+		return c
 	for i in 2:
 		if (_areas[i] == c or _areas[i].is_ancestor_of(c)) and state(i) == Pin.AWAY:
 			return _pins[i]
@@ -108,7 +117,11 @@ func _place(i: int, on: bool) -> void:
 	pinned[i] = on
 	var area := _areas[i]
 	area.reparent(scroll.get_parent() if on else scroll.get_child(0), false)
-	area.get_parent().move_child(area, 0 if i == 0 else -1)
+	var home := _homes[i]
+	if on or home == null:
+		area.get_parent().move_child(area, 0 if i == 0 else -1)
+	else:
+		area.get_parent().move_child(area, home.get_index())
 
 
 func jump(i: int) -> void:
@@ -156,7 +169,7 @@ func _process(_delta: float) -> void:
 
 
 func _track() -> Rect2:
-	return Rect2(0, PIN_H + 2.0 * GAP, size.x, size.y - 2.0 * (PIN_H + 2.0 * GAP))
+	return Rect2(0, PIN_H + 2.0 * GAP, WIDTH, size.y - 2.0 * (PIN_H + 2.0 * GAP))
 
 
 func _thumb() -> Rect2:
@@ -167,14 +180,14 @@ func _thumb() -> Rect2:
 	var track := _track()
 	var h := maxf(THUMB_MIN, roundf(track.size.y * bar.page / bar.max_value))
 	var y := track.position.y + roundf((track.size.y - h) * scroll.scroll_vertical / span)
-	return Rect2(roundf((size.x - THUMB_W) / 2.0), y, THUMB_W, h)
+	return Rect2(roundf((WIDTH - THUMB_W) / 2.0), y, THUMB_W, h)
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Pal.SLATE_D)
+	draw_rect(Rect2(0, 0, WIDTH, size.y), Pal.SLATE_D)
 	draw_rect(Rect2(0, 0, 1, size.y), Pal.INK)
 	var track := _track()
-	draw_style_box(get_theme_stylebox("scroll", "VScrollBar"), Rect2(roundf((size.x - THUMB_W) / 2.0), track.position.y, THUMB_W, track.size.y))
+	draw_style_box(get_theme_stylebox("scroll", "VScrollBar"), Rect2(roundf((WIDTH - THUMB_W) / 2.0), track.position.y, THUMB_W, track.size.y))
 	var thumb := _thumb()
 	if not thumb.has_area():
 		return

@@ -3,7 +3,7 @@ extends Control
 
 const BADGE_ON := Pal.RED
 const BADGE_INSET := 8.0
-const FIELD_MAX := 2.0
+const BAR_H := 56.0
 const UNLOCK_SMALL := Vector2(220, 36)
 const UNLOCK_BIG := Vector2(300, 44)
 const UNLOCK_GAP := 8.0
@@ -20,9 +20,16 @@ const ASSEMBLY_WINDOW := 4.0
 @onready var _scrapyard: Scrapyard = %Scrapyard
 @onready var _column: Control = %Column
 @onready var _flyers: Flyers = %Flyers
+@onready var _rail: ScrollRail = %Rail
+@onready var _bar: Control = %Bar
+@onready var _spacer: Control = %YardSpacer
 
 var _unlock: Button
-var _unlock_gaps: Array[Control] = []
+var _unlock_slot: Control
+var _field_k := 0.0
+var _factory_k := 0.0
+var _bar_k := 0.0
+var _unlock_k := 0.0
 var _badge: Label
 var _badge_style: StyleBoxFlat
 var _title := ""
@@ -47,19 +54,15 @@ func _ready() -> void:
 	_unlock.icon = preload("res://art/ui/credits.png")
 	_unlock.custom_minimum_size = UNLOCK_SMALL
 	Price.setup(_unlock, Flyers.Kind.CREDITS)
-	_unlock.size_flags_horizontal = SIZE_SHRINK_CENTER
 	_unlock.mouse_filter = MOUSE_FILTER_PASS
 	_unlock.set_meta(&"silent", true)
 	_unlock.pressed.connect(_on_unlock)
-	for k in 2:
-		var gap := Control.new()
-		gap.name = "UnlockGap%d" % k
-		gap.custom_minimum_size = Vector2(0, UNLOCK_GAP)
-		gap.mouse_filter = MOUSE_FILTER_PASS
-		_unlock_gaps.append(gap)
-	_lines.add_child(_unlock_gaps[0])
-	_lines.add_child(_unlock)
-	_lines.add_child(_unlock_gaps[1])
+	_unlock_slot = Control.new()
+	_unlock_slot.name = "UnlockSlot"
+	_unlock_slot.clip_contents = true
+	_unlock_slot.mouse_filter = MOUSE_FILTER_PASS
+	_unlock_slot.add_child(_unlock)
+	_lines.add_child(_unlock_slot)
 	for i in GameState.lines.size():
 		_add_line(i)
 	GameState.line_added.connect(_add_line)
@@ -92,12 +95,12 @@ func _ready() -> void:
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.set_meta(&"silent", true)
 	_upgrades.pressed.connect(_toggle_menu)
+	_reveal(INF)
 
 
-func _process(_delta: float) -> void:
-	_fit_battlefield()
+func _process(delta: float) -> void:
+	_reveal(delta)
 	_update_sound()
-	%Bar.visible = GameState.revealed() and not GameState.run_over
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	var affordable := GameState.affordable_upgrades()
 	_badge.visible = not _menu.visible and affordable > 0
@@ -108,21 +111,35 @@ func _process(_delta: float) -> void:
 		DisplayServer.window_set_title(title)
 	_badge.reset_size()
 	_badge.position = (Vector2(_upgrades.size.x - _badge.size.x - BADGE_INSET, (_upgrades.size.y - _badge.size.y) / 2.0)).round()
-	_unlock.visible = GameState.revealed() and not GameState.upgrade_maxed("lines") and not GameState.run_over
-	for gap in _unlock_gaps:
-		gap.visible = _unlock.visible
-	if _unlock.visible:
+	if _unlock_slot.visible:
 		var cost := GameState.upgrade_cost("lines")
 		var can_buy := GameState.credits >= cost
 		Price.show(_unlock, "+ LINE %d  %s" % [GameState.lines.size() + 1, Fmt.num(cost)], can_buy)
 		_unlock.custom_minimum_size = UNLOCK_BIG if can_buy else UNLOCK_SMALL
 
 
-func _fit_battlefield() -> void:
-	var others := _lines.get_combined_minimum_size().y + _scrapyard.get_combined_minimum_size().y
-	var h := clampf(_column.size.y - others, Battlefield.HEIGHT, Battlefield.HEIGHT * FIELD_MAX)
-	if _battlefield.custom_minimum_size.y != h:
-		_battlefield.custom_minimum_size.y = h
+func _reveal(delta: float) -> void:
+	_field_k = Reveal.step(_field_k, GameState.revealed(), delta, Reveal.SLIDE_TIME)
+	var field := Reveal.eased(_field_k)
+	_battlefield.visible = _field_k > 0.0
+	_battlefield.custom_minimum_size.y = roundf(Battlefield.HEIGHT * field)
+	_rail.visible = _field_k > 0.0
+	_rail.custom_minimum_size.x = roundf(ScrollRail.WIDTH * field)
+	_factory_k = Reveal.step(_factory_k, GameState.shown("factory"), delta, Reveal.SLIDE_TIME)
+	var factory := Reveal.eased(_factory_k)
+	var first := line_view(0)
+	first.visible = _factory_k > 0.0
+	first.modulate.a = factory
+	_bar_k = Reveal.step(_bar_k, GameState.shown("upgrades") and not GameState.run_over, delta)
+	_bar.visible = _bar_k > 0.0
+	_bar.custom_minimum_size.y = roundf(BAR_H * Reveal.eased(_bar_k))
+	var pane := size.y - (%Hud as Control).custom_minimum_size.y - _bar.custom_minimum_size.y
+	_spacer.custom_minimum_size.y = roundf(maxf(0.0, pane - _scrapyard.get_combined_minimum_size().y) / 2.0 * (1.0 - factory))
+	_unlock_k = Reveal.step(_unlock_k, GameState.shown("unlock") and not GameState.upgrade_maxed("lines") and not GameState.run_over, delta)
+	_unlock_slot.visible = _unlock_k > 0.0
+	_unlock_slot.custom_minimum_size.y = roundf((UNLOCK_GAP * 2.0 + _unlock.custom_minimum_size.y) * Reveal.eased(_unlock_k))
+	_unlock.size = _unlock.custom_minimum_size
+	_unlock.position = Vector2(roundf((_unlock_slot.size.x - _unlock.size.x) / 2.0), UNLOCK_GAP)
 	_flyers.clip = _column.get_global_rect()
 
 

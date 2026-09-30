@@ -91,6 +91,11 @@ unique_name_in_owner = true
 layout_mode = 2
 script = ExtResource("scrapyard")
 
+[node name="YardSpacer" type="Control" parent="Layout/Pane/Column/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 1
+
 [node name="Rail" type="Control" parent="Layout/Pane" node_paths=PackedStringArray("scroll", "top", "bottom")]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(20, 0)
@@ -102,21 +107,20 @@ bottom = NodePath("../Column/Scroll/Content/Scrapyard")
 
 [node name="Bar" type="Panel" parent="Layout"]
 unique_name_in_owner = true
+clip_contents = true
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 
 [node name="Upgrades" type="Button" parent="Layout/Bar"]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
 offset_left = 6.0
 offset_top = 6.0
 offset_right = -6.0
-offset_bottom = -6.0
+offset_bottom = 50.0
 grow_horizontal = 2
-grow_vertical = 2
 text = "UPGRADES"
 
 [node name="UpgradeMenu" type="Control" parent="."]

@@ -293,7 +293,26 @@ Test (browser + phone):
 - 3+ lines with 4 stations: headers readable, nothing clipped at the scroll bar
 - Nuke with areas pinned: the sequence still sweeps from the battlefield down to the pile
 
-## M13 · Poki
+## M13 · Staged start
+
+Build: a new run starts with the scrap pile alone; every part appears when it can first be used and eases in; the battlefield stays attached to the HUD.
+
+- [x] Battlefield fixed at 160 right under the HUD (no stretched sky); spare height becomes a gap between battlefield and factory, factory + yard stay at the bottom
+- [x] Pile alone, centered; HUD scrap only
+- [x] At the first station's price: line 1 fades in with all three pads, the yard slides down to the bottom
+- [x] First mech: battlefield slides down from under the HUD, scroll bar slides in, HUD mechs + credits fade in
+- [x] On first affordability: yard crew bar, line crew bars, UPGRADES bar (rises from the bottom), UNLOCK LINE; pause strip slides in at the first stall; nothing snaps
+- [x] `GameState.seen` saved; old saves with a mech built show everything; START AGAIN returns to the pile alone
+- [x] `--scenario progression`
+
+Test (browser + phone):
+- New game: only the pile, centered; tap it 10× → the line fades in while the pile slides down, smoothly
+- First mech: the battlefield slides in from under the HUD as the mech walks onto it; HUD fills in
+- 40 / 50 / 60 / 500 credits: yard crew, line crew, UPGRADES, UNLOCK LINE appear one by one and stay after spending
+- Reload mid-run: everything already seen is there at once, no animation
+- START AGAIN after the nuke: back to the pile alone
+
+## M14 · Poki
 
 Build: Poki integration.
 

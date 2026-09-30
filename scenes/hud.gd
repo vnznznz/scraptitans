@@ -22,6 +22,8 @@ var _mechs: Label
 var _mechs_rate: Label
 var _mech_icon: TextureRect
 var _mute: Button
+var _late: Array[CanvasItem] = []
+var _late_k := 0.0
 
 
 func _ready() -> void:
@@ -40,6 +42,9 @@ func _ready() -> void:
 	_mechs_rate = _rate(_column(1))
 	_mechs_rate.name = "MechsRate"
 	GameState.mech_deployed.connect(_on_deployed)
+	_late = [_icons[Flyers.Kind.CREDITS], _credits, _credits_rate, _mech_icon, _mechs, _mechs_rate]
+	_late_k = Reveal.step(0.0, GameState.revealed(), INF)
+	_fade_late()
 
 	var gear := _icon_button("SettingsButton", preload("res://art/ui/gear.png"), 0)
 	gear.set_meta(&"silent", true)
@@ -48,7 +53,11 @@ func _ready() -> void:
 	_mute.pressed.connect(func() -> void: Sound.set_muted(not Sound.muted))
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	var late := Reveal.step(_late_k, GameState.revealed(), delta, Reveal.SLIDE_TIME)
+	if late != _late_k:
+		_late_k = late
+		_fade_late()
 	_credits.text = Fmt.num(GameState.credits)
 	_credits_rate.text = Fmt.rate(GameState.credits_rate)
 	_scrap.text = Fmt.num(GameState.scrap)
@@ -59,6 +68,12 @@ func _process(_delta: float) -> void:
 	var icon := SOUND_OFF if Sound.muted else SOUND_ON
 	if _mute.icon != icon:
 		_mute.icon = icon
+
+
+func _fade_late() -> void:
+	for c in _late:
+		c.visible = _late_k > 0.0
+		c.self_modulate.a = Reveal.eased(_late_k)
 
 
 func _icon_button(node_name: String, tex: Texture2D, slot: int) -> Button:
