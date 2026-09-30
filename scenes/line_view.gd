@@ -2,13 +2,15 @@ class_name LineView
 extends Control
 
 const SEG_STEP := 84.0
-const PAUSE_W := 24.0
+const PAUSE_W := 20.0
+const STRIP_PAD := 2.0
 const CREW_H := 26.0
 const HIRE_W := 120.0
+const HEADER_GAP := 4.0
 const L_FILL := Pal.SLATE_D
 const L_LIGHT := Pal.SLATE
 const L_EDGE := Pal.INK
-const METER := Rect2(8, 26, 8, 44)
+const METER := Rect2(6, 26, 8, 44)
 const METER_BG := Color(Pal.INK, 0.6)
 const USAGE_COLOR := Pal.STEEL_L
 const BELT_TEX := preload("res://art/line/belt.png")
@@ -47,7 +49,7 @@ func _ready() -> void:
 	add_child(_pause)
 	var scrap_icon := TextureRect.new()
 	scrap_icon.texture = preload("res://art/ui/scrap.png")
-	scrap_icon.position = Vector2(4, 6)
+	scrap_icon.position = Vector2(STRIP_PAD, 6)
 	scrap_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(scrap_icon)
 	var meter := ColorRect.new()
@@ -61,7 +63,7 @@ func _ready() -> void:
 	_usage.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(_usage)
 	_pause_icon = TextureRect.new()
-	_pause_icon.position = Vector2(4, _pause.size.y - 22)
+	_pause_icon.position = Vector2(STRIP_PAD, _pause.size.y - 22)
 	_pause_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(_pause_icon)
 
@@ -118,14 +120,20 @@ func _sync_segments() -> void:
 
 func _layout() -> void:
 	_top = CREW_H if _bar else 0.0
-	for i in _segments.size():
-		_segments[i].position = Vector2(_seg_x(i), _top)
+	var right := size.x
+	for i in range(_segments.size() - 1, -1, -1):
+		var seg := _segments[i]
+		seg.position = Vector2(_seg_x(i), _top)
+		var w := seg.header_width()
+		var x := minf(roundf(_seg_x(i) + (SegmentView.WIDTH - w) / 2.0), right - w)
+		seg.place_header(x - _seg_x(i))
+		right = x - HEADER_GAP
 	custom_minimum_size = Vector2(0, _top + SegmentView.BELT_Y + 8.0)
 	_pause.position = Vector2(0, _top)
 	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
 	_crew.position = Vector2(_left() + 6.0, 0)
 	_crew.size = Vector2(maxf(size.x - HIRE_W - _left() - 6.0, 0.0), CREW_H - 1.0)
-	_hire.position = Vector2(size.x - HIRE_W, 0)
+	_hire.position = Vector2(size.x - HIRE_W, 1)
 	_hire.size = Vector2(HIRE_W, CREW_H - 1.0)
 	queue_redraw()
 
@@ -267,9 +275,7 @@ func _draw() -> void:
 func _draw_frame() -> void:
 	var bottom := _top + SegmentView.BELT_Y + 8.0
 	if _bar:
-		draw_rect(Rect2(0, 0, size.x, CREW_H), L_FILL)
-		draw_rect(Rect2(0, 0, size.x, 1), L_LIGHT)
-		draw_rect(Rect2(_left(), CREW_H - 1.0, size.x - _left(), 1), L_EDGE)
+		draw_bar(self, size.x, _left())
 	if _strip:
 		draw_rect(Rect2(0, 0, PAUSE_W, bottom), L_FILL)
 		draw_rect(Rect2(0, 0, 1, bottom), L_LIGHT)
@@ -277,6 +283,12 @@ func _draw_frame() -> void:
 		draw_rect(Rect2(0, bottom - 1.0, PAUSE_W, 1), L_EDGE)
 		if not _bar:
 			draw_rect(Rect2(0, 0, PAUSE_W, 1), L_LIGHT)
+
+
+static func draw_bar(ci: CanvasItem, width: float, left: float) -> void:
+	ci.draw_rect(Rect2(0, 0, width, CREW_H), L_FILL)
+	ci.draw_rect(Rect2(0, 0, width, 1), L_LIGHT)
+	ci.draw_rect(Rect2(left, CREW_H - 1.0, width - left, 1), L_EDGE)
 
 
 func _exit(view: MechView) -> void:
@@ -297,7 +309,9 @@ func _left() -> float:
 
 func _seg_x(i: int) -> float:
 	var n := _segments.size()
-	return _left() + (size.x - _left() - (n - 1) * SEG_STEP - SegmentView.WIDTH) / 2.0 + i * SEG_STEP
+	var room := size.x - _left() - SegmentView.WIDTH
+	var step := minf(SEG_STEP, floorf(room / (n - 1))) if n > 1 else SEG_STEP
+	return _left() + roundf((room - (n - 1) * step) / 2.0) + i * step
 
 
 func _center(i: int) -> float:

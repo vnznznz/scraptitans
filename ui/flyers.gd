@@ -23,6 +23,7 @@ static var _instance: Flyers
 
 @export var hud: Hud
 
+var clip := Rect2()
 var _last_spend := -1000
 var _last_quiet := -1000
 
@@ -79,6 +80,8 @@ func _spawn(kind: Kind, from: Vector2, count: int, disc_tier: int, loud: bool) -
 		tex = SMALL[kind]
 	var half := tex.get_size() / 2.0
 	var target := hud.target(kind)
+	if clip.has_area():
+		from = from.clamp(clip.position + half, clip.end - half)
 	for i in count:
 		if get_child_count() >= MAX_IN_FLIGHT:
 			return

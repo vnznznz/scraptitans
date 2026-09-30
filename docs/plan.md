@@ -273,7 +273,27 @@ Test (browser + iPhone):
 - Volume rows change their bus; 0 silences it
 - iPhone: ring/silent switch off, or Web Audio stays silent
 
-## M12 · Poki
+## M12 · One pane
+
+Build: battlefield, lines and scrapyard in one scroll pane; the soundscape follows the view; a consistent frame and button style.
+
+- [x] One scroll pane: battlefield / lines / scrapyard; UPGRADES full width at the bottom (badge inside); menu ends above it
+- [x] Pixel-art scroll bar right of the pane (groove, thumb with grip, press/drag, wheel); lines, field and yard 340 wide (4 stations flush, headers kept inside and apart)
+- [x] Pins: battlefield (top) and scrapyard (bottom) pin their area in place while in view; lit quick-access button that scrolls there while away; intro guide points at an away pin; the nuke unpins both
+- [x] Scrapyard section: crew bar like a line's (`YARD CREW`, hire flush right), pile centered on a ground strip
+- [x] Soundscape: areas crossfade with the scroll (field / lines / yard presence), hidden levels −18 / −15 / −15 dB; discs from a scrolled-away source start at the pane edge
+- [x] Consistency pass: buttons flush with a frame share its outline row (crew bar hire, fit, build), pins 2 px off the panels, gaps around UNLOCK LINE, pixel `VScrollBar` theme (licenses), menu rows fit (pips under the effect; the buy buttons were clipped), guide arrows stop at a button's top edge
+- [x] `--scenario pane`
+
+Test (browser + phone):
+- Scroll the pane by drag and by the scroll bar thumb; the thumb follows
+- Scroll to the lines: the yard pin lights up; tap it → pane scrolls to the pile; the field pin lights up; tap it → back to the battlefield
+- Pin the battlefield and the pile: both stay while the lines scroll between them; unpin → they scroll again
+- Scroll away from the battlefield: wind and shots fade; at the pile the factory hum fades too
+- 3+ lines with 4 stations: headers readable, nothing clipped at the scroll bar
+- Nuke with areas pinned: the sequence still sweeps from the battlefield down to the pile
+
+## M13 · Poki
 
 Build: Poki integration.
 

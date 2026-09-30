@@ -2,6 +2,7 @@ class_name Main
 extends Control
 
 const BADGE_ON := Pal.RED
+const BADGE_INSET := 8.0
 const FIELD_MAX := 2.0
 const UNLOCK_SMALL := Vector2(220, 36)
 const UNLOCK_BIG := Vector2(300, 44)
@@ -11,16 +12,17 @@ const TEXT_Z := 2
 const OVERLAY_Z := 3
 const ASSEMBLY_WINDOW := 4.0
 
-@onready var _content: VBoxContainer = %Content
+@onready var _lines: VBoxContainer = %Lines
 @onready var _settings: SettingsOverlay = %Settings
 @onready var _menu: UpgradeMenu = %UpgradeMenu
 @onready var _upgrades: Button = %Upgrades
 @onready var _battlefield: Battlefield = %Battlefield
-@onready var _scroll: ScrollContainer = %Scroll
-@onready var _flyers: Control = %Flyers
+@onready var _scrapyard: Scrapyard = %Scrapyard
+@onready var _column: Control = %Column
+@onready var _flyers: Flyers = %Flyers
 
 var _unlock: Button
-var _unlock_gap: Control
+var _unlock_gaps: Array[Control] = []
 var _badge: Label
 var _badge_style: StyleBoxFlat
 var _title := ""
@@ -39,6 +41,7 @@ func _ready() -> void:
 		var theme := ThemeDB.get_project_theme()
 		theme.set_stylebox("hover", "Button", theme.get_stylebox("normal", "Button"))
 		theme.set_stylebox("hover", "PriceRow", theme.get_stylebox("normal", "PriceRow"))
+		theme.set_stylebox("grabber_highlight", "VScrollBar", theme.get_stylebox("grabber", "VScrollBar"))
 	_unlock = Button.new()
 	_unlock.name = "UnlockLine"
 	_unlock.icon = preload("res://art/ui/credits.png")
@@ -48,14 +51,15 @@ func _ready() -> void:
 	_unlock.mouse_filter = MOUSE_FILTER_PASS
 	_unlock.set_meta(&"silent", true)
 	_unlock.pressed.connect(_on_unlock)
-	_unlock_gap = Control.new()
-	_unlock_gap.name = "UnlockGap"
-	_unlock_gap.custom_minimum_size = Vector2(0, UNLOCK_GAP)
-	_unlock_gap.mouse_filter = MOUSE_FILTER_PASS
-	_content.add_child(_unlock_gap)
-	_content.add_child(_unlock)
-	_content.move_child(_unlock_gap, 0)
-	_content.move_child(_unlock, 1)
+	for k in 2:
+		var gap := Control.new()
+		gap.name = "UnlockGap%d" % k
+		gap.custom_minimum_size = Vector2(0, UNLOCK_GAP)
+		gap.mouse_filter = MOUSE_FILTER_PASS
+		_unlock_gaps.append(gap)
+	_lines.add_child(_unlock_gaps[0])
+	_lines.add_child(_unlock)
+	_lines.add_child(_unlock_gaps[1])
 	for i in GameState.lines.size():
 		_add_line(i)
 	GameState.line_added.connect(_add_line)
@@ -71,7 +75,8 @@ func _ready() -> void:
 	_upgrades.add_child(_badge)
 	var guide := IntroGuide.new()
 	guide.name = "IntroGuide"
-	guide.pile = (%Scrapyard as Scrapyard).pile()
+	guide.pile = _scrapyard.pile()
+	guide.rail = %Rail
 	guide.line = line_view(0)
 	guide.battlefield = _battlefield
 	guide.upgrades = _upgrades
@@ -82,7 +87,6 @@ func _ready() -> void:
 	guide.z_index = OVERLAY_Z
 	_flyers.z_index = FLYERS_Z
 	_menu.z_index = TEXT_Z
-	_upgrades.z_index = TEXT_Z
 	for overlay: Control in [%Debug, %Settings, %Nuke]:
 		overlay.z_index = OVERLAY_Z + 1
 	%Hud.settings_pressed.connect(_settings.open)
@@ -93,7 +97,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	_fit_battlefield()
 	_update_sound()
-	_upgrades.visible = GameState.revealed() and not GameState.run_over
+	%Bar.visible = GameState.revealed() and not GameState.run_over
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	var affordable := GameState.affordable_upgrades()
 	_badge.visible = not _menu.visible and affordable > 0
@@ -103,9 +107,10 @@ func _process(_delta: float) -> void:
 		_title = title
 		DisplayServer.window_set_title(title)
 	_badge.reset_size()
-	_badge.position = Vector2(_upgrades.size.x - _badge.size.x + 4, -10)
+	_badge.position = (Vector2(_upgrades.size.x - _badge.size.x - BADGE_INSET, (_upgrades.size.y - _badge.size.y) / 2.0)).round()
 	_unlock.visible = GameState.revealed() and not GameState.upgrade_maxed("lines") and not GameState.run_over
-	_unlock_gap.visible = _unlock.visible
+	for gap in _unlock_gaps:
+		gap.visible = _unlock.visible
 	if _unlock.visible:
 		var cost := GameState.upgrade_cost("lines")
 		var can_buy := GameState.credits >= cost
@@ -114,16 +119,17 @@ func _process(_delta: float) -> void:
 
 
 func _fit_battlefield() -> void:
-	var pane := _scroll.size.y + _battlefield.size.y
-	var h := clampf(pane - _content.get_combined_minimum_size().y, Battlefield.HEIGHT, Battlefield.HEIGHT * FIELD_MAX)
+	var others := _lines.get_combined_minimum_size().y + _scrapyard.get_combined_minimum_size().y
+	var h := clampf(_column.size.y - others, Battlefield.HEIGHT, Battlefield.HEIGHT * FIELD_MAX)
 	if _battlefield.custom_minimum_size.y != h:
 		_battlefield.custom_minimum_size.y = h
+	_flyers.clip = _column.get_global_rect()
 
 
 func _update_sound() -> void:
 	Sound.presence.field = Sound.visible_share(_battlefield)
-	Sound.presence.factory = Sound.visible_share(_content)
-	Sound.presence.yard = Sound.visible_share(%Scrapyard)
+	Sound.presence.factory = Sound.visible_share(_lines)
+	Sound.presence.yard = Sound.visible_share(_scrapyard)
 	Sound.drives.mechs = _battlefield.mech_count()
 	var total := 0
 	for line in GameState.lines:
@@ -159,15 +165,15 @@ func _on_node_added(n: Node) -> void:
 
 
 func line_view(i: int) -> LineView:
-	return _content.get_node("Line%d" % i)
+	return _lines.get_node("Line%d" % i)
 
 
 func _add_line(i: int) -> void:
 	var v := LineView.new()
 	v.name = "Line%d" % i
 	v.line_index = i
-	_content.add_child(v)
-	_content.move_child(v, i)
+	_lines.add_child(v)
+	_lines.move_child(v, i)
 
 
 func _toggle_menu() -> void:

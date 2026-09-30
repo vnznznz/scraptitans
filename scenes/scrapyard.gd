@@ -5,18 +5,23 @@ const PILE_TEX := preload("res://art/yard/pile_3.png")
 const PILE_LEVELS := [preload("res://art/yard/pile_1.png"), preload("res://art/yard/pile_2.png"), PILE_TEX]
 const PILE_SECONDS := [5.0, 30.0]
 const WORKER_TEX := preload("res://art/yard/worker.png")
-const PILE_POS := Vector2(62, 32)
+const PILE_POS := Vector2(62, 20)
 const PILE_EDGES := Vector2(75, 163)
-const GROUND_Y := 96.0
+const GROUND_Y := 84.0
+const BODY_H := 88.0
+const FLOOR := Pal.NAVY
+const GROUND := Pal.SLATE_D
+const GROUND_LIGHT := Pal.SLATE
 const WORKER_DX := 7.0
-const HIRE_RECT := Rect2(240, 6, 114, 42)
-const SLIDE_TIME := 0.4
 const SQUASH_TIME := 0.12
 
 var _yard: Control
 var _pile: TextureRect
 var _tap: TapArea
 var _hire: Button
+var _crew: Label
+var _bar := false
+var _top := 0.0
 var _workers: Array[TextureRect] = []
 var _chunks_seen := 0
 var _squash_depth := 0.0
@@ -26,12 +31,11 @@ var _collapsed := false
 
 
 func _ready() -> void:
-	mouse_filter = MOUSE_FILTER_IGNORE
+	mouse_filter = MOUSE_FILTER_PASS
 
 	_yard = Control.new()
 	_yard.name = "Yard"
 	_yard.mouse_filter = MOUSE_FILTER_IGNORE
-	_yard.position.x = _yard_x()
 	add_child(_yard)
 
 	_pile = TextureRect.new()
@@ -44,22 +48,30 @@ func _ready() -> void:
 
 	_tap = TapArea.new()
 	_tap.name = "Pile"
-	_tap.position = Vector2(40, 8)
-	_tap.size = Vector2(160, 92)
+	_tap.position = Vector2(40, 0)
+	_tap.size = Vector2(160, BODY_H)
 	_tap.highlight = _pile
 	_tap.tapped.connect(_on_tap)
 	_yard.add_child(_tap)
 
+	_crew = Label.new()
+	_crew.name = "Crew"
+	_crew.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	_crew.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_crew.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(_crew)
 	_hire = Button.new()
 	_hire.name = "HireYard"
 	_hire.icon = preload("res://art/ui/worker.png")
-	_hire.position = HIRE_RECT.position
-	_hire.size = HIRE_RECT.size
-	Price.setup(_hire, Flyers.Kind.CREDITS)
+	_hire.mouse_filter = MOUSE_FILTER_PASS
+	Price.setup(_hire, Flyers.Kind.CREDITS, true)
 	_hire.set_meta(&"silent", true)
 	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
 	_chunks_seen = GameState.yard_chunks
+	_bar = GameState.revealed()
+	resized.connect(_layout)
+	_layout()
 
 
 func pile() -> TapArea:
@@ -69,8 +81,29 @@ func pile() -> TapArea:
 func collapse() -> void:
 	_collapsed = true
 	_hire.visible = false
+	_crew.visible = false
 	for w in _workers:
 		w.visible = false
+	queue_redraw()
+
+
+func _layout() -> void:
+	_top = LineView.CREW_H if _bar else 0.0
+	custom_minimum_size.y = _top + BODY_H
+	_yard.position = Vector2(roundf(size.x / 2.0 - (PILE_POS.x + PILE_TEX.get_width() / 2.0)), _top)
+	_crew.position = Vector2(6, 0)
+	_crew.size = Vector2(maxf(size.x - LineView.HIRE_W - 6.0, 0.0), LineView.CREW_H - 1.0)
+	_hire.position = Vector2(size.x - LineView.HIRE_W, 1)
+	_hire.size = Vector2(LineView.HIRE_W, LineView.CREW_H - 1.0)
+	queue_redraw()
+
+
+func _draw() -> void:
+	draw_rect(Rect2(0, _top, size.x, BODY_H), FLOOR)
+	draw_rect(Rect2(0, _top + GROUND_Y, size.x, BODY_H - GROUND_Y), GROUND)
+	draw_rect(Rect2(0, _top + GROUND_Y, size.x, 1), GROUND_LIGHT)
+	if _bar and not _collapsed:
+		LineView.draw_bar(self, size.x, 0.0)
 
 
 func _process(delta: float) -> void:
@@ -91,21 +124,19 @@ func _process(delta: float) -> void:
 		_yard.add_child(w)
 		_yard.move_child(w, _pile.get_index())
 		_workers.append(w)
-	if not GameState.revealed():
-		_yard.position.x = _yard_x()
-	elif _yard.position.x != 0.0 and not _yard.has_meta("sliding"):
-		_yard.set_meta("sliding", true)
-		var tw := _yard.create_tween()
-		tw.tween_property(_yard, "position:x", _yard_x(), SLIDE_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-		tw.tween_callback(_yard.remove_meta.bind("sliding"))
+	if _bar != GameState.revealed():
+		_bar = GameState.revealed()
+		_layout()
 	var n := GameState.yard_workers
 	for i in _workers.size():
 		_workers[i].visible = i < n
 	if GameState.yard_chunks != _chunks_seen and n > 0:
 		_dig((GameState.yard_chunks - 1) % n)
 	_chunks_seen = GameState.yard_chunks
+	_crew.visible = _bar
+	_crew.text = "YARD CREW %d/%d" % [n, slots]
 	var cost := GameState.yard_worker_cost()
-	_hire.visible = GameState.revealed() and n < slots
+	_hire.visible = _bar and n < slots
 	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
 
 
@@ -116,12 +147,6 @@ func pile_level() -> int:
 		if seconds >= s:
 			level += 1
 	return level
-
-
-func _yard_x() -> float:
-	if GameState.revealed():
-		return 0.0
-	return size.x / 2.0 - (PILE_POS.x + PILE_TEX.get_width() / 2.0)
 
 
 func _home(i: int) -> Vector2:

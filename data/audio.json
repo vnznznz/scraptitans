@@ -3,9 +3,9 @@
 	"defaults": {"muted": false, "music": 4, "sfx": 4, "ambience": 4},
 	"groups": {"field": 8},
 	"areas": {
-		"field": {"hidden_db": -15},
-		"factory": {"hidden_db": -12},
-		"yard": {"hidden_db": -12}
+		"field": {"hidden_db": -18},
+		"factory": {"hidden_db": -15},
+		"yard": {"hidden_db": -15}
 	},
 	"music": {
 		"file": "ending", "volume_db": -10,

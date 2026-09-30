@@ -15,8 +15,8 @@ func m0() -> void:
 	t.check(main.size == Vector2(360, 640), "viewport is 360x640 (got %s)" % main.size)
 	var field_h: float = t.node("Battlefield").size.y
 	t.check(t.node("Hud").size.y == 48 and field_h == 320.0, "hud 48, battlefield takes the spare height, capped at 2× (%d)" % field_h)
-	t.check(scroll.size.y >= content.get_combined_minimum_size().y and scroll.size.y + field_h == 492.0, "scroll pane holds the line (%d px)" % scroll.size.y)
-	t.check(t.node("Scrapyard").get_parent().name == "BottomBar" and content.find_child("Scrapyard", true, false) == null, "scrapyard sits in the fixed bottom bar, not in the pane")
+	t.check(scroll.size.y >= content.get_combined_minimum_size().y and scroll.size.y == 592.0, "one scroll pane from the HUD to the screen bottom (%d px)" % scroll.size.y)
+	t.check(content.get_children().map(func(c: Node) -> String: return c.name) == ["Battlefield", "Lines", "Scrapyard"], "pane holds battlefield, lines, scrapyard")
 	t.check(scroll.scroll_vertical == 0, "pane starts at the top")
 	t.check(ProjectSettings.get_setting("display/window/stretch/aspect") == "keep_width", "aspect keep_width")
 
@@ -386,7 +386,7 @@ func m5() -> void:
 	var crew: Label = line.get_node("Crew")
 	t.check(hire.visible and not hire.disabled and crew.text == "CREW 0/9", "one hire button per line, crew 0/9")
 	var pause: Control = line.get_node("Pause")
-	t.check(is_zero_approx(hire.position.y) and hire.get_rect().end.y <= LineView.CREW_H and is_equal_approx(hire.get_rect().end.x, line.size.x), "hire sits in the crew bar at the top right")
+	t.check(hire.position.y == 1.0 and hire.get_rect().end.y == LineView.CREW_H and is_equal_approx(hire.get_rect().end.x, line.size.x), "hire sits in the crew bar at the right, on its bottom edge")
 	t.check(is_equal_approx(pause.position.y, LineView.CREW_H) and crew.position.x >= pause.size.x and line.segment_view(0).position.y >= LineView.CREW_H, "crew bar on top, pause strip below it at the left: an L")
 	for i in 9:
 		await t.click(hire)
@@ -630,7 +630,7 @@ func m8() -> void:
 	var segs := GameState.lines[0].segments
 	var yard_hire: Control = main.find_child("HireYard", true, false)
 	var hidden := [main.get_node("%Upgrades"), main.find_child("UnlockLine", true, false), yard_hire]
-	t.check(hidden.all(func(c: Control) -> bool: return not c.visible), "fresh game: UPGRADES, UNLOCK LINE, YARD WORKER hidden")
+	t.check(hidden.all(func(c: Control) -> bool: return not c.is_visible_in_tree()), "fresh game: UPGRADES, UNLOCK LINE, YARD WORKER hidden")
 	GameState.scrap = 45.0
 	for i in 3:
 		await t.click(_build_button(line, i))
@@ -710,7 +710,7 @@ func m8() -> void:
 	await t.frames(1)
 	var sv := line.segment_view(0)
 	var apply: Button = sv.get_node("Apply")
-	t.check(apply.visible and not sv.get_node("Header").visible and apply.get_rect().end.y <= SegmentView.MACHINE_Y, "fit replaces the station name above the machine %s" % apply.get_rect())
+	t.check(apply.visible and not sv.get_node("Header").visible and apply.get_rect().end.y == SegmentView.MACHINE_Y + 1.0, "fit replaces the station name, bottom row on the machine's top edge %s" % apply.get_rect())
 	t.check(apply.position.x >= -2.0 and apply.get_rect().end.x <= 82.0, "it fits the station (%s)" % apply.get_rect())
 	await t.shot("m8_row")
 	await t.click(apply)
@@ -811,15 +811,19 @@ func m8() -> void:
 
 	await _fresh()
 	main = t.get_tree().current_scene
-	var yard: Control = main.find_child("Yard", true, false)
-	var bar_center: float = main.find_child("BottomBar", true, false).get_global_rect().get_center().x
+	var scrapyard: Control = main.get_node("%Scrapyard")
+	var yard: Control = scrapyard.get_node("Yard")
 	var pile_x := func() -> float: return yard.get_node("PileSprite").get_global_rect().get_center().x
-	t.check(absf(pile_x.call() - bar_center) < 2.0, "scrapyard starts centered (%d vs %d)" % [pile_x.call(), bar_center])
+	var yard_x := func() -> float: return scrapyard.get_global_rect().get_center().x
+	t.check(absf(pile_x.call() - yard_x.call()) < 2.0, "pile centered in the yard (%d vs %d)" % [pile_x.call(), yard_x.call()])
 	await t.shot("m8_yard_centered")
 	GameState.credits = 100.0
 	GameState.mechs_built = 1
-	await t.wait(0.6)
-	t.check(pile_x.call() < bar_center - 50.0, "it moves left when the buttons appear (%d)" % pile_x.call())
+	await t.frames(2)
+	var hire: Button = scrapyard.get_node("HireYard")
+	t.check(absf(pile_x.call() - yard_x.call()) < 2.0 and scrapyard.get_node("Crew").visible and hire.visible
+			and hire.get_global_rect().end.x == scrapyard.get_global_rect().end.x and yard.position.y == LineView.CREW_H,
+			"after the reveal: pile stays centered under a yard crew bar, hire flush right")
 	var badge: Label = main.get_node("%Upgrades").get_node("Badge")
 	t.check(badge.visible and badge.text == str(GameState.affordable_upgrades()) and GameState.affordable_upgrades() > 0, "UPGRADES shows %s affordable" % badge.text)
 	t.check(main.get("_title") == "(%d) Scrap Titans" % GameState.affordable_upgrades(), "window title shows the count: %s" % main.get("_title"))
@@ -1006,7 +1010,7 @@ func m9() -> void:
 	GameState.credits = 0.0
 	await t.frames(1)
 	var apply: Button = line.segment_view(0).get_node("Apply")
-	t.check(apply.visible and Price.text(apply) == Fmt.num(cost) and apply.size.x > 80.0, "fit takes the header, shows %s" % Price.text(apply))
+	t.check(apply.visible and Price.text(apply) == Fmt.num(cost) and apply.size.x == SegmentView.WIDTH, "fit takes the header, shows %s" % Price.text(apply))
 	t.check(apply.theme_type_variation == &"LitRow", "affordable fit is lit")
 	await t.shot("m9_fit")
 	await t.click(apply)
@@ -1080,8 +1084,7 @@ func m9() -> void:
 		await t.frames(2)
 		heights.append(field.size.y)
 	t.check(heights[0] > heights[1] and heights[-1] == Battlefield.HEIGHT, "battlefield shrinks back to 160 as lines are added %s" % [heights])
-	var content: Control = main.get_node("%Content")
-	t.check(content.get_child(-1) == unlock, "UNLOCK LINE sits below the lines")
+	t.check(unlock.get_index() == GameState.lines.size() + 1 and main.get_node("%Lines").get_child(-1).name == "UnlockGap1", "UNLOCK LINE sits below the lines, gaps above and below")
 	var l0: LineView = main.line_view(0)
 	var l1: LineView = main.line_view(1)
 	t.check(is_equal_approx(l1.position.y, l0.get_rect().end.y), "lines stack with no gap (%d, %d)" % [l0.get_rect().end.y, l1.position.y])
@@ -1431,20 +1434,28 @@ func ui() -> void:
 				"%s: icon + price centered (dx %.1f, dy %.1f)" % [b.name, group_x - center.x, label.get_global_rect().get_center().y - center.y])
 	var yard_hire: Button = main.find_child("HireYard", true, false)
 	var upgrades: Button = main.get_node("%Upgrades")
-	t.check(yard_hire.size == upgrades.size and upgrades.get_global_rect().position.y - yard_hire.get_global_rect().end.y == 4.0, "bottom bar buttons: same size, 4 px apart")
+	var line_hire: Button = main.line_view(0).hire_button()
+	t.check(yard_hire.size == line_hire.size and yard_hire.get_meta("row", false), "yard hire is a crew bar button like the line hire (%s)" % yard_hire.size)
+	var up_rect := upgrades.get_global_rect()
+	t.check(up_rect == Rect2(6, 590, 348, 44), "UPGRADES spans the bottom (%s)" % up_rect)
 	await t.shot("ui_lines")
 
 	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
 	var pile: Control = main.find_child("Pile", true, false)
 	await t.click(upgrades)
-	t.check(menu.visible and is_equal_approx(menu.get_global_rect().end.y, 640.0), "menu reaches the bottom of the screen")
-	var footer: Control = menu.get_node("Footer")
+	var bar_top: float = main.get_node("%Bar").get_global_rect().position.y
+	t.check(menu.visible and menu.get_global_rect().end.y == bar_top, "menu reaches down to the bottom bar")
 	var list: ScrollContainer = menu.get_child(1).get_child(0)
-	t.check(footer.get_global_rect().has_point(upgrades.get_global_rect().get_center()) and footer.size.y == UpgradeMenu.FOOTER_H, "CLOSE sits in the footer strip")
-	t.check(list.get_global_rect().end.y <= footer.get_global_rect().position.y - UpgradeMenu.MARGIN, "rows end above the footer")
+	t.check(list.get_global_rect().end.y <= bar_top - UpgradeMenu.MARGIN, "rows end above the bar")
+	var wide_rows := []
+	for id: String in Data.upgrade_list.map(func(r: Dictionary) -> String: return r.id):
+		var row := menu.row(id)
+		if row.get_combined_minimum_size().x > menu.size.x - 2 * UpgradeMenu.MARGIN:
+			wide_rows.append("%s %d" % [id, row.get_combined_minimum_size().x])
+	t.check(wide_rows.is_empty() and list.size.x == menu.size.x - 2 * UpgradeMenu.MARGIN, "every row fits the menu (list %d) %s" % [list.size.x, wide_rows])
 	var scrap := GameState.scrap
 	await t.click(pile)
-	t.check(GameState.scrap == scrap, "footer blocks the pile")
+	t.check(GameState.scrap == scrap, "menu blocks the pile")
 	await t.shot("ui_menu")
 	list.scroll_vertical = 100000
 	await t.frames(2)
@@ -1480,6 +1491,136 @@ func ui() -> void:
 	t.check(settings.visible and not credits.is_visible_in_tree() and settings.find_child("Volume_music", true, false).is_visible_in_tree(), "BACK returns to settings")
 	await t.click(settings.find_child("Close", true, false))
 	t.check(not settings.visible, "CLOSE closes settings")
+
+
+func pane() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var scroll: ScrollContainer = t.node("Scroll")
+	var column: Control = t.node("Column")
+	var content: Control = t.node("Content")
+	var rail: ScrollRail = t.node("Rail")
+	var field: Battlefield = t.node("Battlefield")
+	var yard: Scrapyard = t.node("Scrapyard")
+	var lines: Control = t.node("Lines")
+	var field_pin := rail.pin_button(0)
+	var yard_pin := rail.pin_button(1)
+	t.check(rail.size == Vector2(20, column.size.y) and rail.get_global_rect().end.x == 360.0 and column.size.x == 340.0, "rail 20 px right of the pane, full height (%s)" % rail.size)
+	t.check(rail.state(0) == ScrollRail.Pin.SHOWN and rail.state(1) == ScrollRail.Pin.SHOWN and not rail._thumb().has_area(), "fresh game: everything fits, no thumb, both pins plain")
+
+	GameState.mechs_built = 1
+	GameState.stalled_once = true
+	GameState.credits = 1e9
+	for i in 4:
+		GameState.buy_upgrade("lines")
+	GameState.buy_upgrade("tier_plating")
+	GameState.credits = 0.0
+	await t.frames(3)
+	var line: LineView = main.line_view(0)
+	var right := line.segment_view(3).position.x + SegmentView.WIDTH
+	t.check(line.segment_view(0).position.x == LineView.PAUSE_W and right == line.size.x, "4 stations fill the line next to the rail (%d..%d)" % [line.segment_view(0).position.x, right])
+	var spans := []
+	for i in 4:
+		var h: Control = line.segment_view(i).get_node("Header")
+		spans.append(Vector2(h.get_global_rect().position.x, h.get_global_rect().end.x))
+	var apart := range(3).all(func(i: int) -> bool: return spans[i].y + LineView.HEADER_GAP <= spans[i + 1].x)
+	t.check(apart and spans[3].y <= line.get_global_rect().end.x and spans[0].x >= line.get_global_rect().position.x + LineView.PAUSE_W,
+			"station headers stay inside the line, apart (%s)" % [spans])
+	var bar := scroll.get_v_scroll_bar()
+	var bottom := int(bar.max_value - bar.page)
+	t.check(bottom > 300 and rail._thumb().has_area(), "5 lines scroll (%d px), thumb shown" % bottom)
+	t.check(scroll.scroll_vertical == 0 and rail.state(0) == ScrollRail.Pin.SHOWN and rail.state(1) == ScrollRail.Pin.AWAY, "starts at the top: field in view, yard away")
+	t.check(yard_pin.theme_type_variation == &"LitButton" and field_pin.theme_type_variation == &"", "away pin lit as quick access, the other plain")
+	t.check(Sound.presence.field == 1.0 and Sound.presence.yard == 0.0 and Sound.presence.factory > 0.0, "sound: field and lines present, yard hidden")
+	GameState.scrap = 1e6
+	GameState.credits = 1e6
+	for i in 4:
+		GameState.build_segment(0, i)
+	GameState.buy_upgrade("tier_frame")
+	GameState.credits = 0.0
+	await t.frames(2)
+	var fit: Button = line.segment_view(0).get_node("Apply")
+	var hire := line.hire_button()
+	var bar_edge := line.get_global_rect().position.y + LineView.CREW_H - 1.0
+	var machine: Control = line.segment_view(0).get_child(1)
+	t.check(fit.visible and fit.get_global_rect().position.y == bar_edge and hire.get_global_rect().end.y == bar_edge + 1.0
+			and fit.get_global_rect().end.y == machine.get_global_rect().position.y + 1.0,
+			"hire and fit share the crew bar's bottom edge, fit shares the machine's top edge")
+	await t.shot("pane_top")
+
+	await t.click(yard_pin)
+	await t.wait(ScrollRail.JUMP_TIME + 0.1)
+	t.check(scroll.scroll_vertical == bottom and Sound.visible_share(yard) == 1.0 and rail.state(1) == ScrollRail.Pin.SHOWN, "quick access scrolls down to the yard")
+	t.check(rail.state(0) == ScrollRail.Pin.AWAY and field_pin.theme_type_variation == &"LitButton", "the field pin turns into quick access")
+	t.check(Sound.presence.field == 0.0 and Sound.presence.yard == 1.0 and is_equal_approx(Sound._area_gain("field"), db_to_linear(Data.audio.areas.field.hidden_db)),
+			"sound: field down to hidden_db, yard present")
+	await t.shot("pane_bottom")
+
+	await t.click(yard_pin)
+	await t.frames(3)
+	t.check(rail.pinned[1] and yard.get_parent() == column and yard.get_index() == column.get_child_count() - 1 and yard_pin.theme_type_variation == &"PinnedButton",
+			"pinning the yard fixes it under the pane")
+	await t.click(field_pin)
+	await t.wait(ScrollRail.JUMP_TIME + 0.1)
+	t.check(scroll.scroll_vertical == 0 and Sound.visible_share(yard) == 1.0 and Sound.visible_share(field) == 1.0, "back at the top, the pinned yard stays in view")
+	await t.click(field_pin)
+	await t.frames(3)
+	t.check(rail.pinned[0] and field.get_parent() == column and field.get_index() == 0 and field.size.y == Battlefield.HEIGHT,
+			"pinning the field fixes it above the pane (%d px)" % field.size.y)
+	scroll.scroll_vertical = 100000
+	await t.frames(2)
+	t.check(Sound.visible_share(field) == 1.0 and Sound.visible_share(yard) == 1.0 and Sound.presence.factory > 0.0, "both pinned: the lines scroll between them")
+	await t.shot("pane_pinned")
+	await t.click(field_pin)
+	await t.frames(3)
+	t.check(not rail.pinned[0] and field.get_parent() == content and field.get_index() == 0 and scroll.scroll_vertical == 0 and rail.state(0) == ScrollRail.Pin.SHOWN,
+			"unpinning the field puts it back on top of the pane, in view")
+	await t.click(yard_pin)
+	await t.frames(3)
+	bottom = int(bar.max_value - bar.page)
+	t.check(not rail.pinned[1] and yard.get_parent() == content and scroll.scroll_vertical == bottom, "unpinning the yard puts it back at the end, in view")
+
+	var track := rail._track()
+	var at := func(y: float) -> Vector2: return rail.global_position + Vector2(rail.size.x / 2.0, y)
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = at.call(track.position.y + 1.0)
+	press.global_position = press.position
+	t.get_viewport().push_input(press, true)
+	await t.frames(1)
+	t.check(scroll.scroll_vertical == 0, "pressing the track top scrolls to the top")
+	var move := InputEventMouseMotion.new()
+	move.button_mask = MOUSE_BUTTON_MASK_LEFT
+	move.position = at.call(track.end.y - 1.0)
+	move.global_position = move.position
+	t.get_viewport().push_input(move, true)
+	await t.frames(1)
+	t.check(scroll.scroll_vertical == bottom, "dragging the thumb down scrolls to the bottom")
+	var release := press.duplicate()
+	release.pressed = false
+	t.get_viewport().push_input(release, true)
+	await t.frames(1)
+
+	var flyers: Flyers = t.node("Flyers")
+	Flyers.spawn(Flyers.Kind.CREDITS, Vector2(100, -40), 1.0, 1, true)
+	var disc: Control = flyers.get_child(-1)
+	t.check(flyers.clip == column.get_global_rect() and flyers.clip.has_point(disc.position), "discs from a scrolled-away source start at the pane edge (%s)" % disc.position)
+
+	GameState.debug_spawn_mechs(3)
+	await t.frames(3)
+	var guide: IntroGuide = main.get_node("IntroGuide")
+	var tip: Vector2 = guide.get("_tip") + guide.global_position
+	var pin_rect := field_pin.get_global_rect()
+	t.check(guide.text() == "TAP THE FIELD TO HIT THE WAVE" and tip.x == pin_rect.get_center().x and tip.y > pin_rect.end.y and tip.y < pin_rect.end.y + 8.0,
+			"field hint points at the field pin while the field is away (%s)" % tip)
+
+	rail.pin(0, true)
+	rail.pin(1, true)
+	await t.frames(3)
+	rail.release()
+	await t.frames(3)
+	t.check(field.get_parent() == content and yard.get_parent() == content and scroll.scroll_vertical == 0, "the nuke unpins both and shows the field")
 
 
 func art() -> void:
@@ -1814,7 +1955,7 @@ func _fresh(frozen := true) -> void:
 
 func _centered(line: LineView, n: int) -> bool:
 	var left: float = line.segment_view(0).position.x - line.call("_left")
-	var right := 360.0 - line.segment_view(n - 1).position.x - SegmentView.WIDTH
+	var right := line.size.x - line.segment_view(n - 1).position.x - SegmentView.WIDTH
 	return absf(left - right) < 1.0 and left >= 0.0
 
 

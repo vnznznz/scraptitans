@@ -52,8 +52,7 @@ func _ready() -> void:
 	header.name = "Header"
 	header.alignment = BoxContainer.ALIGNMENT_CENTER
 	header.add_theme_constant_override("separation", 1)
-	header.position = Vector2(-8, NAME_H - 22)
-	header.size = Vector2(WIDTH + 16, 20)
+	header.position.y = NAME_H - 22
 	header.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(header)
 	_name = Label.new()
@@ -67,6 +66,7 @@ func _ready() -> void:
 	stat.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	stat.custom_minimum_size = Vector2(12, 20)
 	header.add_child(stat)
+	place_header(roundf((WIDTH - header_width()) / 2.0))
 
 	_machine = TextureRect.new()
 	for f in 3:
@@ -86,8 +86,8 @@ func _ready() -> void:
 	_build.name = "Build"
 	_build.icon = preload("res://art/ui/scrap.png")
 	Price.setup(_build, Flyers.Kind.SCRAP)
-	_build.position = Vector2(4, MACHINE_Y + 4)
 	_build.size = Vector2(72, 44)
+	_build.position = Vector2(4, _pad.position.y + 1.0 - _build.size.y)
 	_build.mouse_filter = MOUSE_FILTER_PASS
 	_build.set_meta(&"silent", true)
 	_build.pressed.connect(_on_build)
@@ -125,8 +125,8 @@ func _ready() -> void:
 	_apply.name = "Apply"
 	_apply.icon = preload("res://art/ui/up.png")
 	_apply.add_theme_constant_override("h_separation", 2)
-	_apply.position = Vector2(-1, 0)
-	_apply.size = Vector2(WIDTH + 2, NAME_H)
+	_apply.position = Vector2(0, -1)
+	_apply.size = Vector2(WIDTH, NAME_H + 2)
 	_apply.mouse_filter = MOUSE_FILTER_PASS
 	Price.setup(_apply, Flyers.Kind.SCRAP, true)
 	_apply.set_meta(&"silent", true)
@@ -134,7 +134,10 @@ func _ready() -> void:
 	add_child(_apply)
 	_chunks_seen = _state().chunks
 	_assemblies_seen = _state().assemblies
-	_scroll = get_parent().get_parent().get_parent() as ScrollContainer
+	var n := get_parent()
+	while n and not n is ScrollContainer:
+		n = n.get_parent()
+	_scroll = n
 
 
 func _process(delta: float) -> void:
@@ -204,6 +207,15 @@ func _update_apply() -> void:
 	if fit:
 		var cost := GameState.tier_apply_cost(line_index, seg_index)
 		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost)
+
+
+func header_width() -> float:
+	return _header.get_combined_minimum_size().x
+
+
+func place_header(x: float) -> void:
+	_header.position.x = x
+	_header.size = Vector2(header_width(), 20)
 
 
 static func _stat_key(type_id: String) -> String:

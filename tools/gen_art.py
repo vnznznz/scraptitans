@@ -1165,6 +1165,41 @@ def nine(face, light, dark, path, outline=INK):
     save(img, path)
 
 
+def rail_icons():
+    img, d = new(12, 12)
+    for flip in (False, True):
+        f = (lambda x: 11 - x) if flip else (lambda x: x)
+        for i in range(1, 7):
+            px(d, f(i), i, STEEL_L)
+        for x, y in [(8, 6), (7, 7), (6, 8)] if not flip else [(3, 6), (4, 7), (5, 8)]:
+            px(d, x, y, GOLD)
+        px(d, f(8), 8, BROWN)
+        px(d, f(9), 9, BROWN)
+        px(d, f(10), 10, GOLD)
+    outline(img)
+    save(img, "ui/rail_field.png")
+
+    save(nut(12, SCRAP_TIERS[0]), "ui/rail_yard.png")
+
+    img, d = new(12, 12)
+    rect(d, 3, 1, 8, 3, RED)
+    rect(d, 3, 1, 8, 1, PINK)
+    rect(d, 4, 4, 7, 4, RED_D)
+    rect(d, 2, 5, 9, 6, RED)
+    rect(d, 2, 5, 9, 5, PINK)
+    rect(d, 5, 7, 5, 10, STEEL_L)
+    rect(d, 6, 7, 6, 9, STEEL)
+    outline(img)
+    save(img, "ui/pin.png")
+
+    img, d = new(12, 8)
+    for k in range(5):
+        rect(d, 5 - k, 1 + k, 6 + k, 1 + k, WHITE)
+    outline(img)
+    save(img, "ui/arrow_up.png")
+    save(img.transpose(Image.FLIP_TOP_BOTTOM), "ui/arrow_down.png")
+
+
 def ui():
     save(coin(16, CREDIT_TIERS[0]), "ui/credits.png")
     save(nut(16, SCRAP_TIERS[0]), "ui/scrap.png")
@@ -1189,6 +1224,10 @@ def ui():
     rect(d, 0, 0, 5, 5, INK)
     rect(d, 1, 1, 4, 4, NAVY)
     save(img, "ui/bar_under.png")
+    img, d = new(14, 6)
+    rect(d, 5, 0, 8, 5, INK)
+    rect(d, 6, 0, 7, 5, NAVY)
+    save(img, "ui/groove.png")
     for name, ramp in [("bar_fill", R_GREEN), ("hp_fill", R_RED)]:
         img, d = new(6, 6)
         rect(d, 0, 0, 5, 5, INK)
@@ -1279,6 +1318,8 @@ def ui():
     d.polygon([(9, 0), (3, 9), (7, 9), (5, 15), (13, 5), (9, 5), (11, 0)], fill=ORANGE, outline=INK)
     d.line([9, 2, 6, 7], fill=YELLOW)
     save(img, "ui/damage.png")
+
+    rail_icons()
 
     img, d = new(40, 36)
     rnd = random.Random(3)

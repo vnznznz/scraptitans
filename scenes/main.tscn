@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://ui/flyers.gd" id="flyers"]
 [ext_resource type="Script" path="res://scenes/upgrade_menu.gd" id="upgrade_menu"]
 [ext_resource type="Script" path="res://scenes/nuke.gd" id="nuke"]
+[ext_resource type="Script" path="res://ui/scroll_rail.gd" id="rail"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -44,15 +45,18 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 script = ExtResource("hud")
 
-[node name="Battlefield" type="Control" parent="Layout"]
-unique_name_in_owner = true
-clip_contents = true
-custom_minimum_size = Vector2(0, 160)
+[node name="Pane" type="HBoxContainer" parent="Layout"]
 layout_mode = 2
-mouse_filter = 2
-script = ExtResource("battlefield")
+size_flags_vertical = 3
+theme_override_constants/separation = 0
 
-[node name="Scroll" type="ScrollContainer" parent="Layout"]
+[node name="Column" type="VBoxContainer" parent="Layout/Pane"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Scroll" type="ScrollContainer" parent="Layout/Pane/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -60,28 +64,60 @@ scroll_deadzone = 8
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 3
 
-[node name="Content" type="VBoxContainer" parent="Layout/Scroll"]
+[node name="Content" type="VBoxContainer" parent="Layout/Pane/Column/Scroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 0
+
+[node name="Battlefield" type="Control" parent="Layout/Pane/Column/Scroll/Content"]
+unique_name_in_owner = true
+clip_contents = true
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("battlefield")
+
+[node name="Lines" type="VBoxContainer" parent="Layout/Pane/Column/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
 alignment = 2
 
-[node name="BottomBar" type="Panel" parent="Layout"]
-custom_minimum_size = Vector2(0, 100)
+[node name="Scrapyard" type="Control" parent="Layout/Pane/Column/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("scrapyard")
+
+[node name="Rail" type="Control" parent="Layout/Pane" node_paths=PackedStringArray("scroll", "top", "bottom")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+script = ExtResource("rail")
+scroll = NodePath("../Column/Scroll")
+top = NodePath("../Column/Scroll/Content/Battlefield")
+bottom = NodePath("../Column/Scroll/Content/Scrapyard")
+
+[node name="Bar" type="Panel" parent="Layout"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 
-[node name="Scrapyard" type="Control" parent="Layout/BottomBar"]
+[node name="Upgrades" type="Button" parent="Layout/Bar"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-script = ExtResource("scrapyard")
+text = "UPGRADES"
 
 [node name="UpgradeMenu" type="Control" parent="."]
 unique_name_in_owner = true
@@ -90,25 +126,10 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = 48.0
+offset_bottom = -56.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("upgrade_menu")
-
-[node name="Upgrades" type="Button" parent="."]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -120.0
-offset_top = -48.0
-offset_right = -6.0
-offset_bottom = -6.0
-grow_horizontal = 0
-grow_vertical = 0
-text = "UPGRADES"
 
 [node name="Flyers" type="Control" parent="." node_paths=PackedStringArray("hud")]
 unique_name_in_owner = true
@@ -143,7 +164,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("settings")
 
-[node name="Nuke" type="Control" parent="." node_paths=PackedStringArray("battlefield", "scroll", "content", "scrapyard")]
+[node name="Nuke" type="Control" parent="." node_paths=PackedStringArray("battlefield", "scroll", "lines", "scrapyard", "rail")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -152,7 +173,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("nuke")
-battlefield = NodePath("../Layout/Battlefield")
-scroll = NodePath("../Layout/Scroll")
-content = NodePath("../Layout/Scroll/Content")
-scrapyard = NodePath("../Layout/BottomBar/Scrapyard")
+battlefield = NodePath("../Layout/Pane/Column/Scroll/Content/Battlefield")
+scroll = NodePath("../Layout/Pane/Column/Scroll")
+lines = NodePath("../Layout/Pane/Column/Scroll/Content/Lines")
+scrapyard = NodePath("../Layout/Pane/Column/Scroll/Content/Scrapyard")
+rail = NodePath("../Layout/Pane/Rail")

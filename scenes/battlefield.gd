@@ -1,7 +1,7 @@
 class_name Battlefield
 extends Control
 
-const WIDTH := 360.0
+const WIDTH := 340.0
 const HEIGHT := 160.0
 const SKY := Pal.NAVY
 const GROUND_Y := 146.0
@@ -11,20 +11,20 @@ const SLOTS_PER_ROW := 8
 const ROW_Y := [156.0, 141.0, 126.0]
 const ROW_SHADE := [1.0, 0.78, 0.6]
 const FILL_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
-const SLOT_X0 := 224.0
-const SLOT_DX := 28.0
+const SLOT_X0 := 214.0
+const SLOT_DX := 26.0
 const WALK_SPEED := 64.0
 const WALK_ANIM := 1.6
 const NUKE_SPEED := 22.0
 const NUKE_POS := Vector2(118, 156)
 const ASIDE := Vector2(34, -5)
 const ENTRY_X := -24.0
-const ENEMY_X0 := 256.0
-const ENEMY_X1 := 346.0
+const ENEMY_X0 := 242.0
+const ENEMY_X1 := 326.0
 const SMOKE_Y := 28.0
 const SMOKE_SPEED := 3.0
 const ENEMY_WALK_IN := 1.2
-const BAR_RECT := Rect2(4, 4, 352, 20)
+const BAR_RECT := Rect2(4, 4, WIDTH - 8.0, 20)
 const MECH_FIRE := Vector2(0.8, 1.6)
 const ENEMY_FIRE := Vector2(1.2, 2.4)
 const INCOME_DISCS_PER_S := 10.0

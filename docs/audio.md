@@ -13,7 +13,7 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 
 - Player actions (pile, station, battlefield taps, buys) sound at once, crisp, always (within voice caps)
 - Automated activity (workers, deploys, shots, income) is quiet and thinned. More activity raises an ambience bed instead of adding more one-shots
-- Only what's on screen: assembly only for stations inside the scroll pane, deploys only for visible lines, shots only from drawn mechs
+- Only what's on screen: assembly only for stations inside the scroll pane, deploys only for visible lines, shots only from drawn mechs; areas scrolled out of view play quietly (`areas`)
 - Variation: 2–4 files per frequent sound, random pick without direct repeat, pitch jitter
 - Limits per sound: `cooldown` (plays inside it are dropped) and `voices` (max at once). The whole battlefield shares a budget (`groups.field` plays/s)
 - Rewards stand out: wave clear, unlocks, fits are the loudest regular sounds and rare
@@ -24,7 +24,7 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 
 - `sounds.<id>`: `files` (pack names without `.wav`, in `audio/sfx/`), `volume_db`, `file_db` (per-file offset, for uneven variants), `pitch` (± share), `pitch_base`, `cooldown` s, `voices`, `group`, `area`, `bus` (default `Sfx`)
 - `groups.<name>`: max plays per second across all sounds of the group
-- `areas.<name>.hidden_db`: level of an area's beds and sounds when it's scrolled off screen; in between it follows the visible share. Areas: `field` (battlefield), `factory` (lines), `yard` (scrap pile). With battlefield, factory and pile in one scroll pane, scrolling crossfades their ambience without code changes
+- `areas.<name>.hidden_db`: level of an area's beds and sounds when it's scrolled off screen; in between it follows the visible share; a pinned area is always in view. Areas: `field` (battlefield, −18), `factory` (lines, −15), `yard` (scrap pile, −15). Battlefield, lines and pile share one scroll pane, so scrolling crossfades the soundscape: wind + battle up top, factory hum in the middle, pile and yard crew at the bottom
 - `beds.<id>`: looped on the `Ambience` bus; `drive` (`assembly_rate` per s, `mechs` drawn) / `full` = level, smoothed over `smooth` s; no drive = constant
 - `music`: `volume_db`, `first_after` (s after the first mech), `gap` [min, max] s between plays, `fade_in`, `fade_out`, `duck_db` (Ambience while music plays)
 - `defaults`: first-run settings (`muted`, steps 0–`steps` per bus)

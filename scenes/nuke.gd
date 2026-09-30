@@ -7,8 +7,9 @@ const MUSIC_DELAY := 1.5
 
 @export var battlefield: Battlefield
 @export var scroll: ScrollContainer
-@export var content: Control
+@export var lines: Control
 @export var scrapyard: Scrapyard
+@export var rail: ScrollRail
 
 var _flash: ColorRect
 var _band: TextureRect
@@ -100,6 +101,7 @@ func card_visible() -> bool:
 func _play(m: MechState) -> void:
 	visible = true
 	get_tree().call_group("upgrade_menu", "close")
+	rail.release()
 	await battlefield.fire_missile(m.id)
 	await get_tree().create_timer(0.3).timeout
 	_flash.color = Color.WHITE
@@ -117,33 +119,32 @@ func _play(m: MechState) -> void:
 
 
 func _sweep() -> void:
-	scroll.scroll_vertical = 0
 	_band.visible = true
 	_band.size = Vector2(size.x, _band.texture.get_height())
 	_shake(2.0, SWEEP_TIME)
 	Sound.play(&"shockwave")
 	Sound.play(&"shockwave_boom")
-	var targets := content.get_children().filter(func(c: Node) -> bool: return c is Control and c.visible)
-	var total := content.size.y
+	var targets := lines.get_children().filter(func(c: Node) -> bool: return c is Control and c.visible)
+	targets.append(scrapyard)
+	var from := lines.position.y
+	var total := (lines.get_parent() as Control).size.y
 	var tw := create_tween()
 	tw.tween_method(func(p: float) -> void:
-		var y := p * total
+		var y := lerpf(from, total, p)
 		scroll.scroll_vertical = int(y - scroll.size.y / 2.0)
 		_band.position.y = scroll.global_position.y + y - scroll.scroll_vertical - _band.size.y / 2.0
 		for c: Control in targets.duplicate():
-			if y >= c.position.y + c.size.y / 2.0:
+			if y >= c.position.y + c.size.y / 2.0 + (from if c.get_parent() == lines else 0.0):
 				targets.erase(c)
 				if c.has_method("collapse"):
 					Sound.play(&"collapse")
 				_collapse(c), 0.0, 1.0, SWEEP_TIME)
 	await tw.finished
 	_band.visible = false
-	Sound.play(&"collapse")
-	scrapyard.collapse()
 
 
 func _collapse_all() -> void:
-	for c in content.get_children():
+	for c in lines.get_children():
 		_collapse(c)
 	scrapyard.collapse()
 
@@ -156,7 +157,7 @@ func _collapse(c: Node) -> void:
 
 
 func _shake(strength: float, time: float) -> void:
-	var layout := scroll.get_parent() as Control
+	var layout := get_parent().get_node("Layout") as Control
 	var tw := create_tween()
 	var steps := int(time / 0.04)
 	for k in steps:

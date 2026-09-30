@@ -27,7 +27,7 @@ Not needed: 3D, physics (2D and 3D), navigation, XR, audio codec modules, video,
 - "Detect from Project" always keeps the advanced text server (its class list contains `CanvasItem`), so the switch to the fallback text server is manual. Biggest single saving (ICU data, HarfBuzz).
 - Profile editor: "dynamic fonts" (FreeType) depends on the advanced text server, so disabling the advanced one can switch FreeType off too. Keep `module_freetype_enabled`: the fallback text server needs it for the TTF.
 - Default theme icons are SVG-generated; with the svg module off they're blank. The game's theme covers everything it shows.
-- `JavaScriptBridge` exists only with `javascript_eval` (default on); M12 Poki needs it.
+- `JavaScriptBridge` exists only with `javascript_eval` (default on); M13 Poki needs it.
 - Templates must match the editor version exactly: `~/work/source/godot` is at `4.7.2-stable`.
 - Emscripten: 4.0.11 (what 4.7.2's CI uses; the minimum is 4.0.0). The docs' "6.0.1+" is for the newer engine version.
 

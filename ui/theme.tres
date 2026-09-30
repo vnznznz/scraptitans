@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" path="res://art/ui/button_disabled.png" id="button_disabled"]
 [ext_resource type="Texture2D" path="res://art/ui/panel.png" id="panel"]
 [ext_resource type="Texture2D" path="res://art/ui/button_lit.png" id="button_lit_tex"]
+[ext_resource type="Texture2D" path="res://art/ui/groove.png" id="groove"]
 
 [sub_resource type="StyleBoxTexture" id="button_normal"]
 texture = ExtResource("button")
@@ -118,6 +119,48 @@ content_margin_top = 3.0
 content_margin_right = 2.0
 content_margin_bottom = 1.0
 
+[sub_resource type="StyleBoxTexture" id="scroll_groove"]
+texture = ExtResource("groove")
+texture_margin_left = 7.0
+texture_margin_right = 7.0
+content_margin_left = 7.0
+content_margin_top = 0.0
+content_margin_right = 7.0
+content_margin_bottom = 0.0
+
+[sub_resource type="StyleBoxTexture" id="grabber_normal"]
+texture = ExtResource("button")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 7.0
+content_margin_top = 10.0
+content_margin_right = 7.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="grabber_hover"]
+texture = ExtResource("button_hover")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 7.0
+content_margin_top = 10.0
+content_margin_right = 7.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="grabber_down"]
+texture = ExtResource("button_pressed")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+content_margin_left = 7.0
+content_margin_top = 10.0
+content_margin_right = 7.0
+content_margin_bottom = 10.0
+
 [sub_resource type="StyleBoxEmpty" id="empty"]
 
 [resource]
@@ -138,9 +181,17 @@ Button/styles/focus = SubResource("empty")
 Label/colors/font_color = Color(0.753, 0.796, 0.863, 1)
 Panel/styles/panel = SubResource("panel_box")
 PanelContainer/styles/panel = SubResource("panel_box")
+VScrollBar/styles/scroll = SubResource("scroll_groove")
+VScrollBar/styles/scroll_focus = SubResource("scroll_groove")
+VScrollBar/styles/grabber = SubResource("grabber_normal")
+VScrollBar/styles/grabber_highlight = SubResource("grabber_hover")
+VScrollBar/styles/grabber_pressed = SubResource("grabber_down")
 LitButton/base_type = &"Button"
 LitButton/styles/normal = SubResource("button_afford")
 LitButton/styles/hover = SubResource("button_afford")
+PinnedButton/base_type = &"Button"
+PinnedButton/styles/normal = SubResource("button_down")
+PinnedButton/styles/hover = SubResource("button_down")
 PriceButton/base_type = &"Button"
 PriceButton/styles/disabled = SubResource("button_normal")
 PriceRow/base_type = &"Button"

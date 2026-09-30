@@ -6,12 +6,15 @@ const OUTLINE := Pal.INK
 const ARROW := Vector2(8, 10)
 const MARGIN := 16.0
 const FIELD_TAPS := 3
+const AREA_DIP := 20.0
+const BUTTON_DIP := 2.0
 
 var pile: Control
 var line: LineView
 var battlefield: Battlefield
 var upgrades: Control
 var menu: UpgradeMenu
+var rail: ScrollRail
 
 var _label: Label
 var _tip := Vector2.ZERO
@@ -45,10 +48,14 @@ func _process(delta: float) -> void:
 	var bob := roundf(sin(_t * 6.0) * 3.0)
 	var target: Control = step[1]
 	_down = step[2]
+	if target and rail and rail.reach(target) != target:
+		target = rail.reach(target)
+		_down = target == rail.pin_button(1)
 	_arrow = target != null
 	if _arrow:
 		var rect := target.get_global_rect()
-		_tip = Vector2(rect.get_center().x, (rect.position.y + 20.0 - bob) if _down else (rect.end.y + 2.0 + bob)) - global_position
+		var dip := BUTTON_DIP if target is BaseButton else AREA_DIP
+		_tip = Vector2(rect.get_center().x, (rect.position.y + dip - bob) if _down else (rect.end.y + 2.0 + bob)) - global_position
 	_label.text = step[0]
 	_label.custom_minimum_size.x = size.x - MARGIN * 2.0
 	_label.reset_size()

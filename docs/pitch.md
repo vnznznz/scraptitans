@@ -129,25 +129,26 @@ Every row has an info button with a plain description. Tapping the station body 
 ```
 ┌──────────────────────────────┐
 │ HUD: scrap +/s  credits +/s ⚙│  fixed
-├──────────────────────────────┤
-│ BATTLEFIELD (fixed, ~25%)    │  fixed, tap = hit the wave
-│ ▓▓▓▓▓▓▓▓░░░ 1.2K/3K  45 DPS  │  wave healthbar, full width
-│  mechs →  smoke  ✸   ← enemy │  discs fly to the HUD
-├──────────────────────────────┤
-│ ▼ ScrollContainer (vertical) │
-│┌ CREW 5/9         [+w  67]  │  crew bar + pause strip form an L
-││  FRAME  [⬆ 2K] ARMS  PLATING│  station names; ⬆ fit replaces a name
-││ [▓▓▓▓]=[▓▓░░]=[░░░]=[+ ]→   │  work bar = machine top,
-│⏸ [ww  ]  [w  ]  [ww ]        │  crew inside, belt, mech exits →
-│┌ CREW 3/9 ...                │  next line flush below
-│ [ + UNLOCK LINE 2 · credits ]│
-├──────────────────────────────┤
-│ w⛏ [SCRAP PILE] ⛏w  [+YARD W]│  fixed, always visible
-│                     [UPGRADES]│  thumb zone → menu
+├───────────────────────────┬──┤
+│ BATTLEFIELD (~25%)        │P │  pin P: fixed on top while pinned
+│ ▓▓▓▓▓▓▓░░░ 1.2K/3K 45 DPS │  │  wave healthbar, tap = hit the wave
+│  mechs →  smoke ✸  ← enemy│  │
+│┌ CREW 5/9       [+w  67]  │▐ │  one scroll pane, pixel scroll bar
+││ FRAME [⬆ 2K] ARMS PLATING│▐ │  crew bar + pause strip form an L
+││[▓▓▓]=[▓▓░]=[░░░]=[+ ]→   │  │  work bar = machine top,
+│⏸ [ww ]  [w  ]  [ww ]      │  │  crew inside, belt, mech exits →
+│┌ CREW 3/9 ...             │  │  next line flush below
+│  [ + UNLOCK LINE 2 · cr ] │  │
+│ YARD CREW 2/4   [+w  40]  │  │  yard crew bar
+│ w⛏ [SCRAP PILE] ⛏w        │P │  pin P: fixed at the bottom while pinned
+├───────────────────────────┴──┤
+│ [          UPGRADES     (3)] │  thumb zone → menu
 └──────────────────────────────┘
 ```
 
-- Lines share **one scroll pane**. The scrapyard is fixed in the bottom bar beside UPGRADES; it starts centered and slides left when the other buttons unlock.
+- Battlefield, lines and scrapyard share **one scroll pane**, with a pixel-art scroll bar beside it. Its two pins (battlefield top, scrapyard bottom) fix their area to the top / bottom of the pane while it's in view; while it's scrolled away the pin lights up as a quick-access button that scrolls there.
+- What's in view sets the soundscape: scrolled-away areas fade to a low level.
+- UPGRADES spans the bottom, always visible.
 - A new game shows line 1 with three empty station pads to build, plus the scrapyard.
 - Desktop layout is out of scope for v1 (letterbox the portrait column).
 
@@ -156,7 +157,7 @@ Every row has an info button with a plain description. Tapping the station body 
 - **Rendering:** Compatibility renderer, for web export.
 - **Pixel art:** base viewport 360×640 (or 720×1280 at 2×), `stretch mode = canvas_items`, keep aspect, texture filter **Nearest**.
 - **Data:** station types, tiers, upgrades and mech parts as `Resource` files. New station types are data only.
-- **Scene structure:** `Main` (HUD, `Battlefield`, `ScrollContainer` → `VBox` → `AssemblyLine` × N + `Scrapyard`, fixed `UpgradeButton`, `UpgradeMenu` overlay). `AssemblyLine` owns `Segment` nodes, the belt and mechs in transit. `Battlefield` owns active mechs, the enemy wave and its healthbar, and effects. A top-level `Flyers` layer draws income discs.
+- **Scene structure:** `Main` (HUD, `ScrollContainer` → `VBox` → `Battlefield` + `AssemblyLine` × N + `Scrapyard`, scroll bar with pins, fixed `UpgradeButton`, `UpgradeMenu` overlay). `AssemblyLine` owns `Segment` nodes, the belt and mechs in transit. `Battlefield` owns active mechs, the enemy wave and its healthbar, and effects. A top-level `Flyers` layer draws income discs.
 - **Simulation:** one tick in a central autoload (`GameState`), separate from visuals. Workers fire on timers, not per frame.
 - **Save:** JSON in `user://` (IndexedDB on web). Save on change and on hide. No offline progress.
 - **Poki:** Poki SDK via `JavaScriptBridge`. Gameplay start/stop, commercial break on run end, rewarded ads: 2× payout for 5 min, fill all work bars.

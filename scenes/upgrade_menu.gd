@@ -3,7 +3,6 @@ extends Control
 
 const PANEL_ALPHA := 0.85
 const MARGIN := 6
-const FOOTER_H := 54
 const TIER_STATS := {
 	"lifetime": "LIFE %s » %s S",
 	"credits_per_sec": "PAY %s » %s/S",
@@ -52,19 +51,13 @@ func _ready() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	for side in ["left", "right", "top"]:
+	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, MARGIN)
-	margin.add_theme_constant_override("margin_bottom", FOOTER_H + MARGIN)
 	add_child(margin)
-
-	var footer := Panel.new()
-	footer.name = "Footer"
-	footer.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
-	footer.offset_top = -FOOTER_H
-	add_child(footer)
 
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	_scroll.scroll_deadzone = 8
 	margin.add_child(_scroll)
 	_rows = VBoxContainer.new()
@@ -136,17 +129,15 @@ func _add_row(r: Dictionary) -> void:
 	h.add_child(v)
 	var title := Label.new()
 	v.add_child(title)
-	var line := HBoxContainer.new()
-	line.add_theme_constant_override("separation", 6)
-	v.add_child(line)
 	var effect := Label.new()
 	effect.name = "Effect"
 	effect.modulate = Color(1, 1, 1, 0.7)
-	line.add_child(effect)
+	v.add_child(effect)
 	var pips := Pips.new()
 	pips.name = "Pips"
 	pips.visible = r.get("kind", "") == ""
-	line.add_child(pips)
+	pips.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	v.add_child(pips)
 	var desc := Label.new()
 	desc.name = "Desc"
 	desc.text = _desc(r).to_upper()
