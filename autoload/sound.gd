@@ -38,11 +38,9 @@ var _off := false
 
 func _ready() -> void:
 	_cfg = Data.audio
-	for key: String in BUSES:
-		AudioServer.add_bus()
-		var i := AudioServer.bus_count - 1
-		AudioServer.set_bus_name(i, BUSES[key])
-		AudioServer.set_bus_send(i, &"Master")
+	AudioServer.bus_count = 1 + BUSES.size()
+	for i in BUSES.size():
+		AudioServer.set_bus_name(i + 1, BUSES.values()[i])
 	for id: String in _cfg.sounds:
 		var c: Dictionary = _cfg.sounds[id]
 		var streams: Array[AudioStream] = []
