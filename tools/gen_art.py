@@ -1055,11 +1055,16 @@ def enemies(v):
             d.polygon([(sx, hull_top), (sx + 1, hull_top - 3), (sx + 2, hull_top)], fill=GOLD, outline=INK)
     save(flipped(img), f"battlefield/enemy_crawler_{v + 1}.png")
 
-    w, h = 30 + 6 * v, 38 + 6 * v
-    img, d = new(w + 12, h + 2)
+    save(flipped(brute(v, ramp, trim, 30 + 6 * v, 38 + 6 * v)), f"battlefield/enemy_brute_{v + 1}.png")
+    save(flipped(brute(v, ramp, trim, 58 + 6 * v, 66 + 6 * v, boss=True)), f"battlefield/enemy_boss_{v + 1}.png")
+
+
+def brute(v, ramp, trim, w, h, boss=False):
+    pad = 14 if boss else 0
+    img, d = new(w + 12, h + 2 + pad)
     lw = 5 + v
     leg_h = h // 3
-    base = h + 1
+    base = h + 1 + pad
     for lx, shade in ((6, 0.75), (w - lw - 6, 1.0)):
         lr = tuple(tuple(int(c * shade) for c in col[:3]) + (255,) for col in R_DARK)
         sbox(d, lx, base - leg_h, lx + lw, base - 2, lr)
@@ -1071,16 +1076,16 @@ def enemies(v):
         bx = 5 + (k * 7) % max(8, w - 12)
         by = tt + 5 + (k * 5) % max(6, h // 2 - 8)
         sbox(d, bx, by, bx + 3, by + 3, R_RUST)
-    hw = 10 + v * 2
+    hw = 10 + v * 2 + (8 if boss else 0)
     hx = w // 2 - 2
-    ht = tt - 7 - v
+    ht = tt - 7 - v - (4 if boss else 0)
     blob(d, hx, ht, hx + hw, tt + 2, ramp)
     rect(d, hx + hw // 2, ht + 3, hx + hw - 1, ht + 5, INK)
     eye(d, hx + hw - 4, ht + 3, True)
     if v >= 2:
         for sx in (4, w - 8):
             d.polygon([(sx, tt + 1), (sx + 2, tt - 4 - v), (sx + 4, tt + 1)], fill=trim, outline=INK)
-    if v == 4:
+    if v == 4 or boss:
         for hx2 in (hx + 1, hx + hw - 3):
             d.polygon([(hx2, ht), (hx2 + 1, ht - 6), (hx2 + 3, ht)], fill=GOLD, outline=INK)
         cx, cy = w // 2 - 4, tt + (base - leg_h - tt) // 2 + 2
@@ -1092,7 +1097,13 @@ def enemies(v):
     cy = tt + (h // 3)
     sbox(d, w - 10, cy, w - 2, cy + 12 + v, R_DARK)
     d.polygon([(w - 2, cy + 10 + v), (w + 5, cy + 14 + v), (w - 2, cy + 16 + v)], fill=STEEL, outline=INK)
-    save(flipped(img), f"battlefield/enemy_brute_{v + 1}.png")
+    if boss:
+        top = ht - 13
+        sbox(d, 6, top - 1, 16, tt + 2, R_IRON)
+        sbox(d, 16, top, w - 4, top + 5, (SLATE_D, trim, WHITE))
+        sbox(d, w - 4, top - 1, w, top + 6, R_DARK)
+        hazard(d, 4, base - leg_h - 4, w - 4, base - leg_h - 2, trim, INK)
+    return img
 
 
 MUSHROOM = (168, 156)

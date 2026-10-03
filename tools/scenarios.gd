@@ -1975,6 +1975,19 @@ func field() -> void:
 	var ground: Sprite2D = field.get("_layers")[3]
 	t.check(not field.advancing() and ground.region_rect.position.x == roundf(Battlefield.front_offset(GameState.wave)), "front stops at the next wave's spot")
 	GameState.time_scale = 1.0
+	t.check(Battlefield.is_boss_wave(4) and Battlefield.is_boss_wave(9) and not Battlefield.is_boss_wave(10), "boss on every 5th wave")
+	GameState.time_scale = 0.0
+	GameState.wave = 9
+	GameState.wave_hp = GameState.wave_max_hp()
+	await t.frames(2)
+	var enemies: Array = field.get("_enemies")
+	var bosses := enemies.filter(func(e: Sprite2D) -> bool: return e.get_meta("boss"))
+	t.check(bosses.size() == 1 and bosses[0] == enemies[-1] and bosses[0].texture.resource_path.contains("enemy_boss_"),
+			"boss wave: the heaviest enemy is the boss")
+	t.check((field.get_node("HpLabel") as Label).text == "WAVE 10 BOSS", "wave bar says BOSS")
+	GameState.time_scale = 1.0
+	await t.wait(2.5)
+	await t.shot("field_boss")
 	for wave: int in [0, 9, 17, 23, 27]:
 		GameState.wave = wave
 		GameState.wave_hp = GameState.wave_max_hp()

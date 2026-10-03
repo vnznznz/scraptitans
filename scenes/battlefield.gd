@@ -26,6 +26,9 @@ const ENEMY_WALK_IN := 1.2
 const BAR_RECT := Rect2(4, 4, WIDTH - 8.0, 20)
 const STRIP_H := 4.0
 const ARTILLERY_PER := 25.0
+const BOSS_EVERY := 5
+const BOSS_BACK := 8.0
+const BOSS_WALK_IN := 2.0
 const SHELL_FROM := Vector2(-60, -130)
 const SHELL_TIME := 0.35
 const MECH_FIRE := Vector2(0.8, 1.6)
@@ -262,7 +265,7 @@ func _process(delta: float) -> void:
 	var max_hp := GameState.wave_max_hp()
 	_bar.max_value = max_hp
 	_bar.value = GameState.wave_hp
-	_hp_label.text = "WAVE %d" % (GameState.wave + 1)
+	_hp_label.text = ("WAVE %d BOSS" if is_boss_wave(GameState.wave) else "WAVE %d") % (GameState.wave + 1)
 	_dps_label.text = "%s DMG/S" % Fmt.num(GameState.wave_dps())
 	_update_strip()
 	var alive := GameState.wave_alive()
@@ -378,22 +381,29 @@ func _show_wave(walk_in: bool) -> void:
 	_wave_shown = GameState.wave
 	var list := GameState.wave_enemies()
 	var n := list.size()
-	var layer_sizes := {true: 0, false: 0}
-	for en in list:
-		layer_sizes[en.flying] += 1
+	var boss_i := n - 1 if is_boss_wave(GameState.wave) else -1
+	var flying := list.map(func(en: Dictionary) -> bool: return en.flying)
+	if boss_i >= 0:
+		flying[boss_i] = false
+	var layer_sizes := {true: flying.count(true), false: flying.count(false)}
 	var layer_i := {true: 0, false: 0}
-	for en in list:
+	for k in n:
+		var en := list[k]
+		var boss := k == boss_i
 		var e := Sprite2D.new()
-		e.texture = load("res://art/battlefield/enemy_%s_%d.png" % [en.sprite, en.variant + 1])
+		e.texture = load("res://art/battlefield/enemy_%s_%d.png" % ["boss" if boss else en.sprite, en.variant + 1])
 		e.offset = Vector2(0, -e.texture.get_height() / 2.0)
-		e.set_meta("flying", en.flying)
-		e.set_meta("sprite", en.sprite)
-		var i: int = layer_i[en.flying]
-		var count: int = layer_sizes[en.flying]
-		layer_i[en.flying] += 1
+		e.set_meta("flying", flying[k])
+		e.set_meta("sprite", "brute" if boss else en.sprite)
+		e.set_meta("boss", boss)
+		var i: int = layer_i[flying[k]]
+		var count: int = layer_sizes[flying[k]]
+		layer_i[flying[k]] += 1
 		var x := (ENEMY_X0 + ENEMY_X1) / 2.0 if count == 1 else lerpf(ENEMY_X0, ENEMY_X1, float(i) / (count - 1))
 		x = minf(x, WIDTH - e.texture.get_width() / 2.0 - 2.0)
-		var y := (AIR_Y + (i % 2) * 18.0) if en.flying else GROUND_Y - (i % 2) * 7.0
+		var y := (AIR_Y + (i % 2) * 18.0) if flying[k] else GROUND_Y - (i % 2) * 7.0
+		if boss:
+			y = GROUND_Y - BOSS_BACK
 		e.position = Vector2(x, y)
 		var fx := DamageFx.new()
 		fx.name = "Damage"
@@ -403,8 +413,11 @@ func _show_wave(walk_in: bool) -> void:
 		_enemies.append(e)
 		if walk_in:
 			e.position.x += 120.0
-			e.create_tween().tween_property(e, "position:x", x, ENEMY_WALK_IN / maxf(GameState.time_scale, 1.0)) \
+			var tw := e.create_tween()
+			tw.tween_property(e, "position:x", x, (BOSS_WALK_IN if boss else ENEMY_WALK_IN) / maxf(GameState.time_scale, 1.0)) \
 					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			if boss:
+				tw.tween_callback(shake.bind(2.0, 3))
 	_enemy_count = n
 	if walk_in:
 		get_tree().create_timer(ARRIVE_DELAY).timeout.connect(Sound.play.bind(&"wave_arrive"))
@@ -432,9 +445,21 @@ func _on_tap(at: Vector2) -> void:
 		Fx.puff(_mechs, spot, 0.4, Pal.YELLOW)
 
 
+static func is_boss_wave(wave: int) -> bool:
+	return (wave + 1) % BOSS_EVERY == 0
+
+
 func _pop_enemy(i: int) -> void:
 	var e := _enemies[i]
 	if not e.visible:
+		return
+	if e.get_meta("boss"):
+		Sound.play(&"enemy_pop_big")
+		for k in 3:
+			Fx.explosion(_mechs, _enemy_center(e) + Vector2(randf_range(-20, 20), randf_range(-24, 24)), true, randf_range(0.4, 0.7))
+		Fx.debris(_mechs, _enemy_center(e), 16, true)
+		shake(4.0, 6)
+		e.visible = false
 		return
 	var big := e.texture.get_height() > 30
 	Sound.play(&"enemy_pop_big" if big else &"enemy_pop")
