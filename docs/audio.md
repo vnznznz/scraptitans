@@ -7,7 +7,7 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 - Ambience that carries what the factory and the battlefield are doing, without getting on the nerves over a 30–60 min run
 - Music: Juhani Junkala "Ending" (Retro Game Music Pack), now and then, never nonstop
 - Sounds and mixing in `data/audio.json`, like the other tunables
-- Mute toggle in the HUD, volume steps in the ⚙ settings overlay
+- Mute toggle in the HUD, volume steps per bus in ⚙ → AUDIO
 
 ## Rules against annoyance
 
@@ -22,14 +22,23 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 
 ## Tuning (`data/audio.json`)
 
-- `sounds.<id>`: `files` (pack names without `.wav`, in `audio/sfx/`), `volume_db`, `file_db` (per-file offset, for uneven variants), `pitch` (± share), `pitch_base`, `cooldown` s, `voices`, `group`, `area`, `bus` (default `Sfx`)
+- `sounds.<id>`: `files` (pack names without `.wav`, in `audio/sfx/`), `volume_db`, `file_db` (per-file offset, for uneven variants), `pitch` (± share), `pitch_base`, `cooldown` s, `voices`, `group`, `area`, `bus` (`ui`, `battle`, `factory`, `music`)
 - `groups.<name>`: max plays per second across all sounds of the group
 - `areas.<name>.hidden_db`: level of an area's beds and sounds when it's scrolled off screen; in between it follows the visible share; a pinned area is always in view. Areas: `field` (battlefield, −18), `factory` (lines, −15), `yard` (scrap pile, −15). Battlefield, lines and pile share one scroll pane, so scrolling crossfades the soundscape: wind + battle up top, factory hum in the middle, pile and yard crew at the bottom
 - `beds.<id>`: looped on the `Ambience` bus; `drive` (`assembly_rate` per s, `mechs` drawn) / `full` = level, smoothed over `smooth` s; no drive = constant
 - `music`: `volume_db`, `first_after` (s after the first mech), `gap` [min, max] s between plays, `fade_in`, `fade_out`, `duck_db` (Ambience while music plays)
 - `defaults`: first-run settings (`muted`, steps 0–`steps` per bus)
-- `trim_db`: per bus, added to the step level. Sounds −24, ambience −12: the default step 4 plays where step 1 (sounds) and step 2 (ambience) were before, the baseline picked by ear
+- `trim_db`: per bus, added to the step level. UI, battle, factory −24, ambience −12: the default step 4 plays where step 1 (sounds) and step 2 (ambience) of the old single SOUNDS row were, the baseline picked by ear; master +4, so its step 4 is 0 dB
 - Levels were set from measured loudness (active RMS) toward a target per role: taps −17, buys −19, UI −22, assembly/deaths −23, busy (shots, pops, coins) −27, quiet −30, rewards −16, nuke −12 dBFS (before `trim_db`). Short hits (< 0.12 s) ~1.5 dB over their target, since they sound quieter at the same RMS. Tune by ear from there; a reload picks up changes
+
+## Buses
+
+- MASTER: everything (HUD mute and step 0 mute it)
+- UI: only what a direct press triggers: buttons, menus, buys, pause/resume (taps on the pile, stations and battlefield go with their area)
+- BATTLE: battlefield (shots, enemy fire, taps, pops, deaths, wave clear/bounty/arrival) + nuke sequence
+- FACTORY: pile and yard crew, stations, assembly, deploys, stall, collapse, credit coins
+- AMBIENCE: all beds (wind, battle rumble, factory hum); ducked under the music
+- MUSIC: Ending, run card fanfare (`volume_db` −30: no −24 trim on this bus)
 
 ## Music
 

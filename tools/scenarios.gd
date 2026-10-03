@@ -1496,7 +1496,7 @@ func ui() -> void:
 	await t.click(licenses.find_child("LicensesClose", true, false))
 	t.check(not licenses.visible and credits.is_visible_in_tree(), "BACK returns to credits")
 	await t.click(settings.find_child("Close", true, false))
-	t.check(settings.visible and not credits.is_visible_in_tree() and settings.find_child("Volume_music", true, false).is_visible_in_tree(), "BACK returns to settings")
+	t.check(settings.visible and not credits.is_visible_in_tree() and settings.find_child("AudioButton", true, false).is_visible_in_tree(), "BACK returns to settings")
 	await t.click(settings.find_child("Close", true, false))
 	t.check(not settings.visible, "CLOSE closes settings")
 
@@ -2120,6 +2120,8 @@ func intro() -> void:
 func audio() -> void:
 	var settings_backup := FileAccess.get_file_as_string(Save.SETTINGS_PATH) if FileAccess.file_exists(Save.SETTINGS_PATH) else ""
 	await _fresh()
+	for id: String in Sound._beds:
+		Sound._beds[id].gain = 0.0
 	var main := t.get_tree().current_scene
 	var cfg: Dictionary = Data.audio
 	var missing := []
@@ -2128,6 +2130,10 @@ func audio() -> void:
 			if s == null or s.get_length() <= 0.0:
 				missing.append(id)
 	t.check(missing.is_empty(), "every sound file loads (%s)" % [missing])
+	var buses := {}
+	for id: String in cfg.sounds:
+		buses[cfg.sounds[id].get("bus", "")] = true
+	t.check(buses.keys().all(func(b: String) -> bool: return b in ["ui", "battle", "factory", "music"]) and buses.size() == 4, "every sound on the ui, battle, factory or music bus (%s)" % [buses.keys()])
 	var loops := []
 	for id: String in Sound._beds:
 		var s: AudioStreamWAV = Sound._beds[id].player.stream
@@ -2194,15 +2200,31 @@ func audio() -> void:
 	await t.shot("audio_hud")
 	await t.click(gear)
 	var settings: SettingsOverlay = main.get_node("%Settings")
+	t.check(not settings.find_child("Volume_music", true, false).is_visible_in_tree(), "volume rows not on the settings page")
+	await t.click(settings.find_child("AudioButton", true, false))
+	var rows: Array = Sound.BUSES.keys().map(func(key: String) -> Control: return settings.find_child("Volume_" + key, true, false))
+	t.check(rows.all(func(r: Control) -> bool: return r.is_visible_in_tree() and settings.get_global_rect().encloses(r.get_global_rect())),
+			"AUDIO: a row per bus (%d), on screen" % rows.size())
 	await t.shot("audio_settings")
+	var off := []
+	for key: String in Sound.BUSES:
+		var level := linear_to_db(pow(float(Sound.steps[key]) / float(cfg.steps), 2.0)) + float(cfg.trim_db[key])
+		if absf(AudioServer.get_bus_volume_db(AudioServer.get_bus_index(Sound.BUSES[key])) - level) > 0.01:
+			off.append(key)
+	t.check(off.is_empty(), "buses at their step level + trim_db (%s)" % [off])
 	var music_step := int(Sound.steps.music)
 	await t.click(settings.find_child("Volume_music", true, false).get_node("Down"))
 	t.check(int(Sound.steps.music) == music_step - 1, "settings MUSIC - lowers the step")
 	Sound.set_step("music", 0)
 	t.check(AudioServer.is_bus_mute(AudioServer.get_bus_index(&"Music")), "step 0 mutes the bus")
 	Sound.set_step("music", music_step)
+	Sound.set_step("master", 0)
+	t.check(AudioServer.is_bus_mute(0), "MASTER 0 mutes everything")
+	Sound.set_step("master", int(cfg.defaults.master))
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Save.SETTINGS_PATH))
 	t.check(int(saved.music) == music_step and bool(saved.muted) == was_muted, "settings saved to %s" % Save.SETTINGS_PATH)
+	await t.click(settings.find_child("Close", true, false))
+	t.check(settings.visible and settings.find_child("AudioButton", true, false).is_visible_in_tree(), "BACK returns to settings")
 	await t.click(settings.find_child("Close", true, false))
 
 	var field: Battlefield = main.get_node("%Battlefield")
@@ -2278,11 +2300,11 @@ func audio() -> void:
 	t.check(not Sound.music_playing, "no scheduled music once the run is over")
 	GameState.run_over = false
 
-	var sfx_step := int(Sound.steps.sfx)
+	var battle_step := int(Sound.steps.battle)
 	Sound.set_muted(true)
-	Sound.steps.sfx = sfx_step % int(cfg.steps) + 1
+	Sound.steps.battle = battle_step % int(cfg.steps) + 1
 	Sound._load_settings()
-	t.check(Sound.muted and int(Sound.steps.sfx) == sfx_step, "settings reload from the file")
+	t.check(Sound.muted and int(Sound.steps.battle) == battle_step, "settings reload from the file")
 	Save.reset_run()
 	await t.frames(3)
 	t.check(Sound.muted, "reset run keeps sound settings")

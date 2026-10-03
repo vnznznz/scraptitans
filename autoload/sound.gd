@@ -2,7 +2,7 @@ extends Node
 
 const POOL := 16
 const SILENT_DB := -80.0
-const BUSES := {"music": &"Music", "sfx": &"Sfx", "ambience": &"Ambience"}
+const BUSES := {"master": &"Master", "ui": &"UI", "battle": &"Battle", "factory": &"Factory", "ambience": &"Ambience", "music": &"Music"}
 const SFX_DIR := "res://audio/sfx/%s.wav"
 const MUSIC_DIR := "res://audio/music/%s.wav"
 const BED_EPS_DB := 0.3
@@ -37,18 +37,17 @@ var _off := false
 
 func _ready() -> void:
 	_cfg = Data.audio
-	AudioServer.bus_count = 1 + BUSES.size()
-	for i in BUSES.size():
-		AudioServer.set_bus_name(i + 1, BUSES.values()[i])
+	AudioServer.bus_count = BUSES.size()
+	for i in range(1, BUSES.size()):
+		AudioServer.set_bus_name(i, BUSES.values()[i])
 	for id: String in _cfg.sounds:
 		var c: Dictionary = _cfg.sounds[id]
 		var streams: Array[AudioStream] = []
 		for f: String in c.files:
 			streams.append(load(SFX_DIR % f))
-		_sounds[StringName(id)] = {"cfg": c, "streams": streams, "last": -1, "next_t": 0.0}
+		_sounds[StringName(id)] = {"cfg": c, "streams": streams, "bus": BUSES[c.bus], "last": -1, "next_t": 0.0}
 	for i in POOL:
 		var p := AudioStreamPlayer.new()
-		p.bus = &"Sfx"
 		add_child(p)
 		_players.append(p)
 		_busy_until.append(0.0)
@@ -121,7 +120,7 @@ func play(id: StringName, gain_db := 0.0) -> void:
 	var jitter := float(c.get("pitch", 0.0))
 	var p := _players[slot]
 	p.stream = streams[pick]
-	p.bus = StringName(c.get("bus", "Sfx"))
+	p.bus = s.bus
 	p.pitch_scale = float(c.get("pitch_base", 1.0)) * (1.0 + randf_range(-jitter, jitter))
 	p.volume_db = float(c.get("volume_db", 0.0)) + float(c.get("file_db", {}).get(c.files[pick], 0.0)) + gain_db \
 			+ linear_to_db(_area_gain(c.get("area", "")))
@@ -265,11 +264,10 @@ func _now() -> float:
 
 
 func _apply() -> void:
-	AudioServer.set_bus_mute(0, muted or _hidden or _ad)
 	for key: String in BUSES:
 		var i := AudioServer.get_bus_index(BUSES[key])
 		var step := int(steps[key])
-		AudioServer.set_bus_mute(i, step == 0)
+		AudioServer.set_bus_mute(i, step == 0 or (key == "master" and (muted or _hidden or _ad)))
 		var db := linear_to_db(pow(float(step) / float(_cfg.steps), 2.0)) if step > 0 else SILENT_DB
 		AudioServer.set_bus_volume_db(i, db + float(_cfg.trim_db[key]) + (_duck if key == "ambience" else 0.0))
 

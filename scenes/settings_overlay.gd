@@ -1,9 +1,9 @@
 class_name SettingsOverlay
 extends Control
 
-enum Mode { SETTINGS, CONFIRM, CREDITS }
+enum Mode { SETTINGS, AUDIO, CONFIRM, CREDITS }
 
-const VOLUMES := [["music", "MUSIC"], ["sfx", "SOUNDS"], ["ambience", "AMBIENCE"]]
+const VOLUMES := [["master", "MASTER"], ["ui", "UI"], ["battle", "BATTLE"], ["factory", "FACTORY"], ["ambience", "AMBIENCE"], ["music", "MUSIC"]]
 const LICENSE_CHUNK := 1200
 const LICENSE_MARGIN := 8
 const CREDITS := [
@@ -16,10 +16,12 @@ const CREDITS := [
 var _mode := Mode.SETTINGS
 var _title: Label
 var _reset: Button
+var _audio_button: Button
 var _credits_button: Button
 var _confirm: Button
 var _close: Button
 var _volumes: VBoxContainer
+var _effects: HBoxContainer
 var _credits: VBoxContainer
 var _licenses: Control
 var _pips := {}
@@ -88,7 +90,7 @@ func _ready() -> void:
 	box.add_child(_volumes)
 	for v: Array in VOLUMES:
 		_volume_row(v[0], v[1])
-	_effects_row()
+	_effects_row(box)
 
 	_credits = VBoxContainer.new()
 	_credits.name = "Credits"
@@ -103,6 +105,7 @@ func _ready() -> void:
 	licenses.pressed.connect(_open_licenses)
 	_credits.add_child(licenses)
 
+	_audio_button = _button(box, "AudioButton", "AUDIO", func() -> void: _show(Mode.AUDIO))
 	_credits_button = _button(box, "CreditsButton", "CREDITS", func() -> void: _show(Mode.CREDITS))
 	_reset = _button(box, "Reset", "RESET RUN", func() -> void: _show(Mode.CONFIRM))
 	_confirm = _button(box, "Confirm", "YES, RESET", Save.reset_run)
@@ -137,13 +140,15 @@ func _show(mode: Mode) -> void:
 	_mode = mode
 	if _licenses:
 		_licenses.visible = false
-	_title.text = {Mode.SETTINGS: "SETTINGS", Mode.CONFIRM: "RESET RUN?\nALL PROGRESS IS LOST", Mode.CREDITS: "CREDITS"}[mode]
-	_volumes.visible = mode == Mode.SETTINGS
+	_title.text = {Mode.SETTINGS: "SETTINGS", Mode.AUDIO: "AUDIO", Mode.CONFIRM: "RESET RUN?\nALL PROGRESS IS LOST", Mode.CREDITS: "CREDITS"}[mode]
+	_volumes.visible = mode == Mode.AUDIO
+	_effects.visible = mode == Mode.SETTINGS
+	_audio_button.visible = mode == Mode.SETTINGS
 	_credits_button.visible = mode == Mode.SETTINGS
 	_reset.visible = mode == Mode.SETTINGS
 	_credits.visible = mode == Mode.CREDITS
 	_confirm.visible = mode == Mode.CONFIRM
-	_close.text = {Mode.SETTINGS: "CLOSE", Mode.CONFIRM: "CANCEL", Mode.CREDITS: "BACK"}[mode]
+	_close.text = {Mode.SETTINGS: "CLOSE", Mode.AUDIO: "BACK", Mode.CONFIRM: "CANCEL", Mode.CREDITS: "BACK"}[mode]
 
 
 func _open_licenses() -> void:
@@ -275,27 +280,27 @@ func _volume_row(key: String, label: String) -> void:
 			_pips[key] = pips
 
 
-func _effects_row() -> void:
-	var row := HBoxContainer.new()
-	row.name = "Effects"
-	row.add_theme_constant_override("separation", 4)
-	_volumes.add_child(row)
+func _effects_row(box: Control) -> void:
+	_effects = HBoxContainer.new()
+	_effects.name = "Effects"
+	_effects.add_theme_constant_override("separation", 4)
+	box.add_child(_effects)
 	var name_label := Label.new()
 	name_label.text = "EFFECTS"
 	name_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	row.add_child(name_label)
+	_effects.add_child(name_label)
 	for step: int in [-1, 1]:
 		var b := Button.new()
 		b.name = "Down" if step < 0 else "Up"
 		b.text = "-" if step < 0 else "+"
 		b.custom_minimum_size = Vector2(44, 44)
 		b.pressed.connect(func() -> void: Effects.set_level(Effects.level + step))
-		row.add_child(b)
+		_effects.add_child(b)
 		if step < 0:
 			_effects_pips = VolumePips.new()
 			_effects_pips.name = "Pips"
 			_effects_pips.min_width = int(Data.audio.steps) * (VolumePips.SIZE + VolumePips.GAP) - VolumePips.GAP
-			row.add_child(_effects_pips)
+			_effects.add_child(_effects_pips)
 
 
 func _button(box: Control, node_name: String, label: String, action: Callable) -> Button:
