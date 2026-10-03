@@ -1799,6 +1799,62 @@ func art() -> void:
 	t.check(nuke.card_visible(), "nuke ends on the card")
 
 
+const PERF_MECHS := 170
+const PERF_FRAMES := 480
+
+
+func field_perf() -> void:
+	await _fresh(false)
+	var main := t.get_tree().current_scene
+	var field: Battlefield = main.get_node("%Battlefield")
+	_reveal_all()
+	GameState.wave = 26
+	GameState.wave_hp = GameState.wave_max_hp()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	_perf_fill(rng)
+	await t.wait(4.0)
+	t.check(is_equal_approx(t.get_process_delta_time(), 1.0 / 60.0), "run with --fixed-fps 60: each frame is 1/60 s of game time")
+	var stats := await _perf_measure(rng, PERF_FRAMES)
+	print("  %d mechs (%d drawn): %.2f ms/frame mean, %.2f ms p95, %d nodes" % [
+		GameState.field.size(), field.mech_count(), stats.mean_ms, stats.p95_ms, stats.nodes])
+	t.check(field.mech_count() > 0, "field measured")
+	await t.shot("field_perf")
+
+
+func _perf_fill(rng: RandomNumberGenerator) -> void:
+	while GameState.field.size() < PERF_MECHS:
+		var m := MechState.new()
+		m.id = GameState.next_mech_id
+		GameState.next_mech_id += 1
+		m.parts = {"frame": rng.randi_range(0, 4), "core": rng.randi_range(0, 4), "arms": rng.randi_range(0, 4)}
+		if rng.randf() < 0.6:
+			m.parts["plating"] = rng.randi_range(0, 4)
+		GameState.call("_deploy", m)
+		m.wear = m.lifetime * rng.randf_range(0.0, 0.95)
+
+
+func _perf_measure(rng: RandomNumberGenerator, frames: int) -> Dictionary:
+	var frame_ms: Array[float] = []
+	var nodes := 0
+	var sleep := OS.low_processor_usage_mode_sleep_usec
+	OS.low_processor_usage_mode_sleep_usec = 0
+	var last := Time.get_ticks_usec()
+	for k in frames:
+		_perf_fill(rng)
+		await t.frames(1)
+		var now := Time.get_ticks_usec()
+		frame_ms.append((now - last) / 1000.0)
+		last = now
+		nodes = maxi(nodes, int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)))
+	OS.low_processor_usage_mode_sleep_usec = sleep
+	var total := 0.0
+	for ms in frame_ms:
+		total += ms
+	frame_ms.sort()
+	return {"mean_ms": total / frames, "p95_ms": frame_ms[int(frames * 0.95)], "nodes": nodes}
+
+
 func intro() -> void:
 	await _fresh()
 	var main := t.get_tree().current_scene
