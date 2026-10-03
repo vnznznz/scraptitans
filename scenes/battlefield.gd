@@ -25,6 +25,9 @@ const SMOKE_SPEED := 3.0
 const ENEMY_WALK_IN := 1.2
 const BAR_RECT := Rect2(4, 4, WIDTH - 8.0, 20)
 const STRIP_H := 4.0
+const ARTILLERY_PER := 25.0
+const SHELL_FROM := Vector2(-60, -130)
+const SHELL_TIME := 0.35
 const MECH_FIRE := Vector2(0.8, 1.6)
 const ENEMY_FIRE := Vector2(1.2, 2.4)
 const INCOME_DISCS_PER_S := 10.0
@@ -65,6 +68,8 @@ var _hint: Control
 var _dirty := true
 var _level := -1
 var _arrivals: Array[MechState] = []
+var _shell_t := 0.0
+var shells := 0
 
 
 class DpsStrip:
@@ -278,6 +283,34 @@ func _process(delta: float) -> void:
 				ft = randf_range(ENEMY_FIRE.x, ENEMY_FIRE.y)
 				_enemy_fire(e)
 			e.set_meta("fire_t", ft)
+	_step_artillery(delta)
+
+
+func _step_artillery(delta: float) -> void:
+	var rate := minf(Effects.value("artillery"), (GameState.field.size() - _views.size()) / ARTILLERY_PER)
+	if rate <= 0.0:
+		return
+	_shell_t = minf(_shell_t - delta * GameState.time_scale, 1.5 / rate)
+	if _shell_t > 0.0 or _nuke_id != -1:
+		return
+	_shell_t = randf_range(0.5, 1.5) / rate
+	var target_enemy := _random_enemy()
+	if target_enemy == null:
+		return
+	var half := target_enemy.texture.get_size() / 2.0
+	var target := _enemy_center(target_enemy) + Vector2(randf_range(-half.x, half.x), randf_range(0.0, half.y))
+	var shell := Sprite2D.new()
+	shell.texture = MechView.SHOTS[2]
+	shell.position = target + SHELL_FROM
+	shell.rotation = (-SHELL_FROM).angle()
+	_mechs.add_child(shell)
+	shells += 1
+	var tw := shell.create_tween()
+	tw.tween_property(shell, "position", target, SHELL_TIME)
+	tw.tween_callback(func() -> void:
+		Fx.explosion(_mechs, target)
+		Fx.debris(_mechs, target, 4)
+		shell.queue_free())
 
 
 func _step_views(delta: float, fight: bool) -> void:

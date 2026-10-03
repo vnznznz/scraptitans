@@ -3,8 +3,8 @@
 	"mobile_default": 1,
 	"auto": {"frame_ms": 25, "seconds": 5, "after": 10, "ignore_ms": 100},
 	"levels": [
-		{"name": "LOW", "rows": 1, "crowd": 0, "smoke": 0.0, "debris": 0.5},
-		{"name": "MED", "rows": 2, "crowd": 60, "smoke": 0.67, "debris": 0.75},
-		{"name": "HIGH", "rows": 3, "crowd": 150, "smoke": 1.0, "debris": 1.0}
+		{"name": "LOW", "rows": 1, "crowd": 0, "smoke": 0.0, "debris": 0.5, "artillery": 0},
+		{"name": "MED", "rows": 2, "crowd": 60, "smoke": 0.67, "debris": 0.75, "artillery": 1.5},
+		{"name": "HIGH", "rows": 3, "crowd": 150, "smoke": 1.0, "debris": 1.0, "artillery": 3}
 	]
 }

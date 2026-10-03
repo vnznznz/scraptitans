@@ -1947,6 +1947,17 @@ func field() -> void:
 	t.check(not strip.visible, "no damage: no strip")
 	GameState.field.assign(field_before)
 	GameState.time_scale = 1.0
+	var fired := field.shells
+	await t.wait(3.0)
+	t.check(field.shells - fired >= 3, "HIGH: artillery shells for the undrawn mechs (%d in 3 s)" % (field.shells - fired))
+	await t.shot("field_artillery")
+	Effects.level = Effects.LOW
+	await t.frames(2)
+	fired = field.shells
+	await t.wait(2.0)
+	t.check(field.shells == fired, "LOW: no artillery")
+	Effects.level = Effects.HIGH
+	GameState.time_scale = 1.0
 	await t.wait(1.0)
 	await t.shot("field_crowd")
 
