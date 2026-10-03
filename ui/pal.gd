@@ -17,3 +17,8 @@ const PINK := Color("f6757a")
 const MAGENTA := Color("b55088")
 const CYAN := Color("2ce8f5")
 const GREEN := Color("63c74d")
+const LINES: Array[Color] = [CYAN, PINK, YELLOW, GREEN, MAGENTA]
+
+
+static func line(i: int) -> Color:
+	return LINES[mini(i, LINES.size() - 1)]

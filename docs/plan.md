@@ -331,6 +331,7 @@ Build: the battlefield shows what each line contributes and keeps changing until
 
 - [x] Mechs remember their line; a gate per line on the left edge: door opens on a deploy, drawn mechs walk out of it, lamp shows producing / paused / out of scrap / incomplete
 - [x] DPS strip under the wave bar: damage share per line in the gate colours, taps white
+- [x] Factory lines tagged with their number in the same colour on the crew bar, from 2 lines on
 - [x] Front line advances on every cleared wave (further late in the run) through outskirts → burning city → industry → enemy fortress; sky dusk → night → red
 - [x] Crowd of silhouettes for undrawn mechs (up to 150) behind the front rows, one node for all; a freed front slot takes the first crowd mech
 - [x] Artillery strikes stand in for undrawn mechs; a boss on every 5th wave
@@ -338,8 +339,10 @@ Build: the battlefield shows what each line contributes and keeps changing until
 - [x] Mech views re-synced only when the field changes, in one pass (6.3 → 0.6 ms per frame at 170 mechs)
 - [x] `--scenario field`, `--scenario field_perf`
 
+Later: sounds for artillery and crowd deaths; the boss as a real, tougher enemy in the sim (now drawn only).
+
 Test (browser + phone):
-- Unlock line 2: a second door appears with a puff; its mechs walk out of door 2; the strip under the wave bar gets a pink part
+- Unlock line 2: a second door appears with a puff; both crew bars get a number tag (1 cyan, 2 pink); line 2's mechs walk out of door 2; the strip under the wave bar gets a pink part
 - Pause a line: its lamp turns grey; starve it: the lamp blinks red
 - Clear waves: the ground scrolls while the army marches in place; city, industry and fortress pass over the run; the sky turns to night, then red
 - Late game: a dense crowd behind the front rows, artillery explosions on the enemies, a boss on WAVE 5, 10, 15 (BOSS on the wave bar)

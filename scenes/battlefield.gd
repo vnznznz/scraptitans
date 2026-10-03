@@ -576,7 +576,7 @@ func _update_strip() -> void:
 	shares[n] = GameState.tap_dps
 	var palette: Array[Color] = []
 	for i in n:
-		palette.append(Gates.LINE_COLORS[mini(i, Gates.LINE_COLORS.size() - 1)])
+		palette.append(Pal.line(i))
 	palette.append(Pal.WHITE)
 	_strip.set_shares(shares, palette)
 

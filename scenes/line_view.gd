@@ -16,12 +16,16 @@ const USAGE_COLOR := Pal.STEEL_L
 const BELT_TEX := preload("res://art/line/belt.png")
 const PAUSE_TEX := preload("res://art/ui/pause.png")
 const PLAY_TEX := preload("res://art/ui/play.png")
+const TAG := Vector2(16, 20)
+const TAG_GAP := 4.0
 
 var line_index := 0
 
 var _pause: Button
 var _hire: Button
 var _crew: Label
+var _tag: Label
+var _tagged := false
 var _pause_icon: TextureRect
 var _usage: ColorRect
 var _strip_k := 0.0
@@ -67,6 +71,19 @@ func _ready() -> void:
 	_pause_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(_pause_icon)
 
+	_tag = Label.new()
+	_tag.name = "Tag"
+	_tag.text = str(line_index + 1)
+	_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_tag.add_theme_color_override("font_color", Pal.INK)
+	var tag_style := StyleBoxFlat.new()
+	tag_style.bg_color = Pal.line(line_index)
+	tag_style.border_color = Pal.INK
+	tag_style.set_border_width_all(1)
+	_tag.add_theme_stylebox_override("normal", tag_style)
+	_tag.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(_tag)
 	_crew = Label.new()
 	_crew.name = "Crew"
 	_crew.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
@@ -88,6 +105,7 @@ func _ready() -> void:
 	add_child(_fx)
 	_strip_k = Reveal.step(0.0, GameState.stalled_once, INF)
 	_bar_k = Reveal.step(0.0, GameState.shown("crew"), INF)
+	_tagged = GameState.lines.size() > 1
 	_sync_segments()
 	resized.connect(_layout)
 
@@ -132,8 +150,11 @@ func _layout() -> void:
 	_pause.visible = _strip_k > 0.0
 	_pause.position = Vector2(_left() - PAUSE_W, _top)
 	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
-	_crew.position = Vector2(_left() + 6.0, bar_y)
-	_crew.size = Vector2(maxf(size.x - HIRE_W - _left() - 6.0, 0.0), CREW_H - 1.0)
+	_tag.position = Vector2(_left() + TAG_GAP, bar_y + 3.0)
+	_tag.size = TAG
+	var crew_x := _left() + 6.0 + (TAG.x + TAG_GAP if _tagged else 0.0)
+	_crew.position = Vector2(crew_x, bar_y)
+	_crew.size = Vector2(maxf(size.x - HIRE_W - crew_x, 0.0), CREW_H - 1.0)
 	_hire.position = Vector2(size.x - HIRE_W, bar_y + 1.0)
 	_hire.size = Vector2(HIRE_W, CREW_H - 1.0)
 	clip_contents = Reveal.moving(_strip_k) or Reveal.moving(_bar_k)
@@ -204,14 +225,17 @@ func _process(delta: float) -> void:
 		_sync_segments()
 	var strip := Reveal.step(_strip_k, GameState.stalled_once, delta)
 	var bar := Reveal.step(_bar_k, GameState.shown("crew"), delta)
-	if strip != _strip_k or bar != _bar_k:
+	var tagged := GameState.lines.size() > 1
+	if strip != _strip_k or bar != _bar_k or tagged != _tagged:
 		_strip_k = strip
 		_bar_k = bar
+		_tagged = tagged
 		_layout()
 	var line := _line()
 	var slots := line.worker_slots()
 	_crew.text = "CREW %d/%d" % [line.workers, slots]
 	_crew.visible = _bar_k > 0.0
+	_tag.visible = _bar_k > 0.0 and _tagged
 	_crew.modulate.a = 1.0 if slots > 0 else 0.5
 	_hire.visible = _bar_k > 0.0 and line.workers < slots
 	if _hire.visible:

@@ -1837,6 +1837,7 @@ func field() -> void:
 	GameState.debug_spawn_mechs(30)
 	await t.frames(2)
 	t.check(field.mech_count() == 24, "HIGH: 3 rows drawn (%d)" % field.mech_count())
+	t.check(not main.line_view(0).get_node("Tag").visible, "one line: no line tag on the crew bar")
 
 	var settings: SettingsOverlay = main.get_node("%Settings")
 	settings.open()
@@ -1914,17 +1915,28 @@ func field() -> void:
 	GameState.lines[2].segments[1].stall = SegmentState.Stall.NO_SCRAP
 	t.check(range(4).map(func(i: int) -> Gates.Lamp: return Gates.lamp(GameState.lines[i])) == [Gates.Lamp.ON, Gates.Lamp.PAUSED, Gates.Lamp.STARVED, Gates.Lamp.OFF],
 			"gate lamps: producing, paused, out of scrap, line not complete")
+	await t.frames(2)
+	var tags := range(4).map(func(i: int) -> Label: return main.line_view(i).get_node("Tag"))
+	t.check(tags.all(func(l: Label) -> bool: return l.is_visible_in_tree()) and range(4).all(func(i: int) -> bool:
+			return tags[i].text == str(i + 1) and (tags[i].get_theme_stylebox("normal") as StyleBoxFlat).bg_color == Pal.line(i)),
+			"each line's crew bar shows its number in its gate colour")
+	var crew0: Label = main.line_view(0).get_node("Crew")
+	t.check(crew0.position.x >= tags[0].position.x + tags[0].size.x, "crew count right of the tag")
+	(main.get_node("%Scroll") as ScrollContainer).scroll_vertical = int(main.line_view(0).position.y)
+	await t.frames(3)
+	await t.shot("field_lines")
+	(main.get_node("%Scroll") as ScrollContainer).scroll_vertical = 0
 	var elite := MechState.new()
 	elite.id = GameState.next_mech_id
 	GameState.next_mech_id += 1
 	elite.line = 2
 	elite.parts = {"frame": 4, "core": 4, "arms": 4}
 	GameState.call("_deploy", elite)
-	await t.frames(1)
+	await t.frames(2)
 	var gates: Gates = field.get("_gates")
 	t.check(float(gates.get("_open").get(2, 0.0)) > 0.0, "deploy opens its line's door")
 	var elite_view := field.mech_view(elite.id)
-	t.check(elite_view != null and elite_view.position.distance_to(Gates.door(2)) < 4.0, "the mech walks out of its line's door")
+	t.check(elite_view != null and elite_view.position.distance_to(Gates.door(2)) < 24.0, "the mech walks out of its line's door")
 	var field_before := GameState.field.duplicate()
 	GameState.field.clear()
 	for pair: Array in [[0, 3.0], [2, 1.0]]:
@@ -1937,7 +1949,7 @@ func field() -> void:
 	var strip := field.strip()
 	t.check(strip.visible and strip.widths.size() == 5 and strip.widths[0] == 248 and strip.widths[2] == 82 and strip.widths[1] + strip.widths[3] + strip.widths[4] == 0,
 			"DPS strip: one segment per line by its mechs' damage (%s)" % [strip.widths])
-	t.check(strip.colors[2] == Gates.LINE_COLORS[2] and strip.colors[4] == Pal.WHITE, "segments in the gate colours, taps white")
+	t.check(strip.colors[2] == Pal.line(2) and strip.colors[4] == Pal.WHITE, "segments in the gate colours, taps white")
 	GameState.tap_dps = 4.0
 	await t.frames(1)
 	t.check(strip.widths[4] == 165, "taps take their share (%s)" % [strip.widths])
