@@ -24,6 +24,7 @@ const SMOKE_Y := 28.0
 const SMOKE_SPEED := 3.0
 const ENEMY_WALK_IN := 1.2
 const BAR_RECT := Rect2(4, 4, WIDTH - 8.0, 20)
+const STRIP_H := 4.0
 const MECH_FIRE := Vector2(0.8, 1.6)
 const ENEMY_FIRE := Vector2(1.2, 2.4)
 const INCOME_DISCS_PER_S := 10.0
@@ -54,6 +55,7 @@ var _fire_t := {}
 var _bar: TextureProgressBar
 var _hp_label: Label
 var _dps_label: Label
+var _strip: DpsStrip
 var _layers: Array[Sprite2D] = []
 var _front := -1.0
 var _smoke: TextureRect
@@ -63,6 +65,38 @@ var _hint: Control
 var _dirty := true
 var _level := -1
 var _arrivals: Array[MechState] = []
+
+
+class DpsStrip:
+	extends Control
+
+	var widths: Array[int] = []
+	var colors: Array[Color] = []
+
+	func set_shares(shares: Array[float], palette: Array[Color]) -> void:
+		var total := 0.0
+		for v in shares:
+			total += v
+		visible = total > 0.0
+		var w: Array[int] = []
+		var acc := 0.0
+		var edge := 0
+		for v in shares:
+			acc += v
+			var next := roundi((size.x - 2.0) * acc / total) if total > 0.0 else 0
+			w.append(next - edge)
+			edge = next
+		if w != widths or palette != colors:
+			widths = w
+			colors = palette
+			queue_redraw()
+
+	func _draw() -> void:
+		draw_rect(Rect2(Vector2.ZERO, size), Pal.INK)
+		var x := 1.0
+		for i in widths.size():
+			draw_rect(Rect2(x, 1, widths[i], size.y - 2.0), colors[i])
+			x += widths[i]
 
 
 func _ready() -> void:
@@ -128,6 +162,12 @@ func _ready() -> void:
 	add_child(_bar)
 	_hp_label = _bar_label("HpLabel", HORIZONTAL_ALIGNMENT_LEFT)
 	_dps_label = _bar_label("DpsLabel", HORIZONTAL_ALIGNMENT_RIGHT)
+	_strip = DpsStrip.new()
+	_strip.name = "DpsStrip"
+	_strip.position = Vector2(BAR_RECT.position.x, BAR_RECT.end.y)
+	_strip.size = Vector2(BAR_RECT.size.x, STRIP_H)
+	_strip.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(_strip)
 	_on_resized()
 
 	GameState.mech_deployed.connect(_on_deployed)
@@ -178,6 +218,8 @@ func _on_resized() -> void:
 	for c: Control in [_bar, _hp_label, _dps_label]:
 		if c:
 			c.position.y = BAR_RECT.position.y + _world.position.y
+	if _strip:
+		_strip.position.y = BAR_RECT.end.y + _world.position.y
 
 
 func mech_count() -> int:
@@ -217,6 +259,7 @@ func _process(delta: float) -> void:
 	_bar.value = GameState.wave_hp
 	_hp_label.text = "WAVE %d" % (GameState.wave + 1)
 	_dps_label.text = "%s DMG/S" % Fmt.num(GameState.wave_dps())
+	_update_strip()
 	var alive := GameState.wave_alive()
 	while _enemy_count > alive:
 		_pop_enemy(_enemies.size() - _enemy_count)
@@ -459,9 +502,29 @@ func scorch() -> void:
 	_bar.visible = false
 	_hp_label.visible = false
 	_dps_label.visible = false
+	_strip.visible = false
 	for layer: CanvasItem in _layers + [_gates]:
 		layer.modulate = Color(1.2, 0.7, 0.5)
 	_smoke.modulate = Color(0.4, 0.2, 0.2)
+
+
+func _update_strip() -> void:
+	var n := GameState.lines.size()
+	var shares: Array[float] = []
+	shares.resize(n + 1)
+	shares.fill(0.0)
+	for m in GameState.field:
+		shares[mini(m.line, n - 1)] += m.dps
+	shares[n] = GameState.tap_dps
+	var palette: Array[Color] = []
+	for i in n:
+		palette.append(Gates.LINE_COLORS[mini(i, Gates.LINE_COLORS.size() - 1)])
+	palette.append(Pal.WHITE)
+	_strip.set_shares(shares, palette)
+
+
+func strip() -> DpsStrip:
+	return _strip
 
 
 func _bar_label(node_name: String, align: HorizontalAlignment) -> Label:

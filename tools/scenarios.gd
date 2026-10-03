@@ -1925,6 +1925,27 @@ func field() -> void:
 	t.check(float(gates.get("_open").get(2, 0.0)) > 0.0, "deploy opens its line's door")
 	var elite_view := field.mech_view(elite.id)
 	t.check(elite_view != null and elite_view.position.distance_to(Gates.door(2)) < 4.0, "the mech walks out of its line's door")
+	var field_before := GameState.field.duplicate()
+	GameState.field.clear()
+	for pair: Array in [[0, 3.0], [2, 1.0]]:
+		var m := MechState.new()
+		m.line = pair[0]
+		m.dps = pair[1]
+		GameState.field.append(m)
+	GameState.tap_dps = 0.0
+	await t.frames(1)
+	var strip := field.strip()
+	t.check(strip.visible and strip.widths.size() == 5 and strip.widths[0] == 248 and strip.widths[2] == 82 and strip.widths[1] + strip.widths[3] + strip.widths[4] == 0,
+			"DPS strip: one segment per line by its mechs' damage (%s)" % [strip.widths])
+	t.check(strip.colors[2] == Gates.LINE_COLORS[2] and strip.colors[4] == Pal.WHITE, "segments in the gate colours, taps white")
+	GameState.tap_dps = 4.0
+	await t.frames(1)
+	t.check(strip.widths[4] == 165, "taps take their share (%s)" % [strip.widths])
+	GameState.field.clear()
+	GameState.tap_dps = 0.0
+	await t.frames(1)
+	t.check(not strip.visible, "no damage: no strip")
+	GameState.field.assign(field_before)
 	GameState.time_scale = 1.0
 	await t.wait(1.0)
 	await t.shot("field_crowd")
