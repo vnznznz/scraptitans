@@ -1873,6 +1873,29 @@ func field() -> void:
 	t.check(Effects.level == 1 and Effects.auto, "auto: 5 s at 25 fps steps down once")
 	Effects.level = Effects.HIGH
 
+	var offsets := range(30).map(func(w: int) -> float: return Battlefield.front_offset(w))
+	t.check(offsets[0] == 0.0 and offsets[26] < Battlefield.FRONT_END and offsets[27] == Battlefield.FRONT_END, "front reaches the fortress at wave 28")
+	t.check(range(1, 27).all(func(w: int) -> bool: return offsets[w] - offsets[w - 1] > offsets[w - 1] - (offsets[w - 2] if w > 1 else 0.0) - 0.01),
+			"late waves advance further than early ones")
+	await t.wait(3.0)
+	GameState.time_scale = 0.0
+	GameState.kill_wave()
+	await t.frames(2)
+	var walking := GameState.field.filter(func(m: MechState) -> bool: return field.mech_view(m.id) != null and field.mech_view(m.id).walking).size()
+	t.check(field.advancing() and walking == field.mech_count(), "wave cleared: the front advances, every drawn mech walks (%d/%d)" % [walking, field.mech_count()])
+	await t.wait(1.5)
+	var ground: Sprite2D = field.get("_layers")[3]
+	t.check(not field.advancing() and ground.region_rect.position.x == roundf(Battlefield.front_offset(GameState.wave)), "front stops at the next wave's spot")
+	GameState.time_scale = 1.0
+	for wave: int in [0, 9, 17, 23, 27]:
+		GameState.wave = wave
+		GameState.wave_hp = GameState.wave_max_hp()
+		await t.wait(0.1)
+		field.set("_front", -1.0)
+		field.call("_update_front", 0.0)
+		await t.wait(1.5)
+		await t.shot("field_front_%d" % (wave + 1))
+
 	if settings_backup:
 		FileAccess.open(Save.SETTINGS_PATH, FileAccess.WRITE).store_string(settings_backup)
 	else:

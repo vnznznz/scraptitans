@@ -635,58 +635,286 @@ def sky(d, w, top, bottom):
             px(d, x, y, c)
 
 
-def battlefield():
-    w, h = 360, 160
-    img, d = new(w, h)
-    rnd = random.Random(3)
-    sky(d, w, 0, HORIZON)
-    for _ in range(40):
-        px(d, rnd.randint(0, w - 1), rnd.randint(0, 40), rnd.choice([SLATE, STEEL, SLATE_D]))
+# Battlefield: layers scroll left as the front advances (one step per cleared wave, see Battlefield.front_offset).
+# A layer at parallax r is BG_W + TRAVEL * r wide; stages by the front offset at which a spot is mid-screen.
+
+BG_W = 360
+TRAVEL = 1080
+STAGES = [250, 600, 880]
+PARALLAX = {"far": 0.3, "near": 0.6, "ground": 1.0}
+
+
+def stage_at(x, ratio, jitter=0):
+    front = (x - BG_W / 2) / ratio + jitter
+    return sum(1 for s in STAGES if front >= s)
+
+
+def layer_w(ratio):
+    return BG_W + int(TRAVEL * ratio)
+
+
+def far_layer():
+    r = PARALLAX["far"]
+    w = layer_w(r)
+    img, d = new(w, HORIZON)
+    rnd = random.Random(31)
     x = -4
     while x < w:
-        bw = rnd.randint(10, 26)
-        bh = rnd.randint(10, 30)
+        st = stage_at(x, r, rnd.randint(-40, 40))
+        if st == 0:
+            bw, bh = rnd.randint(10, 26), rnd.randint(10, 30)
+        elif st == 1:
+            bw, bh = rnd.randint(8, 18), rnd.randint(22, 50)
+        elif st == 2:
+            bw, bh = rnd.randint(14, 30), rnd.randint(12, 24)
+        else:
+            bw, bh = rnd.randint(18, 30), 24
         top = HORIZON - bh
         rect(d, x, top, x + bw, HORIZON, PURPLE)
-        for k in range(rnd.randint(1, 3)):
-            cx = x + rnd.randint(0, bw)
-            rect(d, cx, top - rnd.randint(1, 4), cx + rnd.randint(1, 3), top, PURPLE)
-        for _ in range(rnd.randint(0, 3)):
-            px(d, x + rnd.randint(2, max(2, bw - 2)), top + rnd.randint(3, bh - 2), MAGENTA)
+        if st <= 1:
+            for k in range(rnd.randint(1, 3)):
+                cx = x + rnd.randint(0, bw)
+                rect(d, cx, top - rnd.randint(1, 4), cx + rnd.randint(1, 3), top, PURPLE)
+            for _ in range(rnd.randint(0, 3) + 2 * st):
+                c = MAGENTA if st == 0 or rnd.random() < 0.6 else ORANGE
+                px(d, x + rnd.randint(2, max(2, bw - 2)), top + rnd.randint(3, bh - 2), c)
+        elif st == 2:
+            if rnd.random() < 0.7:
+                cx = x + rnd.randint(2, bw - 4)
+                ch = rnd.randint(34, 58)
+                rect(d, cx, HORIZON - ch, cx + rnd.randint(2, 3), HORIZON, PURPLE)
+                px(d, cx + 1, HORIZON - ch, ORANGE)
+            if rnd.random() < 0.4:
+                tx = x + rnd.randint(0, bw)
+                d.polygon([(tx, HORIZON), (tx + 3, HORIZON - 30), (tx + 15, HORIZON - 30), (tx + 18, HORIZON)], fill=PURPLE)
+            for _ in range(rnd.randint(1, 3)):
+                px(d, x + rnd.randint(2, max(2, bw - 2)), top + rnd.randint(2, bh - 2), ORANGE)
+        else:
+            for k in range(x, x + bw, 4):
+                rect(d, k, top - 2, k + 1, top, PURPLE)
+            tx = x + rnd.randint(0, bw - 8)
+            th = rnd.randint(38, 52)
+            rect(d, tx, HORIZON - th, tx + 8, HORIZON, PURPLE)
+            rect(d, tx - 1, HORIZON - th, tx + 9, HORIZON - th + 1, PURPLE)
+            px(d, tx + 4, HORIZON - th + 4, RED)
         x += bw + rnd.randint(-3, 2)
-    for sx, sh in [(34, 52), (44, 44), (206, 58), (290, 40)]:
-        rect(d, sx, HORIZON - sh, sx + 5, HORIZON, NAVY)
-        rect(d, sx - 1, HORIZON - sh, sx + 6, HORIZON - sh + 1, NAVY)
-        px(d, sx + 2, HORIZON - sh + 6, ORANGE)
-    for bx, bw, bh in [(0, 30, 22), (58, 40, 16), (120, 24, 26), (170, 52, 18), (240, 34, 24), (318, 42, 20)]:
-        top = HORIZON - bh
-        rect(d, bx, top, bx + bw, HORIZON, NAVY)
-        for k in range(0, bw, 6):
-            rect(d, bx + k, top - rnd.randint(0, 3), bx + k + 3, top, NAVY)
+    save(img, "battlefield/far.png")
+
+
+def tower(d, sx, sh):
+    rect(d, sx, HORIZON - sh, sx + 5, HORIZON, NAVY)
+    rect(d, sx - 1, HORIZON - sh, sx + 6, HORIZON - sh + 1, NAVY)
+    px(d, sx + 2, HORIZON - sh + 6, ORANGE)
+
+
+def ruin(d, rnd, bx, bw, bh, lit):
+    top = HORIZON - bh
+    rect(d, bx, top, bx + bw, HORIZON, NAVY)
+    for k in range(0, bw, 6):
+        rect(d, bx + k, top - rnd.randint(0, 3), bx + k + 3, top, NAVY)
+    for _ in range(lit):
+        px(d, bx + rnd.randint(2, bw - 2), top + rnd.randint(4, bh - 2), GOLD if rnd.random() < 0.4 else ORANGE)
+
+
+def burning(d, rnd, bx, bw, bh):
+    top = HORIZON - bh
+    cut = rnd.randint(4, bh // 2)
+    left = rnd.random() < 0.5
+    cl, cr = (cut, 0) if left else (0, cut)
+    d.polygon([(bx, HORIZON), (bx, top + cl), (bx + bw // 2, top), (bx + bw, top + cr), (bx + bw, HORIZON)], fill=NAVY)
+    for wy in range(top + 4, HORIZON - 4, 5):
+        for wx in range(bx + 3, bx + bw - 2, 4):
+            if rnd.random() < 0.15 and wy > top + max(cl, cr) + 2:
+                rect(d, wx, wy, wx + 1, wy + 1, ORANGE if rnd.random() < 0.6 else GOLD)
+    for _ in range(rnd.randint(2, 4)):
+        fx_ = bx + rnd.randint(1, bw // 2)
+        px(d, fx_, top - 1, ORANGE)
+        px(d, fx_, top - 2, YELLOW if rnd.random() < 0.5 else ORANGE)
+
+
+def plant(d, rnd, bx, bw):
+    kind = rnd.random()
+    if kind < 0.35:
+        r = rnd.randint(8, 12)
+        d.ellipse([bx, HORIZON - 2 * r, bx + 2 * r, HORIZON + 2 * r], fill=NAVY)
+        rect(d, bx + r - 1, HORIZON - 2 * r - 3, bx + r + 1, HORIZON - 2 * r, NAVY)
+        px(d, bx + r, HORIZON - 2 * r - 3, RED)
+    elif kind < 0.7:
+        h = rnd.randint(20, 28)
+        rect(d, bx, HORIZON - h, bx + bw, HORIZON, NAVY)
+        for k in range(bx, bx + bw - 5, 7):
+            d.polygon([(k, HORIZON - h), (k + 6, HORIZON - h - 5), (k + 6, HORIZON - h)], fill=NAVY)
         for _ in range(3):
-            px(d, bx + rnd.randint(2, bw - 2), top + rnd.randint(4, bh - 2), GOLD if rnd.random() < 0.4 else ORANGE)
+            px(d, bx + rnd.randint(2, bw - 2), HORIZON - rnd.randint(4, h - 3), GOLD)
+    else:
+        h = rnd.randint(40, 56)
+        rect(d, bx, HORIZON - h, bx + 4, HORIZON, NAVY)
+        for k in range(HORIZON - h + 3, HORIZON - h + 12, 4):
+            rect(d, bx, k, bx + 4, k + 1, RED_D)
+        px(d, bx + 2, HORIZON - h - 1, ORANGE)
+    py = HORIZON - rnd.randint(6, 10)
+    rect(d, bx - 6, py, bx + bw + 6, py + 1, NAVY)
+    for k in range(bx - 6, bx + bw + 6, 9):
+        rect(d, k, py, k, HORIZON, NAVY)
+
+
+def wall(d, rnd, bx, bw):
+    top = HORIZON - 30
+    rect(d, bx, top, bx + bw, HORIZON, NAVY)
+    for k in range(bx, bx + bw, 5):
+        rect(d, k, top - 3, k + 2, top, NAVY)
+    for k in range(bx + 4, bx + bw - 3, 9):
+        rect(d, k, top + 8, k + 2, top + 8, RED)
+
+
+def citadel(d, cx):
+    base = HORIZON
+    rect(d, cx - 36, base - 52, cx + 36, base, NAVY)
+    for k in range(cx - 36, cx + 36, 6):
+        rect(d, k, base - 56, k + 3, base - 52, NAVY)
+    rect(d, cx - 14, base - 84, cx + 14, base - 52, NAVY)
+    d.polygon([(cx - 14, base - 84), (cx, base - 96), (cx + 14, base - 84)], fill=NAVY)
+    rect(d, cx, base - 104, cx, base - 96, NAVY)
+    px(d, cx, base - 105, RED)
+    rect(d, cx - 6, base - 74, cx - 3, base - 72, RED)
+    rect(d, cx + 3, base - 74, cx + 6, base - 72, RED)
+    px(d, cx - 5, base - 73, HOT)
+    px(d, cx + 4, base - 73, HOT)
+    for k in (cx - 30, cx + 22):
+        rect(d, k, base - 70, k + 8, base - 52, NAVY)
+        px(d, k + 4, base - 66, RED)
+    for k in range(cx - 30, cx + 30, 10):
+        rect(d, k, base - 40, k + 2, base - 39, RED)
+    rect(d, cx - 8, base - 22, cx + 8, base, INK)
+
+
+def near_layer():
+    r = PARALLAX["near"]
+    w = layer_w(r)
+    img, d = new(w, HORIZON)
+    rnd = random.Random(32)
+    for sx, sh in [(34, 52), (44, 44), (206, 58), (290, 40)]:
+        tower(d, sx, sh)
+    for bx, bw, bh in [(0, 30, 22), (58, 40, 16), (120, 24, 26), (170, 52, 18), (240, 34, 24), (318, 42, 20)]:
+        ruin(d, rnd, bx, bw, bh, 3)
     d.line([130, HORIZON - 40, 130, HORIZON], fill=NAVY)
     d.line([130, HORIZON - 40, 156, HORIZON - 36], fill=NAVY)
     d.line([152, HORIZON - 36, 152, HORIZON - 28], fill=NAVY)
-    rect(d, 0, HORIZON, w - 1, HORIZON + 1, BROWN_D)
-    rect(d, 0, HORIZON + 2, w - 1, h - 1, BROWN_K)
-    for y in range(HORIZON + 2, HORIZON + 6):
+    end = w - 120
+    x = BG_W + 4
+    while x < end - 40:
+        st = stage_at(x, r, rnd.randint(-30, 30))
+        if st == 0:
+            bw = rnd.randint(20, 40)
+            ruin(d, rnd, x, bw, rnd.randint(14, 28), 3)
+            if rnd.random() < 0.4:
+                tower(d, x + rnd.randint(0, bw), rnd.randint(38, 56))
+        elif st == 1:
+            bw = rnd.randint(22, 40)
+            burning(d, rnd, x, bw, rnd.randint(30, 62))
+        elif st == 2:
+            bw = rnd.randint(18, 34)
+            plant(d, rnd, x, bw)
+        else:
+            bw = rnd.randint(30, 50)
+            wall(d, rnd, x, bw)
+        x += bw + (rnd.randint(4, 18) if st < 3 else 0)
+    wall(d, rnd, end - 40, 160)
+    citadel(d, end + 30)
+    save(img, "battlefield/near.png")
+
+
+def tank_trap(d, x, y):
+    d.line([x, y, x + 4, y - 4], fill=SLATE_D)
+    d.line([x, y - 4, x + 4, y], fill=SLATE_D)
+    px(d, x + 2, y - 2, SLATE)
+
+
+def wreck(d, x, y):
+    sbox(d, x, y - 4, x + 14, y, R_DARK)
+    rect(d, x + 4, y - 7, x + 9, y - 4, SLATE_D)
+    rect(d, x + 9, y - 6, x + 15, y - 6, INK)
+    px(d, x + 6, y - 8, ORANGE)
+
+
+GROUND_TOP = 4
+
+
+def ground_layer():
+    w = layer_w(PARALLAX["ground"])
+    t = GROUND_TOP
+    h = 160 - HORIZON + t
+    img, d = new(w, h)
+    rnd = random.Random(33)
+    rect(d, 0, t, w - 1, t + 1, BROWN_D)
+    rect(d, 0, t + 2, w - 1, h - 1, BROWN_K)
+    for y in range(2, 6):
         for x in range(w):
-            if (x * 7 + y * 3) % (y - HORIZON + 1) == 0:
-                px(d, x, y, BROWN_D)
-    for _ in range(140):
-        px(d, rnd.randint(0, w - 1), rnd.randint(HORIZON + 4, h - 1), BROWN_D if rnd.random() < 0.7 else INK)
-    for cx, cy, r in [(40, 150, 12), (150, 128, 8), (236, 154, 14), (320, 124, 9), (96, 138, 6)]:
-        d.ellipse([cx - r, cy - r // 3, cx + r, cy + r // 3], fill=BROWN_D)
-        d.ellipse([cx - r + 1, cy - r // 3 + 1, cx + r - 1, cy + r // 3], fill=INK)
-    for _ in range(26):
-        x = rnd.randint(0, w - 4)
-        y = rnd.randint(HORIZON + 6, h - 3)
-        rect(d, x, y, x + rnd.randint(1, 3), y + rnd.randint(0, 1), rnd.choice([SLATE_D, SLATE, BROWN, RUST]))
+            if (x * 7 + y * 3) % (y + 1) == 0:
+                px(d, x, t + y, BROWN_D)
+    for x in range(0, w, 4):
+        for _ in range(2):
+            y = rnd.randint(t + 4, h - 1)
+            scorched = stage_at(x, 1.0) == 3 and rnd.random() < 0.5
+            px(d, x + rnd.randint(0, 3), y, INK if scorched or rnd.random() >= 0.7 else BROWN_D)
+    for x in range(-10, w):
+        if rnd.random() > 0.016:
+            continue
+        st = stage_at(x, 1.0, rnd.randint(-30, 30))
+        cy = rnd.randint(t + 10, h - 4)
+        r = rnd.randint(6, 10 + 2 * st)
+        d.ellipse([x - r, cy - r // 3, x + r, cy + r // 3], fill=BROWN_D)
+        d.ellipse([x - r + 1, cy - r // 3 + 1, x + r - 1, cy + r // 3], fill=INK)
+    for x in range(w):
+        if rnd.random() > 0.08:
+            continue
+        st = stage_at(x, 1.0, rnd.randint(-30, 30))
+        y = rnd.randint(t + 6, h - 3)
+        if st == 1 and rnd.random() < 0.5:
+            rect(d, x, y, x + rnd.randint(5, 12), y + rnd.randint(0, 1), SLATE_D)
+            px(d, x + 2, y - 1, INK)
+        elif st == 2 and rnd.random() < 0.3:
+            d.ellipse([x, y, x + rnd.randint(6, 12), y + 2], fill=INK)
+            px(d, x + 2, y + 1, NAVY)
+        else:
+            rect(d, x, y, x + rnd.randint(1, 3), y + rnd.randint(0, 1), rnd.choice([SLATE_D, SLATE, BROWN, RUST]))
     for x in range(4, w, 58):
-        rect(d, x, HORIZON - 3, x, HORIZON + 1, INK)
-        d.line([x, HORIZON - 2, x + 29, HORIZON], fill=INK)
-    save(img, "battlefield/bg.png")
+        st = stage_at(x, 1.0)
+        if st == 0:
+            rect(d, x, t - 3, x, t + 1, INK)
+            d.line([x, t - 2, x + 29, t], fill=INK)
+        elif st == 2:
+            rect(d, x - 58, t + 3, x, t + 3, SLATE)
+            rect(d, x - 58, t + 5, x, t + 5, SLATE)
+            for k in range(x - 58, x, 4):
+                px(d, k, t + 4, BROWN_D)
+    for x in range(w):
+        if stage_at(x, 1.0) == 3:
+            px(d, x, t - 2 + (x // 2) % 2, SLATE_D if x % 3 else SLATE)
+            if x % 23 == 0:
+                rect(d, x, t - 4, x, t + 1, SLATE_D)
+    for x in range(BG_W, w):
+        if rnd.random() > 0.012:
+            continue
+        st = stage_at(x, 1.0, rnd.randint(-30, 30))
+        y = rnd.randint(t + 8, t + 18)
+        if st == 3:
+            tank_trap(d, x, y)
+        elif st >= 1 and rnd.random() < 0.4:
+            wreck(d, x, y)
+    save(img, "battlefield/ground.png")
+
+
+def battlefield():
+    img, d = new(BG_W, HORIZON)
+    rnd = random.Random(3)
+    sky(d, BG_W, 0, HORIZON)
+    for _ in range(40):
+        px(d, rnd.randint(0, BG_W - 1), rnd.randint(0, 40), rnd.choice([SLATE, STEEL, SLATE_D]))
+    save(img, "battlefield/sky.png")
+    far_layer()
+    near_layer()
+    ground_layer()
 
     img, d = new(360, 48)
     rnd = random.Random(8)

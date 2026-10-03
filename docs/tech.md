@@ -120,10 +120,13 @@
 - Level change: views in dropped rows fade out (stay simulated); `DamageFx` re-applies on the next frame
 
 ## Battlefield
-- 340 wide (`WIDTH`; `bg.png` is 360, cropped by the rail): mech slots from x 214 (step 26), enemies 242..326
+- 340 wide (`WIDTH`; background layers are 360, cropped by the rail): mech slots from x 214 (step 26), enemies 242..326
 - Wave bar at top (`WaveBar`): `WAVE n` left, `x DMG/S` right = `wave_dps()` (mech DPS + `tap_dps`); the bar alone shows HP
 - Always 160 tall once shown; bg, enemies, mechs and fx live in `World` (Node2D) at y = height − 160 (wave bar too), so while the height grows in, the field slides down from under the HUD
-- Layers: `bg.png` (sky, ruins, ground), `smoke.png` tiled and drifting (`SMOKE_SPEED`)
+- Layers (`LAYERS`, `Sprite2D` regions 360 wide): `sky.png` (static) / `far.png` (parallax 0.3) / `near.png` (0.6) / `ground.png` (1.0, from y 106), then `smoke.png` tiled and drifting (`SMOKE_SPEED`)
+- Front line: `Battlefield.front_offset(wave)` = 20·w + 1.6·w²/2, capped at `FRONT_END` 1080 (reached at wave 28; late waves move further, they come slower); on a cleared wave the layers scroll there at walk speed (64 px/s × time scale), drawn mechs walk in place and hold fire (`advancing()`); a reload starts at the spot
+- Stages along the strip by front offset (`STAGES` in `gen_art.py`): outskirts (ruins, as before) → 250 burning city → 600 industry (chimneys, tanks, rails) → 880 enemy fortress (walls, tank traps, barbed wire; citadel behind the enemies at the end)
+- Tint by front share (`SKY_TINT`): dusk → fire glow 0.3 → night 0.6 → red 1.0; full on sky + far, 60 % near, 30 % ground
 - Enemies right side, y-sorted layer; air and ground each spread left→right in pop order, clamped inside the field; visible = `wave_alive()`; flyers bob; `enemy_<sprite>_<variant>.png`, sprites grow per variant (variant 5 brute = boss); shots `enemy_shot_<sprite>.png`
 - `DamageFx` (`scenes/damage_fx.gd`): dark smoke plume ×3 / flames / sparks by remaining share; mechs (lifetime) and enemies (wave HP left) share it
 - `Fx` (`scenes/fx.gd`, static): `explosion` (6-frame sheet, `big` 40 px), `hit`, `puff`, `trail`/`detach` (rocket smoke), `debris`, `sparks`
@@ -177,10 +180,11 @@
 - Tuning: `godot --headless --path . -- --scenario tune [--profile <name>]`: bot runs (3 taps/s: pile while short on scrap or saving for a fit, else the emptiest station bar; builds, buys cheapest, fits tiers, pauses all lines while a fit isn't reachable in 60 s of net scrap but is within 30 s of gross). Profiles: `baseline`, `casual` (1.5 taps/s), `field` / `third` (all / ⅓ of taps on the battlefield after the reveal), `quit10` (no taps after 10 min), `no_arms` (never fits Arms, except the missile), `no_pause`. Prints a summary row per profile (nuke min, bounty share of credits, NO_SCRAP share, phases ≥ 10 s (stalls < 30 s apart merge), longest wait between buys, first fit, final wait before the missile, first regular row maxed, tap share of scrap / of station work); per-minute economy + timeline for baseline or the named profile; checks the M9 targets
 - Pause checks: pausing gets some L1 fit ≥ 60 s sooner than never pausing; never pausing ends within 10 % of baseline with no wait between buys > 150 s
 - Tuning now: baseline 40.7 min (casual 45.9, field 37.9, third 35.7, quit10 49.6, no_arms 44.7, no_pause 42.0, longest wait 68 s); pausing gets the L1 Railgun 168 s sooner; bounties 33 %; NO_SCRAP 14 % in 9 phases; longest wait 68 s; first fit 2.2 min; final wait 36 s; first row maxed 22 min
-- Field check: `--scenario field` (windowed `--shots` for `field_settings`): EFFECTS row (saved next to sound settings, clamped), rows drawn per level, auto step-down
+- Field check: `--scenario field` (windowed `--shots` for `field_settings`, `field_front_<wave>` at 1/10/18/24/28): EFFECTS row (saved next to sound settings, clamped), rows drawn per level, auto step-down, front offsets, advance on a cleared wave
 - Field load: `godot --headless --path . --fixed-fps 60 -- --scenario field_perf` (windowed `--shots` for `field_perf_0..2`): 170 mechs of mixed tiers and wear at wave 27, topped up every frame; 480 frames with no headless frame sleep (`low_processor_usage_mode_sleep_usec` 0, else frames floor at 6.9 ms), so wall time per frame = CPU cost of 1/60 s of game; per effects level, prints mean / p95 ms and peak node count. Now: 0.8 ms mean (was 6.3 ms before views synced only on field changes)
 - Screenshots: `godot --path . -- --scenario shots --shots <dir>` (windowed)
 - Art: `uv run --with pillow python3 tools/gen_art.py`, then import
+- Battlefield art: `gen_art.py` layer width = 360 + 1080 × parallax (`TRAVEL` = `Battlefield.FRONT_END`); a spot's stage = the front offset at which it is mid-screen
 - Art shots: `godot --path . -- --scenario art --shots <dir>` (windowed): full mixed-tier field at wave 27 with one hurt mech, 3 lines of high-tier stations, then the whole nuke sequence
 - Templates: `tools/build_templates.sh [web|smoke]` → `build/templates/`; scons in `~/work/source/godot` (`GODOT_SRC`, at `4.7.2-stable`); web via emsdk 4.0.11 in `~/work/source/emsdk` (`EMSDK_DIR`), ~25 min for both; smoke = Linux `template_debug` in a `fedora:43` podman container (no host g++), `x11=no wayland=no vulkan=no accesskit=no` (vulkan=no: link error without x11/wayland)
 - Template smoke: `tools/smoke_templates.sh [binary]` (default `build/templates/linux_smoke.x86_64`): "Linux smoke" preset (includes `tools/`) → `build/smoke/smoke.pck` next to the binary, runs m0–m9, intro, ui, progression, pane, art, audio headless (templates refuse `--main-pack`); the templates have no regex module, so scenarios can't use `RegEx`

@@ -31,6 +31,13 @@ const MUSHROOM_FRAMES := 8
 const BOUNTY_DELAY := 0.3
 const ARRIVE_DELAY := 0.6
 const ALARM_EVERY := 2.9
+const BG_W := 360.0
+const LAYERS := [["sky", 0.0, 0.0], ["far", 0.3, 0.0], ["near", 0.6, 0.0], ["ground", 1.0, 106.0]]
+const LAYER_TINT := [1.0, 1.0, 0.6, 0.3]
+const FRONT_STEP := 20.0
+const FRONT_GROWTH := 1.6
+const FRONT_END := 1080.0
+const SKY_TINT := [[0.0, Color(1, 1, 1)], [0.3, Color(1.0, 0.86, 0.8)], [0.6, Color(0.62, 0.66, 0.92)], [1.0, Color(1.0, 0.62, 0.58)]]
 
 var _world: Node2D
 var _mechs: Node2D
@@ -45,7 +52,8 @@ var _fire_t := {}
 var _bar: TextureProgressBar
 var _hp_label: Label
 var _dps_label: Label
-var _bg: TextureRect
+var _layers: Array[Sprite2D] = []
+var _front := -1.0
 var _smoke: TextureRect
 var _nuke_id := -1
 var _tap: TapArea
@@ -59,10 +67,15 @@ func _ready() -> void:
 	_world = Node2D.new()
 	_world.name = "World"
 	add_child(_world)
-	_bg = TextureRect.new()
-	_bg.texture = preload("res://art/battlefield/bg.png")
-	_bg.mouse_filter = MOUSE_FILTER_IGNORE
-	_world.add_child(_bg)
+	for layer: Array in LAYERS:
+		var s := Sprite2D.new()
+		s.texture = load("res://art/battlefield/%s.png" % layer[0])
+		s.centered = false
+		s.region_enabled = true
+		s.region_rect = Rect2(0, 0, BG_W, s.texture.get_height())
+		s.position.y = layer[2]
+		_world.add_child(s)
+		_layers.append(s)
 	_smoke = TextureRect.new()
 	_smoke.texture = preload("res://art/battlefield/smoke.png")
 	_smoke.stretch_mode = TextureRect.STRETCH_TILE
@@ -115,6 +128,7 @@ func _ready() -> void:
 	GameState.mech_died.connect(_on_died)
 	GameState.wave_cleared.connect(_on_wave_cleared)
 	GameState.enemy_killed.connect(_on_enemy_killed)
+	_update_front(0.0)
 	if GameState.run_over:
 		scorch()
 		return
@@ -122,6 +136,30 @@ func _ready() -> void:
 	for id: int in _views:
 		_views[id].position = _slot_pos(_slots[id])
 	_show_wave(false)
+
+
+static func front_offset(wave: int) -> float:
+	return minf(FRONT_STEP * wave + FRONT_GROWTH * wave * wave / 2.0, FRONT_END)
+
+
+func advancing() -> bool:
+	return _front != front_offset(GameState.wave)
+
+
+func _update_front(delta: float) -> void:
+	var target := front_offset(GameState.wave)
+	_front = target if _front < 0.0 else move_toward(_front, target, WALK_SPEED * delta * maxf(GameState.time_scale, 1.0))
+	var tint := _sky_tint(_front / FRONT_END)
+	for i in _layers.size():
+		_layers[i].region_rect.position.x = roundf(_front * LAYERS[i][1])
+		_layers[i].modulate = Color.WHITE.lerp(tint, LAYER_TINT[i])
+
+
+static func _sky_tint(k: float) -> Color:
+	for i in range(1, SKY_TINT.size()):
+		if k <= SKY_TINT[i][0]:
+			return (SKY_TINT[i - 1][1] as Color).lerp(SKY_TINT[i][1], inverse_lerp(SKY_TINT[i - 1][0], SKY_TINT[i][0], k))
+	return SKY_TINT[-1][1]
 
 
 func hint_anchor() -> Control:
@@ -157,6 +195,7 @@ func _process(delta: float) -> void:
 		_drop_extra_rows()
 	if _dirty:
 		_sync_views()
+	_update_front(delta)
 	_step_views(delta, true)
 
 	if _wave_shown != GameState.wave:
@@ -188,6 +227,7 @@ func _process(delta: float) -> void:
 
 func _step_views(delta: float, fight: bool) -> void:
 	var speed := delta * maxf(GameState.time_scale, 1.0)
+	var advance := fight and advancing()
 	for id: int in _views:
 		var view: MechView = _views[id]
 		var m: MechState = _states[id]
@@ -196,7 +236,7 @@ func _step_views(delta: float, fight: bool) -> void:
 			continue
 		var target := _slot_pos(_slots[id])
 		view.position = view.position.move_toward(target, (NUKE_SPEED if view.nuclear else WALK_SPEED) * speed)
-		view.walking = view.position != target
+		view.walking = view.position != target or advance
 		if not fight or view.walking or m.dps <= 0.0:
 			continue
 		_fire_t[id] = float(_fire_t.get(id, randf_range(0.0, MECH_FIRE.y))) - delta * GameState.time_scale
@@ -406,7 +446,8 @@ func scorch() -> void:
 	_bar.visible = false
 	_hp_label.visible = false
 	_dps_label.visible = false
-	_bg.modulate = Color(1.2, 0.7, 0.5)
+	for layer in _layers:
+		layer.modulate = Color(1.2, 0.7, 0.5)
 	_smoke.modulate = Color(0.4, 0.2, 0.2)
 
 
