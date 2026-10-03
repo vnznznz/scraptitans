@@ -23,6 +23,7 @@ var _volumes: VBoxContainer
 var _credits: VBoxContainer
 var _licenses: Control
 var _pips := {}
+var _effects_pips: VolumePips
 
 
 class VolumePips:
@@ -33,18 +34,19 @@ class VolumePips:
 
 	var level := 0
 	var max_level := 1
+	var min_width := 0.0
 
 	func set_levels(lv: int, mx: int) -> void:
 		if lv == level and mx == max_level:
 			return
 		level = lv
 		max_level = mx
-		custom_minimum_size = Vector2(mx * (SIZE + GAP) - GAP, SIZE)
+		custom_minimum_size = Vector2(maxf(min_width, mx * (SIZE + GAP) - GAP), SIZE)
 		queue_redraw()
 
 	func _draw() -> void:
 		var y := roundf((size.y - SIZE) / 2.0)
-		var x0 := roundf((size.x - custom_minimum_size.x) / 2.0)
+		var x0 := roundf((size.x - (max_level * (SIZE + GAP) - GAP)) / 2.0)
 		for i in max_level:
 			var r := Rect2(x0 + i * (SIZE + GAP), y, SIZE, SIZE)
 			draw_rect(r, Pal.INK)
@@ -86,6 +88,7 @@ func _ready() -> void:
 	box.add_child(_volumes)
 	for v: Array in VOLUMES:
 		_volume_row(v[0], v[1])
+	_effects_row()
 
 	_credits = VBoxContainer.new()
 	_credits.name = "Credits"
@@ -112,6 +115,7 @@ func _process(_delta: float) -> void:
 		return
 	for key: String in _pips:
 		_pips[key].set_levels(int(Sound.steps[key]), int(Data.audio.steps))
+	_effects_pips.set_levels(Effects.level + 1, Effects.HIGH + 1)
 
 
 func open() -> void:
@@ -269,6 +273,29 @@ func _volume_row(key: String, label: String) -> void:
 			pips.custom_minimum_size.x = 60
 			row.add_child(pips)
 			_pips[key] = pips
+
+
+func _effects_row() -> void:
+	var row := HBoxContainer.new()
+	row.name = "Effects"
+	row.add_theme_constant_override("separation", 4)
+	_volumes.add_child(row)
+	var name_label := Label.new()
+	name_label.text = "EFFECTS"
+	name_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	row.add_child(name_label)
+	for step: int in [-1, 1]:
+		var b := Button.new()
+		b.name = "Down" if step < 0 else "Up"
+		b.text = "-" if step < 0 else "+"
+		b.custom_minimum_size = Vector2(44, 44)
+		b.pressed.connect(func() -> void: Effects.set_level(Effects.level + step))
+		row.add_child(b)
+		if step < 0:
+			_effects_pips = VolumePips.new()
+			_effects_pips.name = "Pips"
+			_effects_pips.min_width = int(Data.audio.steps) * (VolumePips.SIZE + VolumePips.GAP) - VolumePips.GAP
+			row.add_child(_effects_pips)
 
 
 func _button(box: Control, node_name: String, label: String, action: Callable) -> Button:

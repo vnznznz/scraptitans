@@ -1,6 +1,7 @@
 extends Node
 
 const PATH := "user://save.json"
+const SETTINGS_PATH := "user://settings.json"
 const VERSION := 1
 const INTERVAL := 5.0
 
@@ -49,6 +50,22 @@ func load_game() -> bool:
 		return false
 	GameState.from_dict(d)
 	return true
+
+
+func load_settings() -> Dictionary:
+	if FileAccess.file_exists(SETTINGS_PATH):
+		var saved: Variant = JSON.parse_string(FileAccess.get_file_as_string(SETTINGS_PATH))
+		if saved is Dictionary:
+			return saved
+	return {}
+
+
+func store_settings(changes: Dictionary) -> void:
+	var d := load_settings()
+	d.merge(changes, true)
+	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(d))
 
 
 func reset_run() -> void:

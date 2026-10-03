@@ -25,6 +25,8 @@ func _ready() -> void:
 		return
 	print("SCENARIO ", scenario)
 	Reveal.instant = true
+	Effects.monitor = false
+	Effects.level = Effects.HIGH
 	await runner.call(scenario)
 	print("RESULT %s: %s" % [scenario, "FAIL (%d)" % failures if failures else "PASS"])
 	Sound.shutdown()

@@ -7,6 +7,7 @@ const SMOKE_AMOUNT := [0, 4, 6, 8, 10]
 const SMOKE_SHADE := [1.0, 0.55, 0.42, 0.32, 0.25]
 
 var stage := 0
+var _level := -1
 
 var _smoke: CPUParticles2D
 var _sparks: CPUParticles2D
@@ -20,9 +21,10 @@ func set_remaining(remaining: float) -> void:
 			s += 1
 	if remaining < SPARK_BELOW:
 		s = 4
-	if s == stage:
+	if s == stage and _level == Effects.level:
 		return
 	stage = s
+	_level = Effects.level
 	if _smoke == null:
 		_smoke = _particles(preload("res://art/fx/puff.png"), Vector2.ZERO)
 		_smoke.direction = Vector2.UP
@@ -34,9 +36,9 @@ func set_remaining(remaining: float) -> void:
 		_smoke.scale_amount_min = 0.4
 		_smoke.scale_amount_max = 0.7
 		_smoke.color_ramp = Gradient.new()
-	_smoke.emitting = stage > 0
-	if stage > 0:
-		_smoke.amount = SMOKE_AMOUNT[stage]
+	_smoke.emitting = stage > 0 and Effects.value("smoke") > 0.0
+	if _smoke.emitting:
+		_smoke.amount = Effects.scaled(SMOKE_AMOUNT[stage], "smoke")
 		var shade: float = SMOKE_SHADE[stage]
 		_smoke.color_ramp.set_color(0, Color(shade, shade, shade * 1.1, 0.9))
 		_smoke.color_ramp.set_color(1, Color(shade, shade, shade * 1.1, 0.0))

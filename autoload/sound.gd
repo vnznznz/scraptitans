@@ -1,6 +1,5 @@
 extends Node
 
-const SETTINGS_PATH := "user://settings.json"
 const POOL := 16
 const SILENT_DB := -80.0
 const BUSES := {"music": &"Music", "sfx": &"Sfx", "ambience": &"Ambience"}
@@ -277,10 +276,7 @@ func _apply() -> void:
 
 func _load_settings() -> void:
 	var d: Dictionary = _cfg.defaults.duplicate()
-	if FileAccess.file_exists(SETTINGS_PATH):
-		var saved: Variant = JSON.parse_string(FileAccess.get_file_as_string(SETTINGS_PATH))
-		if saved is Dictionary:
-			d.merge(saved, true)
+	d.merge(Save.load_settings(), true)
 	muted = bool(d.muted)
 	for key: String in BUSES:
 		steps[key] = clampi(int(d[key]), 0, int(_cfg.steps))
@@ -290,9 +286,7 @@ func _load_settings() -> void:
 func _save_settings() -> void:
 	var d := {"muted": muted}
 	d.merge(steps)
-	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(d))
+	Save.store_settings(d)
 
 
 func _on_visibility(_args: Array) -> void:

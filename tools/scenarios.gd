@@ -1817,11 +1817,66 @@ func field_perf() -> void:
 	_perf_fill(rng)
 	await t.wait(4.0)
 	t.check(is_equal_approx(t.get_process_delta_time(), 1.0 / 60.0), "run with --fixed-fps 60: each frame is 1/60 s of game time")
-	var stats := await _perf_measure(rng, PERF_FRAMES)
-	print("  %d mechs (%d drawn): %.2f ms/frame mean, %.2f ms p95, %d nodes" % [
-		GameState.field.size(), field.mech_count(), stats.mean_ms, stats.p95_ms, stats.nodes])
-	t.check(field.mech_count() > 0, "field measured")
-	await t.shot("field_perf")
+	for level in range(Effects.HIGH, Effects.LOW - 1, -1):
+		Effects.level = level
+		await t.wait(2.0)
+		var stats := await _perf_measure(rng, PERF_FRAMES)
+		print("  %s: %d mechs (%d drawn): %.2f ms/frame mean, %.2f ms p95, %d nodes" % [
+			Data.effects.levels[level].name, GameState.field.size(), field.mech_count(), stats.mean_ms, stats.p95_ms, stats.nodes])
+		t.check(field.mech_count() > 0, "field measured")
+		await t.shot("field_perf_%d" % level)
+	Effects.level = Effects.HIGH
+
+
+func field() -> void:
+	var settings_backup := FileAccess.get_file_as_string(Save.SETTINGS_PATH) if FileAccess.file_exists(Save.SETTINGS_PATH) else ""
+	await _fresh(false)
+	var main := t.get_tree().current_scene
+	var field: Battlefield = main.get_node("%Battlefield")
+	_reveal_all()
+	GameState.debug_spawn_mechs(30)
+	await t.frames(2)
+	t.check(field.mech_count() == 24, "HIGH: 3 rows drawn (%d)" % field.mech_count())
+
+	var settings: SettingsOverlay = main.get_node("%Settings")
+	settings.open()
+	await t.frames(1)
+	var row := settings.find_child("Effects", true, false)
+	t.check(row != null and row.is_visible_in_tree(), "settings show an EFFECTS row")
+	await t.shot("field_settings")
+	var music_step := int(Sound.steps.music)
+	await t.click(row.get_node("Down"))
+	t.check(Effects.level == 1 and not Effects.auto, "EFFECTS - lowers the level and turns auto off")
+	var saved := Save.load_settings()
+	t.check(int(saved.get("effects", -1)) == 1 and saved.get("effects_auto") == false and int(saved.get("music", -1)) == music_step,
+			"level saved next to the sound settings")
+	Sound.set_step("music", music_step)
+	t.check(int(Save.load_settings().get("effects", -1)) == 1, "saving sound settings keeps the level")
+	await t.click(row.get_node("Down"))
+	await t.click(row.get_node("Down"))
+	t.check(Effects.level == Effects.LOW, "clamped at LOW")
+	await t.frames(2)
+	t.check(field.mech_count() == 8, "LOW: one row drawn (%d)" % field.mech_count())
+	t.check(Effects.scaled(10, "debris") == 5 and Effects.value("smoke") == 0.0, "LOW: half debris, no damage smoke")
+	await t.click(row.get_node("Up"))
+	await t.frames(2)
+	t.check(field.mech_count() == 16, "MED: two rows drawn (%d)" % field.mech_count())
+	settings.close()
+
+	Effects.level = Effects.HIGH
+	Effects.auto = true
+	for k in 300:
+		Effects.sample(1.0 / 60.0)
+	t.check(Effects.level == Effects.HIGH, "auto: 60 fps keeps the level")
+	for k in 150:
+		Effects.sample(1.0 / 25.0)
+	t.check(Effects.level == 1 and Effects.auto, "auto: 5 s at 25 fps steps down once")
+	Effects.level = Effects.HIGH
+
+	if settings_backup:
+		FileAccess.open(Save.SETTINGS_PATH, FileAccess.WRITE).store_string(settings_backup)
+	else:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(Save.SETTINGS_PATH))
 
 
 func _perf_fill(rng: RandomNumberGenerator) -> void:
@@ -1927,7 +1982,7 @@ func intro() -> void:
 
 
 func audio() -> void:
-	var settings_backup := FileAccess.get_file_as_string(Sound.SETTINGS_PATH) if FileAccess.file_exists(Sound.SETTINGS_PATH) else ""
+	var settings_backup := FileAccess.get_file_as_string(Save.SETTINGS_PATH) if FileAccess.file_exists(Save.SETTINGS_PATH) else ""
 	await _fresh()
 	var main := t.get_tree().current_scene
 	var cfg: Dictionary = Data.audio
@@ -2010,8 +2065,8 @@ func audio() -> void:
 	Sound.set_step("music", 0)
 	t.check(AudioServer.is_bus_mute(AudioServer.get_bus_index(&"Music")), "step 0 mutes the bus")
 	Sound.set_step("music", music_step)
-	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Sound.SETTINGS_PATH))
-	t.check(int(saved.music) == music_step and bool(saved.muted) == was_muted, "settings saved to %s" % Sound.SETTINGS_PATH)
+	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Save.SETTINGS_PATH))
+	t.check(int(saved.music) == music_step and bool(saved.muted) == was_muted, "settings saved to %s" % Save.SETTINGS_PATH)
 	await t.click(settings.find_child("Close", true, false))
 
 	var field: Battlefield = main.get_node("%Battlefield")
@@ -2102,9 +2157,9 @@ func audio() -> void:
 	await t.frames(2)
 	t.check(not Sound.music_playing and Sound._music_wait > float(music.first_after) - 1.0, "start again stops the music, the new run waits first_after")
 	if settings_backup:
-		FileAccess.open(Sound.SETTINGS_PATH, FileAccess.WRITE).store_string(settings_backup)
+		FileAccess.open(Save.SETTINGS_PATH, FileAccess.WRITE).store_string(settings_backup)
 	else:
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(Sound.SETTINGS_PATH))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(Save.SETTINGS_PATH))
 	Sound._load_settings()
 
 

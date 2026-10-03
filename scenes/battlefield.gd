@@ -51,6 +51,7 @@ var _nuke_id := -1
 var _tap: TapArea
 var _hint: Control
 var _dirty := true
+var _level := -1
 
 
 func _ready() -> void:
@@ -151,6 +152,9 @@ func _process(delta: float) -> void:
 	if GameState.run_over:
 		_step_views(delta, false)
 		return
+	if _level != Effects.level:
+		_level = Effects.level
+		_drop_extra_rows()
 	if _dirty:
 		_sync_views()
 	_step_views(delta, true)
@@ -475,15 +479,30 @@ func _replace_weakest(m: MechState) -> int:
 	if weakest == -1 or score(_states[weakest]) >= score(m):
 		return -1
 	var slot: int = _slots[weakest]
-	var view: MechView = _views[weakest]
-	_views.erase(weakest)
-	_slots.erase(weakest)
-	_states.erase(weakest)
-	_fire_t.erase(weakest)
+	_remove_view(weakest)
+	return slot
+
+
+func _cap() -> int:
+	return int(Effects.value("rows")) * SLOTS_PER_ROW
+
+
+func _drop_extra_rows() -> void:
+	for id: int in _views.keys():
+		if _slots[id] >= _cap():
+			_remove_view(id)
+	_dirty = true
+
+
+func _remove_view(id: int) -> void:
+	var view: MechView = _views[id]
+	_views.erase(id)
+	_slots.erase(id)
+	_states.erase(id)
+	_fire_t.erase(id)
 	var tw := view.create_tween()
 	tw.tween_property(view, "modulate:a", 0.0, 0.3)
 	tw.tween_callback(view.queue_free)
-	return slot
 
 
 func _sort_rows() -> void:
@@ -525,7 +544,7 @@ func _row_index(row: int) -> int:
 
 func _free_slot() -> int:
 	var used := _slots.values()
-	for i in SLOTS_PER_ROW * ROWS:
+	for i in _cap():
 		if not used.has(i):
 			return i
 	return -1

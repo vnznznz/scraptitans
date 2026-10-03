@@ -5,6 +5,7 @@ var segments: Dictionary
 var enemies: Dictionary
 var upgrades: Dictionary
 var audio: Dictionary
+var effects: Dictionary
 var upgrade_list: Array[Dictionary] = []
 
 var _rows_by_id := {}
@@ -17,6 +18,7 @@ func _init() -> void:
 	enemies = _load("res://data/enemies.json")
 	upgrades = _load("res://data/upgrades.json")
 	audio = _load("res://data/audio.json")
+	effects = _load("res://data/effects.json")
 	for row: Dictionary in upgrades.rows:
 		upgrade_list.append(row)
 		if not _rows_by_stat.has(row.stat):
