@@ -325,6 +325,27 @@ Test:
 - SDK calls fire in order (log them); rewards only on success.
 - Game still runs with the SDK blocked (ad blocker).
 
+## M15 · Battlefield progression
+
+Build: the battlefield shows what each line contributes and keeps changing until the nuke; an EFFECTS setting keeps it light on phones. Done before M14.
+
+- [x] Mechs remember their line; a gate per line on the left edge: door opens on a deploy, drawn mechs walk out of it, lamp shows producing / paused / out of scrap / incomplete
+- [x] DPS strip under the wave bar: damage share per line in the gate colours, taps white
+- [x] Front line advances on every cleared wave (further late in the run) through outskirts → burning city → industry → enemy fortress; sky dusk → night → red
+- [x] Crowd of silhouettes for undrawn mechs (up to 150) behind the front rows, one node for all; a freed front slot takes the first crowd mech
+- [x] Artillery strikes stand in for undrawn mechs; a boss on every 5th wave
+- [x] EFFECTS setting LOW / MED / HIGH (drawn rows, crowd, damage smoke, debris, artillery), MED by default on phones, steps down by itself below 40 fps
+- [x] Mech views re-synced only when the field changes, in one pass (6.3 → 0.6 ms per frame at 170 mechs)
+- [x] `--scenario field`, `--scenario field_perf`
+
+Test (browser + phone):
+- Unlock line 2: a second door appears with a puff; its mechs walk out of door 2; the strip under the wave bar gets a pink part
+- Pause a line: its lamp turns grey; starve it: the lamp blinks red
+- Clear waves: the ground scrolls while the army marches in place; city, industry and fortress pass over the run; the sky turns to night, then red
+- Late game: a dense crowd behind the front rows, artillery explosions on the enemies, a boss on WAVE 5, 10, 15 (BOSS on the wave bar)
+- Settings → EFFECTS -: fewer rows drawn, a thinner crowd and none on LOW, no artillery on LOW; a reload keeps the level
+- Phone, late game (100+ mechs): smooth; if not, EFFECTS steps down by itself within ~15 s
+
 ## Not in the prototype
 
 A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.
