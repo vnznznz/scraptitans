@@ -4,9 +4,9 @@ extends Node2D
 const TEX := preload("res://art/mech/crowd.png")
 const CELL := Vector2(16, 24)
 const ROW_Y := [112.0, 115.0, 118.0, 121.0, 124.0]
-const X0 := 10.0
+const X0 := 20.0
 const DX := 7.0
-const COLUMNS := 31
+const COLUMNS := 30
 const ROW_SHIFT := 3.0
 const SHADE := Color(0.5, 0.5, 0.56)
 const IDLE_TICK := 0.4

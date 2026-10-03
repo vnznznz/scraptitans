@@ -1902,6 +1902,29 @@ func field() -> void:
 	await t.frames(2)
 	var promoted := field.mech_view(next.id)
 	t.check(promoted != null and not crowd.has(next.id) and promoted.position.distance_to(spot) < 6.0, "a drawn mech dies: the first in the crowd steps forward from its spot")
+	GameState.credits = 1e9
+	GameState.scrap = 1e9
+	for i in 3:
+		GameState.buy_upgrade("lines")
+	for li in GameState.lines.size():
+		for si in GameState.lines[li].segments.size():
+			if li != 3:
+				GameState.build_segment(li, si)
+	GameState.lines[1].paused = true
+	GameState.lines[2].segments[1].stall = SegmentState.Stall.NO_SCRAP
+	t.check(range(4).map(func(i: int) -> Gates.Lamp: return Gates.lamp(GameState.lines[i])) == [Gates.Lamp.ON, Gates.Lamp.PAUSED, Gates.Lamp.STARVED, Gates.Lamp.OFF],
+			"gate lamps: producing, paused, out of scrap, line not complete")
+	var elite := MechState.new()
+	elite.id = GameState.next_mech_id
+	GameState.next_mech_id += 1
+	elite.line = 2
+	elite.parts = {"frame": 4, "core": 4, "arms": 4}
+	GameState.call("_deploy", elite)
+	await t.frames(1)
+	var gates: Gates = field.get("_gates")
+	t.check(float(gates.get("_open").get(2, 0.0)) > 0.0, "deploy opens its line's door")
+	var elite_view := field.mech_view(elite.id)
+	t.check(elite_view != null and elite_view.position.distance_to(Gates.door(2)) < 4.0, "the mech walks out of its line's door")
 	GameState.time_scale = 1.0
 	await t.wait(1.0)
 	await t.shot("field_crowd")
