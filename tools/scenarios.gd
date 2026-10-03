@@ -2265,7 +2265,7 @@ func audio() -> void:
 	t.check(Sound.music_playing and int(Sound.plays.get(&"music", 0)) == 1, "music starts when due")
 	await t.wait(float(music.fade_in) + 0.2)
 	var amb := AudioServer.get_bus_index(&"Ambience")
-	var amb_db := linear_to_db(pow(float(Sound.steps.ambience) / float(cfg.steps), 2.0))
+	var amb_db := linear_to_db(pow(float(Sound.steps.ambience) / float(cfg.steps), 2.0)) + float(cfg.trim_db.ambience)
 	t.check(absf(AudioServer.get_bus_volume_db(amb) - amb_db - float(music.duck_db)) < 0.5, "ambience ducks while music plays")
 	t.check(absf(Sound._music.volume_db - float(music.volume_db)) < 0.5, "music faded in to %.0f dB" % Sound._music.volume_db)
 	Sound._music_end = Sound._now() + float(music.fade_out)

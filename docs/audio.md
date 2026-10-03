@@ -28,7 +28,8 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 - `beds.<id>`: looped on the `Ambience` bus; `drive` (`assembly_rate` per s, `mechs` drawn) / `full` = level, smoothed over `smooth` s; no drive = constant
 - `music`: `volume_db`, `first_after` (s after the first mech), `gap` [min, max] s between plays, `fade_in`, `fade_out`, `duck_db` (Ambience while music plays)
 - `defaults`: first-run settings (`muted`, steps 0–`steps` per bus)
-- Levels were set from measured loudness (active RMS) toward a target per role: taps −17, buys −19, UI −22, assembly/deaths −23, busy (shots, pops, coins) −27, quiet −30, rewards −16, nuke −12 dBFS. Tune by ear from there; a reload picks up changes
+- `trim_db`: per bus, added to the step level. Sounds −24, ambience −12: the default step 4 plays where step 1 (sounds) and step 2 (ambience) were before, the baseline picked by ear
+- Levels were set from measured loudness (active RMS) toward a target per role: taps −17, buys −19, UI −22, assembly/deaths −23, busy (shots, pops, coins) −27, quiet −30, rewards −16, nuke −12 dBFS (before `trim_db`). Short hits (< 0.12 s) ~1.5 dB over their target, since they sound quieter at the same RMS. Tune by ear from there; a reload picks up changes
 
 ## Music
 
@@ -52,10 +53,10 @@ Factory
 - Bed `factory`: escalator_loop (4 s low rumble with a roller pulse)
 
 Battlefield
-- Bed `field`: windy1(loop) (32 s soft gusts); bed `battle`: shuttle(loop) (distant rumble)
+- Bed `field`: windy1(loop) (32 s soft gusts), softened: low-pass 2.5 kHz, gusts compressed (swell over the floor 25 → 13 dB); bed `battle`: shuttle(loop) (distant rumble)
 - `shot_pipe` (Pipe Gun): weapon_singleshot2, 22, 7; `shot_bolt` (Bolt Cannon): weapon_shotgun1, weapon_singleshot8; `shot_burst` (Auto Cannon): wpn_machinegun_loop2, loop5 (3 pulses = the 3-round burst); `shot_rocket` (Rocket Pod): wpn_missilelaunch, `rocket_hit`: exp_shortest_soft1, soft7; `shot_beam` (Railgun): wpn_laser6
 - `enemy_shot_drone`: wpn_laser8; `enemy_shot_crawler`: laser; `enemy_shot_brute`: wpn_cannon4
-- `field_tap`: sounds_impact12, sounds_impact11
+- `field_tap`: sounds_impact12, sounds_impact11, damage_hit1, 5, 7, 10 (Simple Damage Sounds: short noisy hits with a falling sweep, like the impacts; the gated chiptune blips left out)
 - `enemy_pop`: exp_shortest_soft2, 5, 6, 8; `enemy_pop_big`: exp_short_soft4 (the "soft" explosions decay smoothly; the "hard" ones are bit-crushed and harsh)
 - `mech_death`: exp_short_soft3, soft11
 - `wave_clear`: exp_cluster5, then `bounty`: coin_cluster4 (0.3 s later); `wave_arrive`: turn_enemy (0.6 s after)
@@ -77,12 +78,12 @@ Not used on purpose: robot/cyborg death screams (too comic ×50 deaths), alarm l
 
 ## Size
 
-- 65 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
+- 69 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
 - Web decodes every sample to 48 kHz stereo float: ~49 MB of `AudioBuffer`s (music 17, wind 12). If the iPhone struggles: cut the wind to a ~10 s loop, then drop it
 
 ## License
 
-- Sounds and music: SubspaceAudio (https://subspaceaudio.itch.io/), CC BY 4.0; music by Juhani Junkala. Credited in ⚙ → CREDITS with the change made (mixed to mono). New pack files → keep the credits in sync
+- Sounds and music: SubspaceAudio (https://subspaceaudio.itch.io/), CC BY 4.0; music by Juhani Junkala. Credited in ⚙ → CREDITS with the changes made (mixed to mono, wind loop softened). New pack files → keep the credits in sync
 
 ## Open
 

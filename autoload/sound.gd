@@ -271,7 +271,7 @@ func _apply() -> void:
 		var step := int(steps[key])
 		AudioServer.set_bus_mute(i, step == 0)
 		var db := linear_to_db(pow(float(step) / float(_cfg.steps), 2.0)) if step > 0 else SILENT_DB
-		AudioServer.set_bus_volume_db(i, db + (_duck if key == "ambience" else 0.0))
+		AudioServer.set_bus_volume_db(i, db + float(_cfg.trim_db[key]) + (_duck if key == "ambience" else 0.0))
 
 
 func _load_settings() -> void:

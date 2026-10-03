@@ -1,6 +1,7 @@
 {
 	"steps": 5,
 	"defaults": {"muted": false, "music": 4, "sfx": 4, "ambience": 4},
+	"trim_db": {"music": 0, "sfx": -24, "ambience": -12},
 	"groups": {"field": 8},
 	"areas": {
 		"field": {"hidden_db": -18},
@@ -14,7 +15,7 @@
 	},
 	"beds": {
 		"factory": {"file": "sfx_escalator_loop", "volume_db": -21, "area": "factory", "drive": "assembly_rate", "full": 1.5, "smooth": 1.5},
-		"field": {"file": "sfx_windy1(loop)", "volume_db": -8, "area": "field"},
+		"field": {"file": "sfx_windy1(loop)", "volume_db": -22, "area": "field"},
 		"battle": {"file": "sfx_shuttle(loop)", "volume_db": -23, "area": "field", "drive": "mechs", "full": 12, "smooth": 2.0}
 	},
 	"sounds": {
@@ -47,7 +48,8 @@
 		"enemy_shot_drone": {"files": ["sfx_wpn_laser8"], "volume_db": -17, "pitch": 0.1, "cooldown": 0.1, "voices": 2, "group": "field", "area": "field"},
 		"enemy_shot_crawler": {"files": ["sfx_laser"], "volume_db": -8, "pitch": 0.08, "cooldown": 0.12, "voices": 2, "group": "field", "area": "field"},
 		"enemy_shot_brute": {"files": ["sfx_wpn_cannon4"], "volume_db": -21, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "group": "field", "area": "field"},
-		"field_tap": {"files": ["sfx_sounds_impact12", "sfx_sounds_impact11"], "file_db": {"sfx_sounds_impact11": 3},
+		"field_tap": {"files": ["sfx_sounds_impact12", "sfx_sounds_impact11", "sfx_damage_hit1", "sfx_damage_hit5", "sfx_damage_hit7", "sfx_damage_hit10"],
+			"file_db": {"sfx_sounds_impact11": 3, "sfx_damage_hit1": -1, "sfx_damage_hit5": 3, "sfx_damage_hit7": 1, "sfx_damage_hit10": -2},
 			"volume_db": -10, "pitch": 0.08, "cooldown": 0.04, "voices": 3, "area": "field"},
 		"enemy_pop": {"files": ["sfx_exp_shortest_soft2", "sfx_exp_shortest_soft5", "sfx_exp_shortest_soft6", "sfx_exp_shortest_soft8"],
 			"file_db": {"sfx_exp_shortest_soft2": 4, "sfx_exp_shortest_soft6": -2, "sfx_exp_shortest_soft8": -2},
