@@ -1873,6 +1873,39 @@ func field() -> void:
 	t.check(Effects.level == 1 and Effects.auto, "auto: 5 s at 25 fps steps down once")
 	Effects.level = Effects.HIGH
 
+	GameState.time_scale = 0.0
+	await t.frames(2)
+	var crowd := field.crowd()
+	t.check(crowd.count() == GameState.field.size() - 24, "undrawn mechs stand in the crowd (%d)" % crowd.count())
+	GameState.debug_spawn_mechs(200)
+	await t.frames(2)
+	t.check(crowd.count() == 150, "HIGH: crowd capped at 150 (%d of %d mechs)" % [crowd.count(), GameState.field.size()])
+	Effects.level = 1
+	await t.frames(2)
+	t.check(field.mech_count() == 16 and crowd.count() == 60, "MED: 16 drawn, crowd 60 (%d)" % crowd.count())
+	Effects.level = Effects.LOW
+	await t.frames(2)
+	t.check(field.mech_count() == 8 and crowd.count() == 0, "LOW: no crowd")
+	Effects.level = Effects.HIGH
+	await t.frames(2)
+	var in_crowd: MechState = GameState.field.filter(func(m: MechState) -> bool: return crowd.has(m.id)).front()
+	in_crowd.wear = in_crowd.lifetime
+	var before := crowd.count()
+	GameState.advance(GameState.TICK)
+	await t.frames(2)
+	t.check(not crowd.has(in_crowd.id) and crowd.count() == before, "a crowd mech dies, another takes its place")
+	var drawn: MechState = GameState.field.filter(func(m: MechState) -> bool: return field.mech_view(m.id) != null).front()
+	var next: MechState = GameState.field.filter(func(m: MechState) -> bool: return crowd.has(m.id)).front()
+	var spot := crowd.spot(next.id)
+	drawn.wear = drawn.lifetime
+	GameState.advance(GameState.TICK)
+	await t.frames(2)
+	var promoted := field.mech_view(next.id)
+	t.check(promoted != null and not crowd.has(next.id) and promoted.position.distance_to(spot) < 6.0, "a drawn mech dies: the first in the crowd steps forward from its spot")
+	GameState.time_scale = 1.0
+	await t.wait(1.0)
+	await t.shot("field_crowd")
+
 	var offsets := range(30).map(func(w: int) -> float: return Battlefield.front_offset(w))
 	t.check(offsets[0] == 0.0 and offsets[26] < Battlefield.FRONT_END and offsets[27] == Battlefield.FRONT_END, "front reaches the fortress at wave 28")
 	t.check(range(1, 27).all(func(w: int) -> bool: return offsets[w] - offsets[w - 1] > offsets[w - 1] - (offsets[w - 2] if w > 1 else 0.0) - 0.01),

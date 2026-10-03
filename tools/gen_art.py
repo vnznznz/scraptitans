@@ -475,6 +475,31 @@ def mech():
     save(sheet, "mech/nuclear.png")
     with open(os.path.join(OUT, "mech/rig.json"), "w") as fh:
         json.dump(rig, fh)
+    crowd()
+
+
+CROWD_CELL = (16, 24)
+
+
+def crowd():
+    w, h = CROWD_CELL
+    sheet = Image.new("RGBA", (w * 2, h * 6), CLEAR)
+    for t in range(6):
+        ramp = FRAME_STYLE[t][0]
+        tw, th, lh = 5 + t, 5 + t // 2, 4 + t
+        for f in range(2):
+            img, d = new(w, h)
+            cx, ground = 7 - t // 3, h - 1
+            top = ground - lh - th - f
+            for lx, lift in ((cx - tw // 2 + 1, f), (cx + tw // 2 - 2, 0)):
+                rect(d, lx, ground - lh - f, lx + 1, ground - lift, ramp[0])
+            sbox(d, cx - tw // 2, top, cx + tw // 2, top + th, ramp)
+            rect(d, cx - 1, top - 2, cx + 1, top, ramp[2])
+            px(d, cx + 1, top - 1, YELLOW)
+            rect(d, cx + tw // 2, top + 2, cx + tw // 2 + 3 + t // 2, top + 2 + t // 3, SLATE_D)
+            outline(img)
+            sheet.paste(img, (f * w, t * h))
+    save(sheet, "mech/crowd.png")
 
 
 def cloud(d, cx, cy, r, rnd, fill, shade=None, n=5):

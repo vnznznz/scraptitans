@@ -41,6 +41,7 @@ const SKY_TINT := [[0.0, Color(1, 1, 1)], [0.3, Color(1.0, 0.86, 0.8)], [0.6, Co
 
 var _world: Node2D
 var _mechs: Node2D
+var _crowd: Crowd
 var _enemy_layer: Node2D
 var _enemies: Array[Sprite2D] = []
 var _enemy_count := 0
@@ -60,6 +61,7 @@ var _tap: TapArea
 var _hint: Control
 var _dirty := true
 var _level := -1
+var _arrivals: Array[MechState] = []
 
 
 func _ready() -> void:
@@ -84,6 +86,8 @@ func _ready() -> void:
 	_smoke.position.y = SMOKE_Y
 	_smoke.mouse_filter = MOUSE_FILTER_IGNORE
 	_world.add_child(_smoke)
+	_crowd = Crowd.new()
+	_world.add_child(_crowd)
 
 	_tap = TapArea.new()
 	_tap.name = "FieldTap"
@@ -185,6 +189,10 @@ func mech_view(id: int) -> MechView:
 	return _views.get(id)
 
 
+func crowd() -> Crowd:
+	return _crowd
+
+
 func _process(delta: float) -> void:
 	_smoke.position.x = -fmod(Time.get_ticks_msec() / 1000.0 * SMOKE_SPEED, _smoke.texture.get_width())
 	if GameState.run_over:
@@ -196,6 +204,7 @@ func _process(delta: float) -> void:
 	if _dirty:
 		_sync_views()
 	_update_front(delta)
+	_crowd.marching = advancing()
 	_step_views(delta, true)
 
 	if _wave_shown != GameState.wave:
@@ -440,6 +449,7 @@ func scorch() -> void:
 	_views.clear()
 	_slots.clear()
 	_states.clear()
+	_crowd.clear()
 	_nuke_id = -1
 	_enemies.clear()
 	_enemy_count = 0
@@ -465,23 +475,20 @@ func _bar_label(node_name: String, align: HorizontalAlignment) -> Label:
 	return label
 
 
-func _add_view(m: MechState) -> MechView:
-	var slot := -1 if m.is_nuclear() else _free_slot()
-	if slot == -1 and not m.is_nuclear():
-		slot = _replace_weakest(m)
-		if slot == -1:
-			return null
+func _add_view(m: MechState, slot: int) -> MechView:
 	var view := MechView.new()
-	view.nuclear = m.is_nuclear()
+	view.nuclear = slot == -1
 	view.set_parts(m.parts)
 	view.position = Vector2(ENTRY_X, _slot_pos(slot).y)
+	if _crowd.has(m.id):
+		view.position = _crowd.spot(m.id)
+		_crowd.remove(m.id)
 	view.walking = true
 	view.walk_speed = 0.6 if view.nuclear else WALK_ANIM
 	_mechs.add_child(view)
 	_views[m.id] = view
 	_states[m.id] = m
 	_set_slot(m.id, slot)
-	_dirty = true
 	return view
 
 
@@ -505,23 +512,43 @@ static func score(m: MechState) -> int:
 
 func _sync_views() -> void:
 	_dirty = false
+	var undrawn: Array[MechState] = []
 	for m in GameState.field:
 		if not _views.has(m.id):
-			_add_view(m)
+			undrawn.append(m)
+	var free := _free_slots()
+	while not free.is_empty() and not undrawn.is_empty():
+		_add_view(undrawn.pop_front(), free.pop_front())
+	var scores := {}
+	for m in undrawn:
+		scores[m.id] = score(m)
+	while not undrawn.is_empty():
+		var best := undrawn[0]
+		for m in undrawn:
+			if scores[m.id] > scores[best.id]:
+				best = m
+		var weakest := _weakest()
+		if weakest == -1 or score(_states[weakest]) >= scores[best.id]:
+			break
+		var slot: int = _slots[weakest]
+		_remove_view(weakest)
+		undrawn.erase(best)
+		_add_view(best, slot)
 	if _nuke_id == -1:
 		_sort_rows()
+	_crowd.sync(GameState.field, _views, int(Effects.value("crowd")))
+	for m in _arrivals:
+		if _views.has(m.id):
+			_fly_fee(m)
+	_arrivals.clear()
 
 
-func _replace_weakest(m: MechState) -> int:
+func _weakest() -> int:
 	var weakest := -1
 	for id: int in _views:
 		if _slots[id] >= 0 and (weakest == -1 or score(_states[id]) < score(_states[weakest])):
 			weakest = id
-	if weakest == -1 or score(_states[weakest]) >= score(m):
-		return -1
-	var slot: int = _slots[weakest]
-	_remove_view(weakest)
-	return slot
+	return weakest
 
 
 func _cap() -> int:
@@ -583,12 +610,15 @@ func _row_index(row: int) -> int:
 	return i
 
 
-func _free_slot() -> int:
-	var used := _slots.values()
+func _free_slots() -> Array[int]:
+	var used := {}
+	for id: int in _slots:
+		used[_slots[id]] = true
+	var free: Array[int] = []
 	for i in _cap():
 		if not used.has(i):
-			return i
-	return -1
+			free.append(i)
+	return free
 
 
 func _slot_pos(slot: int) -> Vector2:
@@ -607,12 +637,18 @@ func _fly(m: MechState, kind: Flyers.Kind, amount: float, count: int) -> void:
 
 
 func _on_deployed(m: MechState) -> void:
-	var view := _add_view(m)
 	if m.is_nuclear():
+		_add_view(m, -1)
 		_nuke_id = m.id
 		_clear_path()
-	if view:
-		_fly(m, Flyers.Kind.CREDITS, m.deploy_fee, clampi(2 + int(log(maxf(m.deploy_fee, 1.0)) / log(10.0)), 2, 6))
+		_fly_fee(m)
+		return
+	_dirty = true
+	_arrivals.append(m)
+
+
+func _fly_fee(m: MechState) -> void:
+	_fly(m, Flyers.Kind.CREDITS, m.deploy_fee, clampi(2 + int(log(maxf(m.deploy_fee, 1.0)) / log(10.0)), 2, 6))
 
 
 func _clear_path() -> void:
@@ -631,6 +667,10 @@ func _on_income(m: MechState, credits: float) -> void:
 
 
 func _on_died(m: MechState, salvage: float) -> void:
+	_dirty = true
+	if _crowd.has(m.id):
+		Fx.explosion(_mechs, _crowd.spot(m.id) - Vector2(0, 8), false, 0.35)
+		_crowd.remove(m.id)
 	var view: MechView = _views.get(m.id)
 	if view == null:
 		return
@@ -640,5 +680,4 @@ func _on_died(m: MechState, salvage: float) -> void:
 	_slots.erase(m.id)
 	_states.erase(m.id)
 	_fire_t.erase(m.id)
-	_dirty = true
 	view.pop()
