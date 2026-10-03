@@ -50,6 +50,7 @@ var _smoke: TextureRect
 var _nuke_id := -1
 var _tap: TapArea
 var _hint: Control
+var _dirty := true
 
 
 func _ready() -> void:
@@ -150,7 +151,8 @@ func _process(delta: float) -> void:
 	if GameState.run_over:
 		_step_views(delta, false)
 		return
-	_sync_views()
+	if _dirty:
+		_sync_views()
 	_step_views(delta, true)
 
 	if _wave_shown != GameState.wave:
@@ -434,6 +436,7 @@ func _add_view(m: MechState) -> MechView:
 	_views[m.id] = view
 	_states[m.id] = m
 	_set_slot(m.id, slot)
+	_dirty = true
 	return view
 
 
@@ -456,6 +459,7 @@ static func score(m: MechState) -> int:
 
 
 func _sync_views() -> void:
+	_dirty = false
 	for m in GameState.field:
 		if not _views.has(m.id):
 			_add_view(m)
@@ -576,4 +580,5 @@ func _on_died(m: MechState, salvage: float) -> void:
 	_slots.erase(m.id)
 	_states.erase(m.id)
 	_fire_t.erase(m.id)
+	_dirty = true
 	view.pop()
