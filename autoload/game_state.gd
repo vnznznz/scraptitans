@@ -519,6 +519,7 @@ func _try_assemble(line: LineState, s: SegmentState, spawn: bool) -> void:
 	if spawn:
 		s.mech = MechState.new()
 		s.mech.id = next_mech_id
+		s.mech.line = lines.find(line)
 		next_mech_id += 1
 	s.mech.scrap_cost += cost
 	s.work = 0.0

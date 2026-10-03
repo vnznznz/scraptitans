@@ -340,6 +340,8 @@ func m4() -> void:
 				await _fill_bar(main.line_view(l), i)
 		GameState.advance(3.0)
 	t.check(GameState.field.size() >= 7, "both lines feed the battlefield (%d mechs)" % GameState.field.size())
+	var from_lines := GameState.field.map(func(m: MechState) -> int: return m.line)
+	t.check(from_lines.has(0) and from_lines.has(1) and from_lines.all(func(l: int) -> bool: return l < 2), "each mech knows the line that built it")
 	await t.frames(10)
 	await t.shot("m4_lines")
 

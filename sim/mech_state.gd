@@ -7,6 +7,7 @@ const FLOAT_FIELDS := [
 ]
 
 var id := 0
+var line := 0
 var parts := {}
 var scrap_cost := 0.0
 var arrive_t := 0.0
@@ -33,7 +34,7 @@ func is_nuclear() -> bool:
 
 
 func to_dict() -> Dictionary:
-	var d := {"id": id, "parts": parts.duplicate()}
+	var d := {"id": id, "line": line, "parts": parts.duplicate()}
 	for f: String in FLOAT_FIELDS:
 		d[f] = get(f)
 	return d
@@ -42,6 +43,7 @@ func to_dict() -> Dictionary:
 static func from_dict(d: Dictionary) -> MechState:
 	var m := MechState.new()
 	m.id = int(d.id)
+	m.line = int(d.get("line", 0))
 	for k: String in d.parts:
 		m.parts[k] = int(d.parts[k])
 	for f: String in FLOAT_FIELDS:

@@ -71,6 +71,7 @@
 - Yard chunk = `yard_chunk` (Yard haul row) × `worker_chunk`; line crew cap = `worker_slots` (Crew size row) × built stations
 - Hire cost `worker_base·worker_growth^n` (`economy.json`, 50·1.1^n), n = the line's crew
 - Deploy sums part tier stats (`lifetime`, `credits_per_sec`, `deploy_fee`, `dps`)
+- `MechState.line`: index of the line whose Frame spawned it (saved, old saves 0)
 - Field mech: payout `base·step^min(floor(age/interval), cap)` by `age`; death by `wear`, which grows `1 + wave_damage·wave` per s; income batched to `mech_income` once per second, salvage on death
 - Payout `cap` starts 0 (flat), Pay raises add steps
 - `mechs_per_min`: deploys in the last 60 one-second samples (unsaved)
