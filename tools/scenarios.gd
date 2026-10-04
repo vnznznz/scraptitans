@@ -304,7 +304,7 @@ func m4() -> void:
 	var checks := [
 		["bar", "bar_mult", 0.95],
 		["crew", "worker_slots", 4.0],
-		["tap", "tap_yard_share", 0.19],
+		["tap", "tap_yard_share", 0.11],
 		["raises", "payout_cap", 1.0],
 		["salvage", "salvage", 0.04],
 		["lines", "lines", 2.0],
@@ -313,6 +313,9 @@ func m4() -> void:
 		await t.click(_buy(menu, c[0]))
 		t.check(is_equal_approx(GameState.stat(c[1]), c[2]), "%s is now %s" % [c[1], GameState.stat(c[1])])
 	t.check(GameState.lines.size() == 2 and main.line_view(1) != null, "line 2 unlocked and shown")
+	GameState.yard_workers = 2
+	t.check(is_equal_approx(GameState.tap_scrap(), GameState.stat("scrap_per_tap") + 0.11 * GameState.yard_rate()), "pile tap uses the upgraded crew share (%.2f)" % GameState.tap_scrap())
+	GameState.yard_workers = 0
 	t.check(is_equal_approx(GameState.upgrade_cost("tap"), 60.0 * Data.econ("upgrade_cost_growth")), "cost base·growth^level")
 	t.check(is_equal_approx(GameState.lines[0].segments[0].bar_size(), 5.7), "sim reads the derived bar size")
 

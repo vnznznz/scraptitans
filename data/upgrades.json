@@ -1,6 +1,6 @@
 {
 	"rows": [
-		{"id": "tap", "name": "Pile tap", "stat": "tap_yard_share", "delta": 0.04, "max_level": 16, "base_cost": 60, "unit": "s",
+		{"id": "tap", "name": "Pile tap", "stat": "tap_yard_share", "delta": 0.01, "max_level": 16, "base_cost": 60, "unit": "s",
 			"desc": "Pile taps also grab this much yard output."},
 		{"id": "bar", "name": "Lighter work", "stat": "bar_mult", "delta": -0.05, "max_level": 10, "base_cost": 150, "unit": "%",
 			"desc": "Work bars 5% shorter."},

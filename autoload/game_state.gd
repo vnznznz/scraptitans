@@ -194,7 +194,7 @@ func aging() -> float:
 
 
 func tap_scrap() -> float:
-	return stat("scrap_per_tap") + Data.econ("tap_yard_share") * yard_rate()
+	return stat("scrap_per_tap") + stat("tap_yard_share") * yard_rate()
 
 
 func tap_pile() -> void:
