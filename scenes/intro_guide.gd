@@ -71,7 +71,10 @@ func _process(delta: float) -> void:
 			at.y = _tip.y - ARROW.y - 2.0 - _label.size.y
 		Place.BESIDE:
 			at = Vector2(_tip.x - ARROW.x - PLATE_PAD - _label.size.x, _tip.y - bob - 2.0)
-	_label.position = Vector2(clampf(at.x, MARGIN, size.x - MARGIN - _label.size.x), at.y).round()
+	var right := size.x
+	if rail and rail.is_visible_in_tree() and not (target and rail.is_ancestor_of(target)):
+		right = rail.global_position.x - global_position.x
+	_label.position = Vector2(clampf(at.x, MARGIN, right - MARGIN - _label.size.x), at.y).round()
 	modulate.a = 0.75 + 0.25 * sin(_t * 4.0)
 	queue_redraw()
 

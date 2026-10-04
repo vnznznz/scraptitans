@@ -2272,6 +2272,8 @@ func intro() -> void:
 	t.check(GameState.mechs_built == 1 and guide.text() == "TAP THE FIELD TO HIT THE WAVE", "first mech deployed: tap the battlefield (%s)" % guide.text())
 	var anchor: Control = field.hint_anchor()
 	t.check(absf(arrow_x.call() - anchor.get_global_rect().get_center().x) < 1.0 and guide.get("_down"), "arrow points down at the enemies")
+	var rail_x: float = (t.node("Rail") as Control).get_global_rect().position.x
+	t.check(label.get_global_rect().end.x <= rail_x - IntroGuide.MARGIN, "field hint stays off the scroll rail (%d of %d)" % [label.get_global_rect().end.x, rail_x])
 	await t.shot("intro_field")
 	var field_tap: Control = field.find_child("FieldTap", true, false)
 	for i in IntroGuide.FIELD_TAPS:
