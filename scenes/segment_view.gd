@@ -18,7 +18,11 @@ const STAT_ICONS := {
 	"dps": preload("res://art/ui/damage.png"),
 }
 const PAUSED := Color(0.55, 0.55, 0.6)
-const WORKER_TEX := preload("res://art/line/worker.png")
+const WORKER_TEX := [preload("res://art/line/worker_0.png"), preload("res://art/line/worker_1.png"), preload("res://art/line/worker_2.png")]
+const STEP_HIGH := 6
+const SLOT_MARK := Rect2(4, 13, 2, 1)
+const FLYWHEEL_TEX := preload("res://art/line/flywheel.png")
+const FLYWHEEL_AT := {"frame": Vector2(73, 30), "core": Vector2(73, 44), "arms": Vector2(7, 48), "plating": Vector2(73, 49)}
 const TOOL_HEAD := Vector2(40, 56)
 const BLOCKED_DELAY := 3.0
 const WORK_FPS := 11.0
@@ -39,6 +43,10 @@ var _stall: TextureRect
 var _tap: TapArea
 var _apply: Button
 var _workers: Array[TextureRect] = []
+var _gear := 0
+var _slots: Control
+var _free_slots := 0
+var _flywheel: Sprite2D
 var _chunks_seen := 0
 var _assemblies_seen := 0
 var _scroll: ScrollContainer
@@ -101,6 +109,18 @@ func _ready() -> void:
 	_build.set_meta(&"silent", true)
 	_build.pressed.connect(_on_build)
 	add_child(_build)
+
+	_slots = Control.new()
+	_slots.name = "Slots"
+	_slots.mouse_filter = MOUSE_FILTER_IGNORE
+	_slots.draw.connect(_draw_slots)
+	_machine.add_child(_slots)
+	_flywheel = Sprite2D.new()
+	_flywheel.name = "Flywheel"
+	_flywheel.texture = FLYWHEEL_TEX
+	_flywheel.hframes = 4
+	_flywheel.position = FLYWHEEL_AT[type_id]
+	_machine.add_child(_flywheel)
 
 	_bar = TextureProgressBar.new()
 	_bar.texture_under = preload("res://art/ui/bar_under.png")
@@ -194,20 +214,32 @@ func _process(delta: float) -> void:
 func _update_workers(s: SegmentState) -> void:
 	var slots := int(GameState.stat("worker_slots"))
 	var n := GameState.lines[line_index].station_workers(seg_index)
-	if _workers.size() < slots:
+	var gear := step(GameState.level("interval"), STEP_HIGH)
+	if _workers.size() < slots or gear != _gear:
+		_gear = gear
 		while _workers.size() < slots:
 			var w := TextureRect.new()
-			w.texture = WORKER_TEX
+			w.name = "Worker%d" % _workers.size()
 			w.mouse_filter = MOUSE_FILTER_IGNORE
 			w.position.y = WORKERS_Y
 			w.flip_h = _workers.size() % 2 == 1
 			_machine.add_child(w)
-			_machine.move_child(w, 0)
+			_machine.move_child(w, _flywheel.get_index() + 1)
 			_workers.append(w)
 		for i in slots:
 			_workers[i].position.x = worker_x(i, slots)
+			_workers[i].texture = WORKER_TEX[gear]
+		_slots.queue_redraw()
 	for i in _workers.size():
 		_workers[i].visible = i < n
+	var free := slots - n if GameState.shown("crew") else 0
+	if free != _free_slots:
+		_free_slots = free
+		_slots.queue_redraw()
+	var wheel := step(GameState.level("bar"), STEP_HIGH)
+	_flywheel.visible = wheel > 0
+	if wheel > 0:
+		_flywheel.frame = (wheel - 1) * 2 + (int(Time.get_ticks_msec() / 1000.0 * WORK_FPS) % 2 if s.assembling else 0)
 	if s.chunks != _chunks_seen:
 		if n > 0:
 			var w := _workers[(s.chunks - 1) % n]
@@ -225,6 +257,19 @@ func _update_apply() -> void:
 	if fit:
 		var cost := GameState.tier_apply_cost(line_index, seg_index)
 		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost)
+
+
+func free_slots() -> int:
+	return _free_slots
+
+
+func _draw_slots() -> void:
+	for i in range(_workers.size() - _free_slots, _workers.size()):
+		_slots.draw_rect(Rect2(_workers[i].position.x + SLOT_MARK.position.x, WORKERS_Y + SLOT_MARK.position.y, SLOT_MARK.size.x, SLOT_MARK.size.y), Pal.YELLOW)
+
+
+static func step(level: int, high: int) -> int:
+	return 0 if level <= 0 else 1 if level < high else 2
 
 
 static func worker_x(i: int, slots: int) -> float:

@@ -1909,6 +1909,35 @@ func stations() -> void:
 	await t.wait(0.3)
 	t.check(machine.modulate == Color.WHITE, "flash over")
 
+	var wheel: Sprite2D = machine.get_node("Flywheel")
+	t.check(seg.free_slots() == 3 and not wheel.visible and (machine.get_node("Worker0") as TextureRect).texture == SegmentView.WORKER_TEX[0],
+			"no upgrades: 3 free crew slots marked, no flywheel, plain tools")
+	for id: String in ["crew", "bar", "interval"]:
+		GameState.buy_upgrade(id)
+	for i in 6:
+		GameState.hire_worker(0)
+	await t.frames(2)
+	var worker: TextureRect = machine.get_node("Worker0")
+	t.check(seg.free_slots() == 2 and main.line_view(0).segment_view(3).free_slots() == 3, "Crew per station: 4 slots, the free ones marked (%d)" % seg.free_slots())
+	t.check(wheel.visible and wheel.frame < 2 and worker.visible and worker.texture == SegmentView.WORKER_TEX[1], "Lighter work: small flywheel; Faster crews: drills")
+	await t.shot("station_upgrades")
+	for i in 5:
+		GameState.buy_upgrade("bar")
+		GameState.buy_upgrade("interval")
+	var built := MechState.new()
+	built.id = GameState.next_mech_id
+	GameState.next_mech_id += 1
+	GameState.lines[0].segments[0].mech = built
+	GameState.lines[0].segments[0].assembling = true
+	await t.frames(2)
+	var spin := {}
+	for i in 30:
+		await t.frames(1)
+		spin[wheel.frame] = true
+	t.check(spin.keys().all(func(f: int) -> bool: return f >= 2) and spin.size() == 2 and worker.texture == SegmentView.WORKER_TEX[2],
+			"level 6: big flywheel, spinning while assembling; power tools (%s)" % [spin.keys()])
+	await t.shot("station_upgrades_high")
+
 
 const PERF_MECHS := 170
 const PERF_FRAMES := 480

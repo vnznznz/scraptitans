@@ -1396,6 +1396,19 @@ def line():
                 sheet.paste(img, (t * w, 0))
             save(sheet, f"line/machine_{kind}_{f}.png")
 
+    sheet, _ = new(64, 16)
+    for k, r in enumerate((4, 4, 6, 6)):
+        img, d = new(16, 16)
+        disc(d, 8, 8, r, SLATE_D)
+        disc(d, 8, 8, r - 2, NAVY, outline=STEEL)
+        for a in (0, math.pi / 2):
+            a += (k % 2) * math.pi / 4
+            d.line([8 - math.cos(a) * (r - 2), 8 - math.sin(a) * (r - 2), 8 + math.cos(a) * (r - 2), 8 + math.sin(a) * (r - 2)], fill=GOLD)
+        disc(d, 8, 8, 1, ORANGE, outline=None)
+        px(d, 8, 8, YELLOW)
+        sheet.paste(img, (k * 16, 0))
+    save(sheet, "line/flywheel.png")
+
     img, d = new(72, 8)
     sbox(d, 0, 0, 71, 7, R_DARK)
     hazard(d, 1, 1, 8, 6)
@@ -1443,11 +1456,25 @@ def worker(d, x, y, flip=False):
 
 
 def workers():
-    img, d = new(10, 14)
-    worker(d, 0, 0)
-    rect(d, 8, 6, 8, 9, STEEL)
-    rect(d, 7, 5, 9, 5, STEEL_L)
-    save(img, "line/worker.png")
+    for gear in range(3):
+        img, d = new(10, 14)
+        worker(d, 0, 0)
+        if gear == 0:
+            rect(d, 8, 6, 8, 9, STEEL)
+            rect(d, 7, 5, 9, 5, STEEL_L)
+        elif gear == 1:
+            rect(d, 8, 8, 8, 9, RUST)
+            rect(d, 7, 6, 9, 7, ORANGE)
+            rect(d, 7, 6, 9, 6, GOLD)
+            rect(d, 8, 3, 8, 5, STEEL_L)
+        else:
+            rect(d, 8, 8, 8, 9, BLUE_D)
+            rect(d, 7, 6, 9, 7, BLUE)
+            rect(d, 8, 3, 8, 5, CYAN)
+            px(d, 8, 2, WHITE)
+            px(d, 7, 3, CYAN)
+            px(d, 9, 3, CYAN)
+        save(img, f"line/worker_{gear}.png")
 
     img, d = new(10, 14)
     worker(d, 0, 0)

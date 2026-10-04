@@ -376,7 +376,7 @@ Build: one look for every price, frame edge and overlay; stations and the pile s
 - [x] Rail pins: away pins light, not green (green = affordable)
 - [x] Pile floor like the factory backdrop; wave bar inset 6 like the panels; white badge count; build version
 - [x] Station tiers: machine tool in the part's tier colour, tier lamps, more hardware at tiers 3 and 5; flash + puff on a fit
-- [ ] Station upgrade rows: free crew slots as floor marks, flywheel (Lighter work), worker tools (Faster crews)
+- [x] Station upgrade rows: free crew slots as floor marks, flywheel (Lighter work), worker tools (Faster crews)
 - [ ] Pile upgrade rows: bigger shovel, then wheelbarrow (Bigger shovels); magnet crane over the pile (Scrap magnet)
 
 Test (browser + phone):
