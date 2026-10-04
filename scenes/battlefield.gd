@@ -49,7 +49,7 @@ const SKY_TINT := [[0.0, Color(1, 1, 1)], [0.3, Color(1.0, 0.86, 0.8)], [0.6, Co
 var _world: Node2D
 var _mechs: Node2D
 var _crowd: Crowd
-var _gates: Gates
+var _gate: Gate
 var _enemy_layer: Node2D
 var _enemies: Array[Sprite2D] = []
 var _enemy_count := 0
@@ -129,10 +129,10 @@ func _ready() -> void:
 	_smoke.position.y = SMOKE_Y
 	_smoke.mouse_filter = MOUSE_FILTER_IGNORE
 	_world.add_child(_smoke)
-	_gates = Gates.new()
-	_world.add_child(_gates)
 	_crowd = Crowd.new()
 	_world.add_child(_crowd)
+	_gate = Gate.new()
+	_world.add_child(_gate)
 
 	_tap = TapArea.new()
 	_tap.name = "FieldTap"
@@ -561,7 +561,7 @@ func scorch() -> void:
 	_hp_label.visible = false
 	_dps_label.visible = false
 	_strip.visible = false
-	for layer: CanvasItem in _layers + [_gates]:
+	for layer: CanvasItem in _layers + [_gate]:
 		layer.modulate = Color(1.2, 0.7, 0.5)
 	_smoke.modulate = Color(0.4, 0.2, 0.2)
 
@@ -603,7 +603,7 @@ func _add_view(m: MechState, slot: int) -> MechView:
 	var view := MechView.new()
 	view.nuclear = slot == -1
 	view.set_parts(m.parts)
-	view.position = Vector2(ENTRY_X, _slot_pos(slot).y) if slot == -1 else Gates.door(m.line)
+	view.position = Vector2(ENTRY_X, _slot_pos(slot).y) if slot == -1 else Gate.EXIT
 	if _crowd.has(m.id):
 		view.position = _crowd.spot(m.id)
 		_crowd.remove(m.id)

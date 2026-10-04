@@ -930,42 +930,38 @@ def ground_layer():
     save(img, "battlefield/ground.png")
 
 
-GATE_CELL = 12
-GATES = 5
-DIGITS = ["010110010010111", "110001010100111", "110001010001110", "101101111001001", "111100110001110"]
+GATE = (32, 66)
+GATE_DOOR = (3, 14, 25, 65)
 
 
-def gates():
-    w, h = 16, GATE_CELL * GATES + 4
+def gate():
+    w, h = GATE
+    x0, y0, x1, y1 = GATE_DOOR
     img, d = new(w, h)
     sbox(d, 0, 0, w - 1, h - 1, R_DARK)
-    hazard(d, 1, 1, w - 2, 2)
-    for i in range(GATES):
-        top = h - (i + 1) * GATE_CELL
-        rect(d, 1, top + 2, 9, top + 11, NAVY)
-        for y in range(top + 3, top + 11, 2):
-            rect(d, 2, y, 8, y, SLATE_D)
-        rect(d, 0, top + 1, w - 1, top + 1, INK)
-        px(d, 14, top + 6, SLATE)
+    for y in range(y0 + 9, h - 8, 10):
+        rect(d, x1 + 2, y, w - 2, y, NAVY)
+    rect(d, 1, 4, w - 2, 4, NAVY)
+    hazard(d, 1, 5, w - 2, 9)
+    rect(d, 1, 10, w - 2, 10, NAVY)
+    rect(d, x0 - 1, y0 - 1, x1 + 1, y1, INK)
+    rect(d, x0, y0, x1, y1, NAVY)
+    rect(d, x0 + 4, y0, x1, y1 - 6, INK)
+    for y in range(y0 + 6, y1 - 6, 8):
+        rect(d, x0 + 1, y, x0 + 2, y, SLATE_D)
+    rect(d, x0, y1 - 5, x1, y1, BROWN_K)
+    rect(d, x0 + 4, y1 - 5, x1, y1 - 5, BROWN_D)
     save(img, "battlefield/gate_wall.png")
 
-    img, d = new(18, 10)
-    sbox(d, 0, 0, 8, 9, R_IRON)
-    for y in range(2, 9, 2):
-        rect(d, 1, y, 7, y, SLATE_D)
-    rect(d, 9, 0, 17, 9, INK)
-    rect(d, 9, 0, 9, 9, SLATE_D)
-    rect(d, 17, 0, 17, 9, SLATE_D)
-    rect(d, 10, 8, 16, 9, BROWN_D)
-    rect(d, 12, 3, 14, 7, NAVY)
+    img, d = new(x1 - x0 + 1, y1 - y0 + 1)
+    w, h = img.size
+    rect(d, 0, 0, w - 1, h - 1, SLATE)
+    for y in range(0, h - 4, 3):
+        rect(d, 0, y, w - 1, y, STEEL)
+        rect(d, 0, y + 2, w - 1, y + 2, SLATE_D)
+    hazard(d, 0, h - 4, w - 1, h - 2)
+    rect(d, 0, h - 1, w - 1, h - 1, INK)
     save(img, "battlefield/gate_door.png")
-
-    img, d = new(3 * len(DIGITS), 5)
-    for k, bits in enumerate(DIGITS):
-        for j, bit in enumerate(bits):
-            if bit == "1":
-                px(d, k * 3 + j % 3, j // 3, INK)
-    save(img, "battlefield/gate_digits.png")
 
 
 def battlefield():
@@ -978,7 +974,7 @@ def battlefield():
     far_layer()
     near_layer()
     ground_layer()
-    gates()
+    gate()
 
     img, d = new(360, 48)
     rnd = random.Random(8)

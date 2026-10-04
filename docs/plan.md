@@ -378,6 +378,7 @@ Build: one look for every price, frame edge and overlay; stations and the pile s
 - [x] Station tiers: machine tool in the part's tier colour, tier lamps, more hardware at tiers 3 and 5; flash + puff on a fit
 - [x] Station upgrade rows: free crew slots as floor marks, flywheel (Lighter work), worker tools (Faster crews)
 - [x] Pile upgrade rows: bigger shovel, then wheelbarrow (Bigger shovels); magnet crane over the pile (Scrap magnet)
+- [x] Field: one big gate for all lines instead of a door per line (no line plates, numbers or lamps); its shutter rolls up on a deploy
 
 Test (browser + phone):
 - Every button that costs something shows a coin or a nut left of its price; affordable prices are white on green and easy to read
@@ -388,6 +389,7 @@ Test (browser + phone):
 - Fit a tier: the station flashes and its tool takes the new part's colour; one more tier lamp is lit
 - Buy Crew per station: one more floor mark per station; Lighter work: a flywheel appears and spins while assembling; Faster crews: workers hold a better tool
 - Buy Bigger shovels and Scrap magnet: pile workers get bigger shovels, later wheelbarrows; a magnet hangs over the pile and grows
+- Field: one big gate on the left edge; on a deploy its shutter rolls up, the mech walks out, the shutter closes; with 2+ lines still one gate
 
 ## Not in the prototype
 
