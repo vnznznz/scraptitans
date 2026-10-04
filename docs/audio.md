@@ -11,7 +11,8 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 
 ## Rules against annoyance
 
-- Player actions (pile, station, battlefield taps, buys) sound at once, crisp, always (within voice caps)
+- Player actions (pile, station, battlefield taps, buys) sound at once, crisp, always (within voice caps); fast tapping (over ~4 taps/s) gets gradually quieter, down to −6 dB, back to full after a pause (`soften`)
+- No onset clicks: every sound file starts with a 3 ms fade-in
 - Automated activity (workers, deploys, shots, income) is quiet and thinned. More activity raises an ambience bed instead of adding more one-shots
 - Only what's on screen: assembly only for stations inside the scroll pane, deploys only for visible lines, shots only from drawn mechs; areas scrolled out of view play quietly (`areas`)
 - Variation: 2–4 files per frequent sound, random pick without direct repeat, pitch jitter
@@ -22,29 +23,31 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 
 ## Tuning (`data/audio.json`)
 
-- `sounds.<id>`: `files` (pack names without `.wav`, in `audio/sfx/`), `volume_db`, `file_db` (per-file offset, for uneven variants), `pitch` (± share), `pitch_base`, `cooldown` s, `voices`, `group`, `area`, `bus` (`ui`, `battle`, `factory`, `music`)
+- `sounds.<id>`: `files` (pack names without `.wav`, in `audio/sfx/`), `volume_db`, `file_db` (per-file offset, for uneven variants), `pitch` (± share), `pitch_base`, `cooldown` s, `voices`, `group`, `area`, `bus` (`ui`, `battle`, `factory`, `music`), `soften` (true: fast repeats get quieter)
 - `groups.<name>`: max plays per second across all sounds of the group
+- `soften`: `step_db` per play, `recover_db` per s, floor `min_db`; −1.5 / 6 / −6 → full up to 4 taps/s, then down to −6 dB (within ~1 s at 8 taps/s)
 - `areas.<name>.hidden_db`: level of an area's beds and sounds when it's scrolled off screen; in between it follows the visible share; a pinned area is always in view. Areas: `field` (battlefield, −18), `factory` (lines, −15), `yard` (scrap pile, −15). Battlefield, lines and pile share one scroll pane, so scrolling crossfades the soundscape: wind + battle up top, factory hum in the middle, pile and yard crew at the bottom
 - `beds.<id>`: looped on the `Ambience` bus; `drive` (`assembly_rate` per s, `mechs` drawn) / `full` = level, smoothed over `smooth` s; no drive = constant
-- `music`: `volume_db`, `first_after` (s after the first mech), `gap` [min, max] s between plays, `fade_in`, `fade_out`, `duck_db` (Ambience while music plays)
+- `music`: `volume_db`, `first_after` (s after the first mech, 0 = with it), `loops` (track repeats per play), `gap` [min, max] s between plays, `fade_in`, `fade_out`, `duck_db` (Ambience while music plays)
 - `defaults`: first-run settings (`muted`, steps 0–`steps` per bus)
 - `trim_db`: per bus, added to the step level. UI, battle, factory −24, ambience −12: the default step 4 plays where step 1 (sounds) and step 2 (ambience) of the old single SOUNDS row were, the baseline picked by ear; master +4, so its step 4 is 0 dB
 - Levels were set from measured loudness (active RMS) toward a target per role: taps −17, buys −19, UI −22, assembly/deaths −23, busy (shots, pops, coins) −27, quiet −30, rewards −16, nuke −12 dBFS (before `trim_db`). Short hits (< 0.12 s) ~1.5 dB over their target, since they sound quieter at the same RMS. Tune by ear from there; a reload picks up changes
+- Intensity pass (felt too intense overall): factory taps −3 dB with lighter files, buys −4 dB with shorter tails, Pipe Gun shots and coins −2 dB with longer cooldowns, yard crew −3 dB, battlefield budget 8 → 5/s; then factory taps +2 dB back (got lost under a busy factory/battlefield). Measured: −20–30 % plays/min (late game 680 → 480), ~2 sounds at once on average (was 2.7)
 
 ## Buses
 
 - MASTER: everything (HUD mute and step 0 mute it)
-- UI: only what a direct press triggers: buttons, menus, buys, pause/resume (taps on the pile, stations and battlefield go with their area)
+- UI: only what a direct press or tap triggers: buttons, menus, buys, pause/resume, pile and station taps (battlefield taps stay on BATTLE)
 - BATTLE: battlefield (shots, enemy fire, taps, pops, deaths, wave clear/bounty/arrival) + nuke sequence
-- FACTORY: pile and yard crew, stations, assembly, deploys, stall, collapse, credit coins
+- FACTORY: yard crew, assembly, deploys, stall, collapse, credit coins
 - AMBIENCE: all beds (wind, battle rumble, factory hum); ducked under the music
 - MUSIC: Ending, run card fanfare (`volume_db` −30: no −24 trim on this bus)
 
 ## Music
 
-- Ending, 44.6 s. Constant level to the last sample (a loop cut, no real ending), so it always fades out
-- First play `first_after` s after the first mech; then a random `gap` after each play; once per turn
-- Stops (1 s fade) when the Nuclear Mech deploys; the run card ("THE WAR IS OVER") plays it 1.5 s after the fanfare; START AGAIN stops it and the new run waits `first_after` again
+- Ending, 44.6 s: exactly 16 bars (256 sixteenths at ~86 BPM), ends on the grid, seam step no bigger than its own square-wave edges, so it loops seamlessly; no real ending, so it always fades out
+- Starts with the first mech (`first_after` 0); each play loops the track `loops` (2) times, ~90 s, fading out over the last 4 s; then a random `gap` (4–7 min) before the next
+- Stops (1 s fade) when the Nuclear Mech deploys; the run card ("THE WAR IS OVER") plays it 1.5 s after the fanfare; START AGAIN stops it and the new run's first mech starts it again
 - Not saved: a reload starts the schedule over
 
 ## Sound assignment
@@ -52,9 +55,9 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 Picked by measurement, not by ear (loudness, envelope, brightness, noisiness, pitch direction for all 6009 pack files, spectrograms of the shortlists), then approved by listening. Listening page with alternatives: `assets/__import/audition.html` (git-ignored, next to the pack).
 
 Factory
-- `pile_tap`: short_contact_sound_33, 97, 100, 126; noisy 0.13–0.18 s crunches
+- `pile_tap`: short_contact_sound_33, 97, 100, 126; noisy 0.13–0.18 s crunches, cut below 200 Hz (17–21 % of their energy was a thump)
 - `yard_hit`: same set, −10 dB below the tap, pitch 0.85
-- `station_tap`: sounds_impact8, sounds_impact5; metallic tink, unlike the pile
+- `station_tap`: sounds_impact8, impact4, impact14; light metallic ticks (≤ 13 % energy below 250 Hz), unlike the pile; impact5 dropped (32 %: a thump)
 - `assemble_frame`: piledriver; `assemble_core`: machine_activates3; `assemble_arms`: wpn_reload; `assemble_plating`: machine_big_97
 - `mech_exit`: platform_launched
 - `stall`: machine_shutdown
@@ -71,8 +74,8 @@ Battlefield
 - `wave_clear`: exp_cluster5, then `bounty`: coin_cluster4 (0.3 s later); `wave_arrive`: turn_enemy (0.6 s after)
 
 Income, buys, UI
-- `coin` (credit disc lands): coin_single3, single5, ≥ 0.12 s apart; `coin_big` (tier 3 disc): coin_double1; scrap discs silent
-- `build`: machine_activates1; `fit`: upgrade_30; `hire`: gain_ability; `buy_upgrade`: upgrade_19; `buy_tier`: upgrade_long_14; `unlock_line`: positive_complex10
+- `coin` (credit disc lands): coin_single3, single5, ≥ 0.25 s apart; `coin_big` (tier 3 disc): coin_double1; scrap discs silent
+- `build`: machine_activates1; `fit`: upgrade_30; `hire`: gain_ability; `buy_upgrade`: upgrade_19; `buy_tier`: upgrade_long_14; `unlock_line`: positive_complex10; the last three cut to 0.35 / 0.5 / 0.8 s with a fade-out (were 0.68 / 0.92 / 1.32 s)
 - `menu_open` / `menu_close`: ui_menu_open / ui_menu_close (UPGRADES, settings); `click`: menu_click_mini (every other button)
 
 Nuke
@@ -87,13 +90,16 @@ Not used on purpose: robot/cyborg death screams (too comic ×50 deaths), alarm l
 
 ## Size
 
-- 69 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
+- 70 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
 - Web decodes every sample to 48 kHz stereo float: ~49 MB of `AudioBuffer`s (music 17, wind 12). If the iPhone struggles: cut the wind to a ~10 s loop, then drop it
 
 ## License
 
-- Sounds and music: SubspaceAudio (https://subspaceaudio.itch.io/), CC BY 4.0; music by Juhani Junkala. Credited in ⚙ → CREDITS with the changes made (mixed to mono, wind loop softened). New pack files → keep the credits in sync
+- Sounds and music: SubspaceAudio (https://subspaceaudio.itch.io/), CC BY 4.0; music by Juhani Junkala. Credited in ⚙ → CREDITS with the changes made (mixed to mono; faded, trimmed, filtered). New pack files → keep the credits in sync
 
 ## Open
 
-- Credit disc trickle: `coin.cooldown` 0.12 s; raise it if the income tinkle gets busy late game
+Rest of the intensity plan, after listening to the first pass:
+- Bright battle sounds (shots, pops, deaths: 25–44 % of the energy above 4 kHz, most files ~4 %): bake a low-pass ~6 kHz, then re-level everything by K-weighted loudness (plain RMS rates bright files 2–3 dB too low)
+- Nuke sounds −3 dB; if it's still too much overall, the ui/battle/factory trims −3 dB
+- Yard crew: the 1 s cooldown barely thins it (60 → 54/min, workers swing ~1/s); 2 s if it nags

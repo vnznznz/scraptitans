@@ -268,7 +268,7 @@ Test (browser + iPhone):
 - 10 min of play: factory and battlefield audible as ambience, nothing grates; taps feel crisp
 - A full field (DBG +50 mechs) sounds like a steady battle, not a wall of noise
 - Pausing all lines quiets the factory hum
-- Ending plays ~90 s after the first mech, fades in and out, returns minutes later; the run card plays it, START AGAIN stops it
+- Ending starts with the first mech, plays twice through (~90 s), fades in and out, returns minutes later; the run card plays it, START AGAIN stops it
 - Tab switch: silence while hidden, sound back on return
 - Volume rows change their bus; 0 silences it
 - iPhone: ring/silent switch off, or Web Audio stays silent

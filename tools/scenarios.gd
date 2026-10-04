@@ -2122,6 +2122,8 @@ func audio() -> void:
 	await _fresh()
 	for id: String in Sound._beds:
 		Sound._beds[id].gain = 0.0
+	Sound.stop_music()
+	await t.wait(Sound.MUSIC_STOP_FADE + 0.1)
 	var main := t.get_tree().current_scene
 	var cfg: Dictionary = Data.audio
 	var missing := []
@@ -2166,7 +2168,7 @@ func audio() -> void:
 	var played := func(id: StringName) -> int: return int(Sound.plays.get(id, 0)) - int(before.get(id, 0))
 	for i in 3:
 		await t.click(pile)
-		await t.wait(0.05)
+		await t.wait(0.15)
 	t.check(played.call(&"pile_tap") == 3, "pile taps sound (%d, scrap %d)" % [played.call(&"pile_tap"), GameState.scrap])
 	GameState.scrap = 1000.0
 	await t.frames(2)
@@ -2176,9 +2178,22 @@ func audio() -> void:
 	await t.frames(2)
 	await t.click(line.segment_view(0).get_node("Tap"))
 	t.check(played.call(&"station_tap") == 1, "station tap sounds")
+	var soft := {"soften_db": 0.0, "soften_t": 0.0}
+	var first := Sound._soften(soft, 100.0)
+	var fast := 0.0
+	for i in 10:
+		fast = Sound._soften(soft, 100.1 + i * 0.1)
+	var after := Sound._soften(soft, 103.0)
+	var calm := 0.0
+	for i in 6:
+		calm = minf(calm, Sound._soften(soft, 110.0 + i / 3.0))
+	t.check(first == 0.0 and fast <= float(cfg.soften.min_db) + 1.0 and after == 0.0 and calm == 0.0,
+			"fast taps soften (%.1f dB at 10/s), full after a pause and at 3/s" % fast)
 	var upgrades: Button = main.get_node("%Upgrades")
+	t.check(not Sound.music_playing, "no music before the first mech")
 	_reveal_all()
 	await t.frames(2)
+	t.check(Sound.music_playing and played.call(&"music") == 1, "music starts with the first mech")
 	await t.click(upgrades)
 	await t.click(upgrades)
 	t.check(played.call(&"menu_open") == 1 and played.call(&"menu_close") == 1, "menu open/close sound")
@@ -2208,7 +2223,7 @@ func audio() -> void:
 	await t.shot("audio_settings")
 	var off := []
 	for key: String in Sound.BUSES:
-		var level := linear_to_db(pow(float(Sound.steps[key]) / float(cfg.steps), 2.0)) + float(cfg.trim_db[key])
+		var level := linear_to_db(pow(float(Sound.steps[key]) / float(cfg.steps), 2.0)) + float(cfg.trim_db[key]) + (Sound._duck if key == "ambience" else 0.0)
 		if absf(AudioServer.get_bus_volume_db(AudioServer.get_bus_index(Sound.BUSES[key])) - level) > 0.01:
 			off.append(key)
 	t.check(off.is_empty(), "buses at their step level + trim_db (%s)" % [off])
@@ -2281,11 +2296,10 @@ func audio() -> void:
 	t.check(Sound._beds.factory.gain < 0.08, "factory bed fades with all lines paused (%.2f)" % Sound._beds.factory.gain)
 
 	var music: Dictionary = cfg.music
-	t.check(Sound._music_wait > 0.0 and Sound._music_wait <= float(music.first_after), "music armed after the reveal (%.0f s)" % Sound._music_wait)
-	Sound._music_wait = 0.01
-	await t.wait(0.1)
-	t.check(Sound.music_playing and int(Sound.plays.get(&"music", 0)) == 1, "music starts when due")
-	await t.wait(float(music.fade_in) + 0.2)
+	var length: float = Sound._music.stream.get_length()
+	var left := Sound._music_end - Sound._now()
+	t.check(Sound._music.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD and left > length * (int(music.loops) - 1) and left < length * int(music.loops),
+			"music loops %d× per play (%.0f s left)" % [music.loops, left])
 	var amb := AudioServer.get_bus_index(&"Ambience")
 	var amb_db := linear_to_db(pow(float(Sound.steps.ambience) / float(cfg.steps), 2.0)) + float(cfg.trim_db.ambience)
 	t.check(absf(AudioServer.get_bus_volume_db(amb) - amb_db - float(music.duck_db)) < 0.5, "ambience ducks while music plays")
@@ -2311,9 +2325,10 @@ func audio() -> void:
 	Sound.play_music()
 	Save.reset_run()
 	await t.wait(Sound.MUSIC_STOP_FADE + 0.3)
+	t.check(not Sound.music_playing, "start again stops the music")
 	_reveal_all()
 	await t.frames(2)
-	t.check(not Sound.music_playing and Sound._music_wait > float(music.first_after) - 1.0, "start again stops the music, the new run waits first_after")
+	t.check(Sound.music_playing, "the new run's first mech starts it again")
 	if settings_backup:
 		FileAccess.open(Save.SETTINGS_PATH, FileAccess.WRITE).store_string(settings_backup)
 	else:

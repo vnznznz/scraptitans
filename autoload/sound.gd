@@ -45,7 +45,7 @@ func _ready() -> void:
 		var streams: Array[AudioStream] = []
 		for f: String in c.files:
 			streams.append(load(SFX_DIR % f))
-		_sounds[StringName(id)] = {"cfg": c, "streams": streams, "bus": BUSES[c.bus], "last": -1, "next_t": 0.0}
+		_sounds[StringName(id)] = {"cfg": c, "streams": streams, "bus": BUSES[c.bus], "last": -1, "next_t": 0.0, "soften_db": 0.0, "soften_t": 0.0}
 	for i in POOL:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
@@ -101,6 +101,8 @@ func play(id: StringName, gain_db := 0.0) -> void:
 		return
 	var c: Dictionary = s.cfg
 	var now := _now()
+	if c.get("soften", false):
+		gain_db += _soften(s, now)
 	if now < s.next_t or _voices(id, now) >= int(c.get("voices", POOL)):
 		return
 	var group: String = c.get("group", "")
@@ -137,7 +139,7 @@ func play_music() -> void:
 	_music_wait = -1.0
 	_music_first = false
 	music_playing = true
-	_music_end = _now() + _music.stream.get_length()
+	_music_end = _now() + _music.stream.get_length() * int(m.loops)
 	_fade_music(float(m.volume_db), float(m.fade_in), SILENT_DB)
 	_music.play()
 	plays[&"music"] = int(plays.get(&"music", 0)) + 1
@@ -184,6 +186,14 @@ func hook_button(b: BaseButton) -> void:
 	b.pressed.connect(func() -> void:
 		if not b.has_meta(&"silent"):
 			play(&"click"))
+
+
+func _soften(s: Dictionary, now: float) -> float:
+	var c: Dictionary = _cfg.soften
+	var db := minf(0.0, float(s.soften_db) + float(c.recover_db) * (now - float(s.soften_t)))
+	s.soften_db = maxf(db + float(c.step_db), float(c.min_db))
+	s.soften_t = now
+	return db
 
 
 func _update_bed(bed: Dictionary, delta: float) -> void:

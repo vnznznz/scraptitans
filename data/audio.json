@@ -2,7 +2,8 @@
 	"steps": 5,
 	"defaults": {"muted": false, "master": 4, "ui": 4, "battle": 4, "factory": 4, "ambience": 4, "music": 4},
 	"trim_db": {"master": 4, "ui": -24, "battle": -24, "factory": -24, "ambience": -12, "music": 0},
-	"groups": {"field": 8},
+	"groups": {"field": 5},
+	"soften": {"step_db": -1.5, "recover_db": 6, "min_db": -6},
 	"areas": {
 		"field": {"hidden_db": -18},
 		"factory": {"hidden_db": -15},
@@ -10,7 +11,7 @@
 	},
 	"music": {
 		"file": "ending", "volume_db": -10,
-		"first_after": 90, "gap": [240, 420],
+		"first_after": 0, "loops": 2, "gap": [240, 420],
 		"fade_in": 3.0, "fade_out": 4.0, "duck_db": -6
 	},
 	"beds": {
@@ -19,12 +20,12 @@
 		"battle": {"file": "sfx_shuttle(loop)", "volume_db": -23, "area": "field", "drive": "mechs", "full": 12, "smooth": 2.0}
 	},
 	"sounds": {
-		"pile_tap": {"bus": "factory", "files": ["sfx_short_contact_sound_33", "sfx_short_contact_sound_97", "sfx_short_contact_sound_100", "sfx_short_contact_sound_126"],
-			"volume_db": -3, "pitch": 0.08, "cooldown": 0.04, "voices": 3, "area": "yard"},
+		"pile_tap": {"bus": "ui", "files": ["sfx_short_contact_sound_33", "sfx_short_contact_sound_97", "sfx_short_contact_sound_100", "sfx_short_contact_sound_126"],
+			"volume_db": -4, "pitch": 0.08, "cooldown": 0.04, "voices": 2, "soften": true, "area": "yard"},
 		"yard_hit": {"bus": "factory", "files": ["sfx_short_contact_sound_33", "sfx_short_contact_sound_97", "sfx_short_contact_sound_100", "sfx_short_contact_sound_126"],
-			"volume_db": -13, "pitch": 0.06, "pitch_base": 0.85, "cooldown": 0.25, "voices": 2, "area": "yard"},
-		"station_tap": {"bus": "factory", "files": ["sfx_sounds_impact8", "sfx_sounds_impact5"],
-			"volume_db": -10, "pitch": 0.06, "cooldown": 0.04, "voices": 3, "area": "factory"},
+			"volume_db": -16, "pitch": 0.06, "pitch_base": 0.85, "cooldown": 1.0, "voices": 2, "area": "yard"},
+		"station_tap": {"bus": "ui", "files": ["sfx_sounds_impact8", "sfx_sounds_impact4", "sfx_sounds_impact14"], "file_db": {"sfx_sounds_impact4": 1, "sfx_sounds_impact14": 9},
+			"volume_db": -11, "pitch": 0.06, "cooldown": 0.04, "voices": 2, "soften": true, "area": "factory"},
 		"assemble_frame": {"bus": "factory", "files": ["sfx_piledriver"], "volume_db": -15, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "area": "factory"},
 		"assemble_core": {"bus": "factory", "files": ["sfx_machine_activates3"], "volume_db": -7, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "area": "factory"},
 		"assemble_arms": {"bus": "factory", "files": ["sfx_wpn_reload"], "volume_db": -10, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "area": "factory"},
@@ -36,7 +37,7 @@
 
 		"shot_pipe": {"bus": "battle", "files": ["sfx_weapon_singleshot2", "sfx_weapon_singleshot22", "sfx_weapon_singleshot7"],
 			"file_db": {"sfx_weapon_singleshot22": -6, "sfx_weapon_singleshot7": -5},
-			"volume_db": -14, "pitch": 0.1, "cooldown": 0.06, "voices": 4, "group": "field", "area": "field"},
+			"volume_db": -16, "pitch": 0.1, "cooldown": 0.15, "voices": 4, "group": "field", "area": "field"},
 		"shot_bolt": {"bus": "battle", "files": ["sfx_weapon_shotgun1", "sfx_weapon_singleshot8"], "file_db": {"sfx_weapon_singleshot8": -2},
 			"volume_db": -17, "pitch": 0.08, "cooldown": 0.06, "voices": 4, "group": "field", "area": "field"},
 		"shot_burst": {"bus": "battle", "files": ["sfx_wpn_machinegun_loop2", "sfx_wpn_machinegun_loop5"],
@@ -50,7 +51,7 @@
 		"enemy_shot_brute": {"bus": "battle", "files": ["sfx_wpn_cannon4"], "volume_db": -21, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "group": "field", "area": "field"},
 		"field_tap": {"bus": "battle", "files": ["sfx_sounds_impact12", "sfx_sounds_impact11", "sfx_damage_hit1", "sfx_damage_hit5", "sfx_damage_hit7", "sfx_damage_hit10"],
 			"file_db": {"sfx_sounds_impact11": 3, "sfx_damage_hit1": -1, "sfx_damage_hit5": 3, "sfx_damage_hit7": 1, "sfx_damage_hit10": -2},
-			"volume_db": -10, "pitch": 0.08, "cooldown": 0.04, "voices": 3, "area": "field"},
+			"volume_db": -10, "pitch": 0.08, "cooldown": 0.04, "voices": 3, "soften": true, "area": "field"},
 		"enemy_pop": {"bus": "battle", "files": ["sfx_exp_shortest_soft2", "sfx_exp_shortest_soft5", "sfx_exp_shortest_soft6", "sfx_exp_shortest_soft8"],
 			"file_db": {"sfx_exp_shortest_soft2": 4, "sfx_exp_shortest_soft6": -2, "sfx_exp_shortest_soft8": -2},
 			"volume_db": -14, "pitch": 0.1, "cooldown": 0.08, "voices": 3, "area": "field"},
@@ -61,14 +62,14 @@
 		"bounty": {"bus": "battle", "files": ["sfx_coin_cluster4"], "volume_db": -9, "area": "field"},
 		"wave_arrive": {"bus": "battle", "files": ["sfx_turn_enemy"], "volume_db": -10, "area": "field"},
 
-		"coin": {"bus": "factory", "files": ["sfx_coin_single3", "sfx_coin_single5"], "volume_db": -18, "pitch": 0.05, "cooldown": 0.12, "voices": 3},
+		"coin": {"bus": "factory", "files": ["sfx_coin_single3", "sfx_coin_single5"], "volume_db": -20, "pitch": 0.05, "cooldown": 0.25, "voices": 3},
 		"coin_big": {"bus": "factory", "files": ["sfx_coin_double1"], "volume_db": -14, "pitch": 0.03, "cooldown": 0.2, "voices": 2},
-		"build": {"bus": "ui", "files": ["sfx_machine_activates1"], "volume_db": -8},
-		"fit": {"bus": "ui", "files": ["sfx_upgrade_30"], "volume_db": -10},
-		"hire": {"bus": "ui", "files": ["sfx_gain_ability"], "volume_db": -6},
-		"buy_upgrade": {"bus": "ui", "files": ["sfx_upgrade_19"], "volume_db": -9},
-		"buy_tier": {"bus": "ui", "files": ["sfx_upgrade_long_14"], "volume_db": -8},
-		"unlock_line": {"bus": "ui", "files": ["sfx_positive_complex10"], "volume_db": 0},
+		"build": {"bus": "ui", "files": ["sfx_machine_activates1"], "volume_db": -12, "voices": 2},
+		"fit": {"bus": "ui", "files": ["sfx_upgrade_30"], "volume_db": -14, "voices": 2},
+		"hire": {"bus": "ui", "files": ["sfx_gain_ability"], "volume_db": -10, "voices": 2},
+		"buy_upgrade": {"bus": "ui", "files": ["sfx_upgrade_19"], "volume_db": -13, "voices": 2},
+		"buy_tier": {"bus": "ui", "files": ["sfx_upgrade_long_14"], "volume_db": -12, "voices": 2},
+		"unlock_line": {"bus": "ui", "files": ["sfx_positive_complex10"], "volume_db": -4, "voices": 2},
 
 		"menu_open": {"bus": "ui", "files": ["sfx_ui_menu_open"], "volume_db": -12},
 		"menu_close": {"bus": "ui", "files": ["sfx_ui_menu_close"], "volume_db": -10},
