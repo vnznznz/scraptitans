@@ -9,9 +9,12 @@ const BELT_Y := 81.0
 const BAR_RECT := Rect2(2, 2, 76, 8)
 const WORKERS_Y := 42.0
 const WORKER_DX := 6.0
+const WORKER_LEFT := 11.0
+const WORKER_RIGHT := 59.0
+const WORKER_W := 10.0
 const STAT_ICONS := {
 	"lifetime": preload("res://art/ui/life.png"),
-	"credits_per_sec": preload("res://art/ui/credits.png"),
+	"credits_per_sec": preload("res://art/ui/credits_s.png"),
 	"dps": preload("res://art/ui/damage.png"),
 }
 const PAUSED := Color(0.55, 0.55, 0.6)
@@ -78,7 +81,7 @@ func _ready() -> void:
 
 	_pad = TextureRect.new()
 	_pad.texture = preload("res://art/line/pad.png")
-	_pad.position = Vector2(8, BELT_Y - 8)
+	_pad.position = Vector2(4, BELT_Y - 8)
 	_pad.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_pad)
 
@@ -177,16 +180,18 @@ func _process(delta: float) -> void:
 func _update_workers(s: SegmentState) -> void:
 	var slots := int(GameState.stat("worker_slots"))
 	var n := GameState.lines[line_index].station_workers(seg_index)
-	while _workers.size() < slots:
-		var w := TextureRect.new()
-		w.texture = WORKER_TEX
-		w.mouse_filter = MOUSE_FILTER_IGNORE
-		var j := int(_workers.size() / 2.0)
-		w.position = Vector2(11.0 + j * WORKER_DX if _workers.size() % 2 == 0 else 59.0 - j * WORKER_DX, WORKERS_Y)
-		w.flip_h = _workers.size() % 2 == 1
-		_machine.add_child(w)
-		_machine.move_child(w, 0)
-		_workers.append(w)
+	if _workers.size() < slots:
+		while _workers.size() < slots:
+			var w := TextureRect.new()
+			w.texture = WORKER_TEX
+			w.mouse_filter = MOUSE_FILTER_IGNORE
+			w.position.y = WORKERS_Y
+			w.flip_h = _workers.size() % 2 == 1
+			_machine.add_child(w)
+			_machine.move_child(w, 0)
+			_workers.append(w)
+		for i in slots:
+			_workers[i].position.x = worker_x(i, slots)
 	for i in _workers.size():
 		_workers[i].visible = i < n
 	if s.chunks != _chunks_seen:
@@ -206,6 +211,12 @@ func _update_apply() -> void:
 	if fit:
 		var cost := GameState.tier_apply_cost(line_index, seg_index)
 		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost)
+
+
+static func worker_x(i: int, slots: int) -> float:
+	var dx := minf(WORKER_DX, floorf((WORKER_RIGHT - WORKER_LEFT - WORKER_W) / maxi(slots - 2, 1)))
+	var j := int(i / 2.0)
+	return WORKER_LEFT + j * dx if i % 2 == 0 else WORKER_RIGHT - j * dx
 
 
 func share_edges(left: bool, right: bool) -> void:

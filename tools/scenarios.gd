@@ -992,7 +992,7 @@ func m9() -> void:
 	var icons := []
 	for i in 3:
 		icons.append((line.segment_view(i).find_child("Stat", true, false) as TextureRect).texture.resource_path.get_file())
-	t.check(icons == ["life.png", "credits.png", "damage.png"], "stat icons %s" % [icons])
+	t.check(icons == ["life.png", "credits_s.png", "damage.png"], "stat icons %s" % [icons])
 	await t.shot("m9_fresh")
 
 	var build: Button = _build_button(line, 0)
@@ -1473,6 +1473,16 @@ func ui() -> void:
 	t.check(crew_w <= crew.size.x, "LINE CREW 99/99 fits a tagged line's crew bar (%d of %d)" % [crew_w, crew.size.x])
 	var up_rect := upgrades.get_global_rect()
 	t.check(up_rect == Rect2(6, 590, 348, 44), "UPGRADES spans the bottom (%s)" % up_rect)
+	var build: Button = main.line_view(1).segment_view(0).get_node("Build")
+	var pad: Control = main.line_view(1).segment_view(0).get_child(2)
+	t.check(pad.get_global_rect().position.x == build.get_global_rect().position.x and pad.size.x == build.size.x, "build button as wide as its pad (%d)" % pad.size.x)
+	var crossing := []
+	for slots in range(3, 14):
+		var left_end := SegmentView.worker_x(slots - 1 - (slots + 1) % 2, slots) + SegmentView.WORKER_W
+		var right_start := SegmentView.worker_x(slots - 1 - slots % 2, slots)
+		if left_end > right_start:
+			crossing.append(slots)
+	t.check(crossing.is_empty(), "station crews never cross behind the mech, 3..13 per station %s" % [crossing])
 	await t.shot("ui_lines")
 
 	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
@@ -1668,8 +1678,8 @@ func pane() -> void:
 		var h: Control = line.segment_view(i).get_node("Header")
 		spans.append(Vector2(h.get_global_rect().position.x, h.get_global_rect().end.x))
 	var apart := range(3).all(func(i: int) -> bool: return spans[i].y + LineView.HEADER_GAP <= spans[i + 1].x)
-	t.check(apart and spans[3].y <= line.get_global_rect().end.x and spans[0].x >= line.get_global_rect().position.x + LineView.PAUSE_W,
-			"station headers stay inside the line, apart (%s)" % [spans])
+	t.check(apart and spans[3].y <= line.get_global_rect().end.x - LineView.HEADER_GAP and spans[0].x >= line.get_global_rect().position.x + LineView.PAUSE_W,
+			"station headers stay inside the line, apart and off the rail (%s)" % [spans])
 	var bar := scroll.get_v_scroll_bar()
 	var bottom := int(bar.max_value - bar.page)
 	t.check(bottom > 300 and rail._thumb().has_area(), "5 lines scroll (%d px), thumb shown" % bottom)

@@ -1335,11 +1335,11 @@ def line():
             draw(d, f)
             save(img, f"line/machine_{kind}_{f}.png")
 
-    img, d = new(64, 8)
-    sbox(d, 0, 0, 63, 7, R_DARK)
+    img, d = new(72, 8)
+    sbox(d, 0, 0, 71, 7, R_DARK)
     hazard(d, 1, 1, 8, 6)
-    hazard(d, 55, 1, 62, 6)
-    for x in (14, 31, 48):
+    hazard(d, 63, 1, 70, 6)
+    for x in (16, 35, 54):
         px(d, x, 3, INK)
         px(d, x + 1, 4, SLATE)
     save(img, "line/pad.png")

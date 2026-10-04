@@ -140,7 +140,7 @@ func _sync_segments() -> void:
 func _layout() -> void:
 	_top = roundf(CREW_H * Reveal.eased(_bar_k))
 	var bar_y := _top - CREW_H
-	var right := size.x
+	var right := size.x - HEADER_GAP
 	for i in range(_segments.size() - 1, -1, -1):
 		var seg := _segments[i]
 		seg.position = Vector2(_seg_x(i), _top)
