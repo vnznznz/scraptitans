@@ -233,7 +233,7 @@ func _process(delta: float) -> void:
 		_layout()
 	var line := _line()
 	var slots := line.worker_slots()
-	_crew.text = "STATION CREW %d/%d" % [line.workers, slots]
+	_crew.text = "LINE CREW %d/%d" % [line.workers, slots]
 	_crew.visible = _bar_k > 0.0
 	_tag.visible = _bar_k > 0.0 and _tagged
 	_crew.modulate.a = 1.0 if slots > 0 else 0.5

@@ -327,7 +327,7 @@ func m4() -> void:
 	var full_cost := float(seg.tier_data().scrap_per_mech)
 	GameState.credits = 1e6
 	GameState.buy_upgrade("lean")
-	t.check(is_equal_approx(seg.scrap_cost(), full_cost * 0.94), "Lean build: parts cost 6%% less scrap (%s)" % seg.scrap_cost())
+	t.check(is_equal_approx(seg.scrap_cost(), full_cost * 0.94), "Cheaper parts: 6%% less scrap per part (%s)" % seg.scrap_cost())
 	await t.shot("m4_salvage")
 	await t.click(main.get_node("%Upgrades"))
 	t.check(not menu.visible, "the same button closes the menu")
@@ -388,14 +388,14 @@ func m5() -> void:
 	await t.frames(1)
 	var hire := line.hire_button()
 	var crew: Label = line.get_node("Crew")
-	t.check(hire.visible and not hire.disabled and crew.text == "STATION CREW 0/9", "one hire button per line, crew 0/9")
+	t.check(hire.visible and not hire.disabled and crew.text == "LINE CREW 0/9", "one hire button per line, crew 0/9")
 	var pause: Control = line.get_node("Pause")
 	t.check(hire.position.y == 1.0 and hire.get_rect().end.y == LineView.CREW_H and is_equal_approx(hire.get_rect().end.x, line.size.x), "hire sits in the crew bar at the right, on its bottom edge")
 	t.check(is_equal_approx(pause.position.y, LineView.CREW_H) and crew.position.x >= pause.size.x and line.segment_view(0).position.y >= LineView.CREW_H, "crew bar on top, pause strip below it at the left: an L")
 	for i in 9:
 		await t.click(hire)
 	await t.frames(1)
-	t.check(not hire.visible and crew.text == "STATION CREW 9/9", "full crew: hire hidden, no MAX")
+	t.check(not hire.visible and crew.text == "LINE CREW 9/9", "full crew: hire hidden, no MAX")
 	t.check(not line.segment_view(0).get_node("Apply").visible and line.segment_view(0).get_node("Header").visible, "nothing to fit: station name shown")
 
 	GameState.scrap = 0.0
@@ -883,7 +883,7 @@ func m8() -> void:
 		GameState.buy_upgrade("tap_damage")
 	var hp := GameState.wave_hp
 	await t.click(field_tap)
-	t.check(is_equal_approx(hp - GameState.wave_hp, GameState.field_dps() * 0.52), "Tap damage chain: 4 levels, 0.52 s per tap")
+	t.check(is_equal_approx(hp - GameState.wave_hp, GameState.field_dps() * 0.52), "Harder hits chain: 4 levels, 0.52 s per tap")
 	GameState.wave_hp = GameState.field_dps() * 0.3
 	var wave := GameState.wave
 	await t.click(field_tap)
@@ -1042,12 +1042,14 @@ func m9() -> void:
 	t.check(effect.call("tier_frame") == "LIFE 44 » 57 S", "frame tier row: %s" % effect.call("tier_frame"))
 	t.check(effect.call("tier_core") == "PAY 1 » 2/S", "core tier row: %s" % effect.call("tier_core"))
 	t.check(effect.call("tier_arms") == "DMG 1 » 2", "arms tier row: %s" % effect.call("tier_arms"))
-	t.check(effect.call("tier_plating") == "LIFE 10 » 13 S", "plating tier row: %s" % effect.call("tier_plating"))
-	t.check(effect.call("crew") == "3 » 4" and menu.row("crew").find_child("Pips", true, false).visible, "plain row: 3 » 4 with level pips")
+	t.check(effect.call("tier_plating") == "LIFE +10 » +13 S", "plating tier row: %s" % effect.call("tier_plating"))
+	t.check(effect.call("crew") == "WORKERS 3 » 4" and menu.row("crew").find_child("Pips", true, false).visible, "plain row: %s with level pips" % effect.call("crew"))
+	var labelled := ["tap", "raises", "deploy_fee", "interval"].map(func(id: String) -> String: return effect.call(id))
+	t.check(labelled == ["CREW 10% » 11%", "UP TO X1 » X1.5", "FEE X1 » X1.5", "EVERY 2S » 1.9S"], "labelled effect lines %s" % [labelled])
 	t.check(effect.call("lines") == "LINE 2", "lines row: %s" % effect.call("lines"))
 	t.check(not menu.row("tap_damage").visible, "maxed row hidden")
 	var maxed: Label = menu.find_child("Maxed", true, false).find_child("List", true, false)
-	t.check(maxed.is_visible_in_tree() and maxed.text == "TAP DAMAGE", "MAXED footer lists it (%s)" % maxed.text)
+	t.check(maxed.is_visible_in_tree() and maxed.text == "HARDER HITS", "MAXED footer lists it (%s)" % maxed.text)
 	var texts := main.find_children("*", "Button", true, false).map(func(b: Button) -> String: return b.text) \
 			+ main.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
 	t.check(not texts.any(func(x: String) -> bool: return x.split(" ").has("MAX")), "no MAX anywhere")
@@ -1451,8 +1453,8 @@ func ui() -> void:
 	var line_hire: Button = main.line_view(0).hire_button()
 	t.check(yard_hire.size == line_hire.size and yard_hire.get_meta("row", false), "yard hire is a crew bar button like the line hire (%s)" % yard_hire.size)
 	var crew: Label = main.line_view(1).get_node("Crew")
-	var crew_w := crew.get_theme_font("font").get_string_size("STATION CREW 99/99", HORIZONTAL_ALIGNMENT_LEFT, -1, crew.get_theme_font_size("font_size")).x
-	t.check(crew_w <= crew.size.x, "STATION CREW 99/99 fits a tagged line's crew bar (%d of %d)" % [crew_w, crew.size.x])
+	var crew_w := crew.get_theme_font("font").get_string_size("LINE CREW 99/99", HORIZONTAL_ALIGNMENT_LEFT, -1, crew.get_theme_font_size("font_size")).x
+	t.check(crew_w <= crew.size.x, "LINE CREW 99/99 fits a tagged line's crew bar (%d of %d)" % [crew_w, crew.size.x])
 	var up_rect := upgrades.get_global_rect()
 	t.check(up_rect == Rect2(6, 590, 348, 44), "UPGRADES spans the bottom (%s)" % up_rect)
 	await t.shot("ui_lines")
@@ -1464,12 +1466,15 @@ func ui() -> void:
 	t.check(menu.visible and menu.get_global_rect().end.y == bar_top, "menu reaches down to the bottom bar")
 	var list: ScrollContainer = menu.get_child(1).get_child(0)
 	t.check(list.get_global_rect().end.y <= bar_top - UpgradeMenu.MARGIN, "rows end above the bar")
-	var wide_rows := []
-	for id: String in Data.upgrade_list.map(func(r: Dictionary) -> String: return r.id):
-		var row := menu.row(id)
-		if row.get_combined_minimum_size().x > menu.size.x - 2 * UpgradeMenu.MARGIN:
-			wide_rows.append("%s %d" % [id, row.get_combined_minimum_size().x])
-	t.check(wide_rows.is_empty() and list.size.x == menu.size.x - 2 * UpgradeMenu.MARGIN, "every row fits the menu (list %d) %s" % [list.size.x, wide_rows])
+	var wide_rows := func() -> Array:
+		var wide := []
+		for id: String in Data.upgrade_list.map(func(r: Dictionary) -> String: return r.id):
+			var row := menu.row(id)
+			if row.get_combined_minimum_size().x > menu.size.x - 2 * UpgradeMenu.MARGIN:
+				wide.append("%s %d" % [id, row.get_combined_minimum_size().x])
+		return wide
+	var too_wide: Array = wide_rows.call()
+	t.check(too_wide.is_empty() and list.size.x == menu.size.x - 2 * UpgradeMenu.MARGIN, "every row fits the menu (list %d) %s" % [list.size.x, too_wide])
 	var scrap := GameState.scrap
 	await t.click(pile)
 	t.check(GameState.scrap == scrap, "menu blocks the pile")
@@ -1477,6 +1482,14 @@ func ui() -> void:
 	list.scroll_vertical = 100000
 	await t.frames(2)
 	await t.shot("ui_menu_end")
+	GameState.credits = 1e30
+	for r: Dictionary in Data.upgrade_list:
+		if r.get("kind", "") == "" and r.id != "lines":
+			while GameState.level(r.id) < int(r.max_level) - 1:
+				GameState.buy_upgrade(r.id)
+	await t.frames(2)
+	too_wide = wide_rows.call()
+	t.check(too_wide.is_empty(), "every row fits one level before its cap (widest effect lines) %s" % [too_wide])
 	await t.click(upgrades)
 	t.check(not menu.visible, "CLOSE on top of the menu closes it")
 

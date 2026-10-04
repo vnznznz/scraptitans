@@ -16,7 +16,7 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 
 | Resource | Source | Spent on |
 |---|---|---|
-| **Scrap** | Pile taps, yard workers, salvage | Building stations, station tier upgrades, per-mech production cost |
+| **Scrap** | Pile taps, pile crew, salvage | Building stations, station tier upgrades, per-mech production cost |
 | **Credits** | Deploy fee, battlefield payout, wave bounties | Workers, unlocking lines, unlocking upgrades in the menu |
 
 ## Assembly line
@@ -84,17 +84,31 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**, cheapest first. Everything here costs credits. Rows the player can't afford are greyed.
 
 - **Tiers:** unlock the next tier of each station type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
-- **Station crew:** more worker slots on every station.
-- **Workers:** shorter chunk interval, lighter work bars (all stations).
-- **Tap damage:** battlefield taps hit harder.
-- **Yard:** scrap per tap, yard slots, yard haul (scrap per worker trip).
-- **Payout:** step cap, step interval, deploy fee.
+- **Crew per station:** more workers per station on every line.
+- **Faster crews, Lighter work:** shorter chunk interval, lighter work bars (all stations).
+- **Harder hits:** field taps hit harder.
+- **Pile:** Scrap magnet (pile taps grab a share of the pile crew's output), Pile crew size, Bigger shovels (scrap per worker trip).
+- **Pay:** Pay raises (step cap), Faster raises (step interval), Higher fees (deploy fee).
 - **Salvage:** 0% → 60%.
-- **Lean build (mid game on):** every part costs less scrap, so late lines don't starve without pausing.
-- **Scrap per kill (late game):** each enemy destroyed pays scrap.
-- **Lines:** unlock line 2, 3, …
+- **Cheaper parts (mid game on):** every part costs less scrap, so late lines don't starve without pausing.
+- **Enemy scrap (late game):** each enemy destroyed pays scrap.
+- **New line:** unlock line 2, 3, …
 
-Every row has an info button with a plain description. Tapping the station body only fills the work bar.
+Every row: a name that says what gets better, an effect line `LABEL a » b` (`WORKERS 2 » 3`, `EVERY 2S » 1.9S`), and an info button with a plain description. Tapping the station body only fills the work bar.
+
+## Words
+
+One word per thing, in every label, row, info text and guide line:
+
+| Thing | Word | Not |
+|---|---|---|
+| Scrap source | pile, pile crew | yard |
+| Machine on a line | station | pad, segment |
+| A line's workers | line crew | station crew |
+| Combat area | field | battlefield |
+| Mech stats | LIFE, PAY, DMG | lifetime |
+| Credits on deploy | fee | bonus |
+| Better part on a station | fit (arrow button) | — |
 
 ## Station tiers (scrap, per station, per line)
 
@@ -106,10 +120,10 @@ Every row has an info button with a plain description. Tapping the station body 
 |---|---|---|---|---|
 | 1 | Scrap Frame | Junk Brain | Pipe Gun | Tin Sheets |
 | 2 | Bolted Frame | Relay Box | Bolt Cannon | Boiler Plate |
-| 3 | Steel Walker | Tube Core | Auto Cannon | Steel Plating |
+| 3 | Steel Walker | Tube Core | Autocannon | Steel Plating |
 | 4 | Composite Strider | Silicon Mind | Rocket Pod | Ceramic Armor |
 | 5 | Titan Chassis | Quantum Core | Railgun | Reactive Armor |
-| 6 | Atomic Colossus | Doom Core | **Atomic Missile** | Lead-Lined Hull |
+| 6 | Atomic Colossus | Doom Core | **Atomic Missile** | Lead Armor |
 
 ## Endgame: the nuke
 
@@ -133,11 +147,11 @@ Every row has an info button with a plain description. Tapping the station body 
 │ BATTLEFIELD (~25%)        │P │  pin P: fixed on top while pinned
 │ ▓▓▓▓▓▓▓░░░ 1.2K/3K 45 DPS │  │  wave healthbar, tap = hit the wave
 │  mechs →  smoke ✸  ← enemy│  │
-│┌ STATION CREW 5/9 [+w 67] │▐ │  one scroll pane, pixel scroll bar
+│┌ LINE CREW 5/9 [+w 67]    │▐ │  one scroll pane, pixel scroll bar
 ││ FRAME [⬆ 2K] ARMS PLATING│▐ │  crew bar + pause strip form an L
 ││[▓▓▓]=[▓▓░]=[░░░]=[+ ]→   │  │  work bar = machine top,
 │⏸ [ww ]  [w  ]  [ww ]      │  │  crew inside, belt, mech exits →
-│┌ STATION CREW 3/9 ...     │  │  next line flush below
+│┌ LINE CREW 3/9 ...        │  │  next line flush below
 │  [ + UNLOCK LINE 2 · cr ] │  │
 │ PILE CREW 2/4   [+w  40]  │  │  pile crew bar
 │ w⛏ [SCRAP PILE] ⛏w        │P │  pin P: fixed at the bottom while pinned

@@ -213,10 +213,11 @@ func _describe(r: Dictionary, title: Label, effect: Label, pips: Pips) -> void:
 			var unlocked := GameState.unlocked_tier(r.type)
 			var next: Dictionary = tiers[unlocked + 1]
 			title.text = str(next.part).to_upper()
+			var plus := "+" if Data.segment_type(r.type).get("optional", false) else ""
 			for key: String in TIER_STATS:
 				if next.has(key):
 					var from := Fmt.num(float(tiers[unlocked][key])) if unlocked >= 0 else "0"
-					effect.text = TIER_STATS[key] % [from, Fmt.num(float(next[key]))]
+					effect.text = TIER_STATS[key] % [plus + from, plus + Fmt.num(float(next[key]))]
 		"final":
 			var tiers: Array = Data.segment_type(r.type).tiers
 			title.text = str(tiers[-1].part).to_upper()
@@ -227,7 +228,7 @@ func _describe(r: Dictionary, title: Label, effect: Label, pips: Pips) -> void:
 			if r.stat == "lines":
 				effect.text = "LINE %d" % (int(value) + 1)
 			else:
-				effect.text = "%s » %s" % [_fmt(r, value), _fmt(r, value + float(r.delta))]
+				effect.text = r.effect % [_fmt(r, value), _fmt(r, value + float(r.delta))]
 			pips.set_levels(GameState.level(id), int(r.max_level))
 
 
@@ -242,10 +243,12 @@ func _desc(r: Dictionary) -> String:
 	match r.get("kind", ""):
 		"tier":
 			var type := Data.segment_type(r.type)
-			var first := "Adds a %s pad to every line. " % type.name if type.get("optional", false) else ""
-			var cost := float(type.tiers[mini(GameState.unlocked_tier(r.type) + 1, type.tiers.size() - 1)].apply_cost)
-			var fit := "Fit: green arrow, %s scrap. " % Fmt.num(cost) if cost > 0.0 else ""
-			return "%sNext %s part. %s%s" % [first, type.name, fit, type.desc]
+			var unlocked := GameState.unlocked_tier(r.type)
+			var part := "%s part. %s " % [type.name, type.desc]
+			if unlocked < 0:
+				return part + "Unlocks a %s station on every line: build it for %s scrap." % [type.name, Fmt.num(float(type.build_cost))]
+			var cost := float(type.tiers[mini(unlocked + 1, type.tiers.size() - 1)].apply_cost)
+			return part + "Unlocks it for every line: tap the arrow on each %s station to fit it for %s scrap." % [type.name, Fmt.num(cost)]
 		"final":
 			return Data.segment_type(r.type).tiers[-1].desc
 	return r.desc
@@ -255,6 +258,10 @@ func _fmt(r: Dictionary, v: float) -> String:
 	var unit: String = r.get("unit", "")
 	if unit == "%":
 		return "%d%%" % roundi(v * 100.0)
+	if r.stat == "payout_cap":
+		v = pow(Data.econ("payout_step"), v)
+	if unit == "x":
+		v = snappedf(v, 1.0 if v >= 10.0 else 0.1)
 	var s := str(int(v)) if is_equal_approx(v, roundf(v)) else str(snappedf(v, 0.01))
-	return s + unit.to_upper()
+	return "X" + s if unit == "x" else s + unit.to_upper()
 

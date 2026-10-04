@@ -66,7 +66,7 @@ Factory
 
 Battlefield
 - Bed `field`: windy1(loop) (32 s soft gusts), softened: low-pass 2.5 kHz, gusts compressed (swell over the floor 25 → 13 dB); bed `battle`: shuttle(loop) (distant rumble)
-- `shot_pipe` (Pipe Gun): weapon_singleshot2, 22, 7; `shot_bolt` (Bolt Cannon): weapon_shotgun1, weapon_singleshot8; `shot_burst` (Auto Cannon): wpn_machinegun_loop2, loop5 (3 pulses = the 3-round burst); `shot_rocket` (Rocket Pod): wpn_missilelaunch, `rocket_hit`: exp_shortest_soft1, soft7; `shot_beam` (Railgun): wpn_laser6
+- `shot_pipe` (Pipe Gun): weapon_singleshot2, 22, 7; `shot_bolt` (Bolt Cannon): weapon_shotgun1, weapon_singleshot8; `shot_burst` (Autocannon): wpn_machinegun_loop2, loop5 (3 pulses = the 3-round burst); `shot_rocket` (Rocket Pod): wpn_missilelaunch, `rocket_hit`: exp_shortest_soft1, soft7; `shot_beam` (Railgun): wpn_laser6
 - `enemy_shot_drone`: wpn_laser8; `enemy_shot_crawler`: laser; `enemy_shot_brute`: wpn_cannon4
 - `field_tap`: sounds_impact12, sounds_impact11, damage_hit1, 5, 7, 10 (Simple Damage Sounds: short noisy hits with a falling sweep, like the impacts; the gated chiptune blips left out)
 - `enemy_pop`: exp_shortest_soft2, 5, 6, 8; `enemy_pop_big`: exp_short_soft4 (the "soft" explosions decay smoothly; the "hard" ones are bit-crushed and harsh)

@@ -349,6 +349,21 @@ Test (browser + phone):
 - Settings → EFFECTS -: fewer rows drawn, a thinner crowd and none on LOW, no artillery on LOW; a reload keeps the level
 - Phone, late game (100+ mechs): smooth; if not, EFFECTS steps down by itself within ~15 s
 
+## M16 · Words
+
+Build: every name and description is easy to read and uses the same words for the same things. Done before M14.
+
+- [x] One word per thing in all player text (Words table in the pitch): pile (not yard), station (not pad), line crew, field, fee
+- [x] Upgrade rows: names say what gets better (Scrap magnet, Crew per station, Bigger shovels, Harder hits, …); every effect line labelled (`WORKERS 2 » 3`, `EVERY 2S » 1.9S`, `UP TO X1 » X1.5`); plain info text
+- [x] Station descriptions say what the part is; tier rows say how to fit (or, for Plating, how to build); Plating rows `LIFE +a » +b S`
+- [x] Parts: Autocannon, Lead Armor
+- [x] Fix: the pile tap row had no effect (tap read the base share); retuned: base share 15 → 10 %, +1 %/level (was +4 %), baseline 38.7 min, all tune checks pass
+- [x] `--scenario ui`: rows fit one level before their cap
+
+Test:
+- Open the menu early, mid and late in a run: each row's name and effect line make sense without the info button; the info text agrees
+- Buy Scrap magnet with a pile crew: pile taps give visibly more scrap
+
 ## Not in the prototype
 
 A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.
