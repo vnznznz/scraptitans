@@ -20,6 +20,8 @@ const NUKE_SPEED := 22.0
 const NUKE_POS := Vector2(118, 156)
 const ASIDE := Vector2(34, -5)
 const ENTRY_X := -24.0
+const OUT_WALK := 48.0
+const OUT_FADE := 0.4
 const ENEMY_X0 := 242.0
 const ENEMY_X1 := 326.0
 const SMOKE_Y := 28.0
@@ -134,6 +136,8 @@ func _ready() -> void:
 	_crowd = Crowd.new()
 	_world.add_child(_crowd)
 	_gate = Gate.new()
+	_gate.left.connect(_walk_out)
+	_gate.arrived.connect(func(m: MechState) -> void: _crowd.release(m.id))
 	_world.add_child(_gate)
 
 	_tap = TapArea.new()
@@ -556,6 +560,7 @@ func scorch() -> void:
 	_slots.clear()
 	_states.clear()
 	_crowd.clear()
+	_gate.clear()
 	_nuke_id = -1
 	_enemies.clear()
 	_enemy_count = 0
@@ -666,7 +671,29 @@ func _sync_views() -> void:
 	for m in _arrivals:
 		if _views.has(m.id):
 			_fly_fee(m)
+		elif _crowd.count() > 0:
+			_send_out(m)
 	_arrivals.clear()
+
+
+func _send_out(m: MechState) -> void:
+	var member := _crowd.has(m.id)
+	if _gate.send(m, _crowd.spot(m.id) if member else _crowd.any_spot()) and member:
+		_crowd.hold(m.id)
+
+
+func _walk_out(m: MechState) -> void:
+	var view := MechView.new()
+	view.set_parts(m.parts)
+	view.position = Gate.EXIT
+	view.walking = true
+	view.walk_speed = WALK_ANIM
+	_mechs.add_child(view)
+	var time := OUT_WALK / WALK_SPEED
+	var tw := view.create_tween()
+	tw.tween_property(view, "position:x", Gate.EXIT.x + OUT_WALK, time)
+	tw.parallel().tween_property(view, "modulate:a", 0.0, OUT_FADE).set_delay(time - OUT_FADE)
+	tw.tween_callback(view.queue_free)
 
 
 func _weakest() -> int:

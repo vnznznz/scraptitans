@@ -16,6 +16,7 @@ var marching := false
 
 var _members := {}
 var _tiers := {}
+var _held := {}
 var _rank: Array[int] = []
 var _by_rank: Array[int] = []
 var _tick := 0
@@ -50,8 +51,29 @@ func spot(id: int) -> Vector2:
 	return _position(_members[id])
 
 
+func hold(id: int) -> void:
+	_held[_members[id]] = true
+	queue_redraw()
+
+
+func release(id: int) -> void:
+	if _members.has(id):
+		_held.erase(_members[id])
+		queue_redraw()
+
+
+func any_spot() -> Vector2:
+	return _position(_tiers.keys().pick_random())
+
+
+static func draw_mech(item: CanvasItem, p: Vector2, tier: int, frame: int, shade := Color.WHITE) -> void:
+	item.draw_texture_rect_region(TEX, Rect2(p.x - CELL.x / 2.0, p.y - CELL.y, CELL.x, CELL.y),
+			Rect2(frame * CELL.x, tier * CELL.y, CELL.x, CELL.y), shade)
+
+
 func remove(id: int) -> void:
 	_tiers.erase(_members[id])
+	_held.erase(_members[id])
 	_members.erase(id)
 	queue_redraw()
 
@@ -59,6 +81,7 @@ func remove(id: int) -> void:
 func clear() -> void:
 	_members.clear()
 	_tiers.clear()
+	_held.clear()
 	queue_redraw()
 
 
@@ -95,12 +118,10 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	for slot in _rank.size():
-		if not _tiers.has(slot):
+		if not _tiers.has(slot) or _held.has(slot):
 			continue
 		var f := (slot + _tick) % 2 if marching else int((slot * 7 + _tick) % 4 == 0)
-		var p := _position(slot)
-		draw_texture_rect_region(TEX, Rect2(p.x - CELL.x / 2.0, p.y - CELL.y, CELL.x, CELL.y),
-				Rect2(f * CELL.x, _tiers[slot] * CELL.y, CELL.x, CELL.y))
+		draw_mech(self, _position(slot), _tiers[slot], f)
 
 
 func _position(slot: int) -> Vector2:

@@ -2063,6 +2063,28 @@ func field() -> void:
 	await t.frames(2)
 	var crowd := field.crowd()
 	t.check(crowd.count() == GameState.field.size() - 24, "undrawn mechs stand in the crowd (%d)" % crowd.count())
+	var gate: Gate = field.get("_gate")
+	var held: Dictionary = crowd.get("_held")
+	var walking_out := func() -> int:
+		return (field.get("_mechs") as Node).get_children().filter(func(c: Node) -> bool: return c is MechView).size() - field.mech_count()
+	gate.clear()
+	await t.wait(Battlefield.OUT_WALK / Battlefield.WALK_SPEED + 0.1)
+	GameState.debug_spawn_mechs(1)
+	var newcomer: MechState = GameState.field.back()
+	await t.wait(0.3)
+	t.check(crowd.has(newcomer.id) and (gate.get("_walkers") as Array).size() == 1 and held.size() == 1 and walking_out.call() == 1,
+			"full field: a new mech walks out of the gate and fades, its shadow heads for the crowd, its spot there stays empty")
+	await t.wait(crowd.spot(newcomer.id).distance_to(Gate.EXIT) / Battlefield.WALK_SPEED)
+	t.check((gate.get("_walkers") as Array).is_empty() and held.is_empty() and walking_out.call() == 0, "the shadow walks to its spot in the crowd, the mech is gone")
+	GameState.debug_spawn_mechs(20)
+	await t.frames(2)
+	t.check(crowd.count() == 27 and held.size() == Gate.FLOW_QUEUE, "many at once: %d wait at the gate, the others stand in the crowd at once" % Gate.FLOW_QUEUE)
+	await t.wait(1.1)
+	var out := (gate.get("_walkers") as Array).map(func(w: Dictionary) -> float: return (w.pos as Vector2).distance_to(Gate.EXIT))
+	var gap := Battlefield.WALK_SPEED * Gate.FLOW_GAP
+	t.check(out.size() >= 4 and range(1, out.size()).all(func(i: int) -> bool: return absf(out[i - 1] - out[i] - gap) < 3.0),
+			"they leave one by one, %d px apart (%s)" % [gap, out])
+	await t.shot("field_flow")
 	GameState.debug_spawn_mechs(200)
 	await t.frames(2)
 	t.check(crowd.count() == 150, "HIGH: crowd capped at 150 (%d of %d mechs)" % [crowd.count(), GameState.field.size()])
@@ -2114,7 +2136,6 @@ func field() -> void:
 	elite.parts = {"frame": 4, "core": 4, "arms": 4}
 	GameState.call("_deploy", elite)
 	await t.frames(2)
-	var gate: Gate = field.get("_gate")
 	t.check(float(gate.get("_open")) > 0.0 and int(gate.get("_shown")) < Gate.DOOR.get_height(), "deploy opens the gate")
 	var elite_view := field.mech_view(elite.id)
 	t.check(elite_view != null and elite_view.position.distance_to(Gate.EXIT) < 24.0, "the mech walks out of the gate")
