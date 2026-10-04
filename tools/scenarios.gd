@@ -390,7 +390,7 @@ func m5() -> void:
 	var crew: Label = line.get_node("Crew")
 	t.check(hire.visible and not hire.disabled and crew.text == "LINE CREW 0/9", "one hire button per line, crew 0/9")
 	var pause: Control = line.get_node("Pause")
-	t.check(hire.position.y == 1.0 and hire.get_rect().end.y == LineView.CREW_H and is_equal_approx(hire.get_rect().end.x, line.size.x), "hire sits in the crew bar at the right, on its bottom edge")
+	t.check(hire.position.y == 1.0 and hire.get_rect().end.y == LineView.CREW_H and is_equal_approx(hire.get_rect().end.x, line.size.x + 1.0), "hire sits in the crew bar at the right, on its bottom edge, its right border under the rail seam")
 	t.check(is_equal_approx(pause.position.y, LineView.CREW_H) and crew.position.x >= pause.size.x and line.segment_view(0).position.y >= LineView.CREW_H, "crew bar on top, pause strip below it at the left: an L")
 	for i in 9:
 		await t.click(hire)
@@ -830,8 +830,8 @@ func m8() -> void:
 	await t.frames(2)
 	var hire: Button = scrapyard.get_node("HireYard")
 	t.check(absf(pile_x.call() - yard_x.call()) < 2.0 and scrapyard.get_node("Crew").visible and hire.visible
-			and hire.get_global_rect().end.x == scrapyard.get_global_rect().end.x and yard.position.y == LineView.CREW_H,
-			"after the reveal: pile stays centered under a yard crew bar, hire flush right")
+			and hire.get_global_rect().end.x == scrapyard.get_global_rect().end.x + 1.0 and yard.position.y == LineView.CREW_H,
+			"after the reveal: pile stays centered under a yard crew bar, hire flush right (border under the rail seam)")
 	var badge: Label = main.get_node("%Upgrades").get_node("Badge")
 	t.check(badge.visible and badge.text == str(GameState.affordable_upgrades()) and GameState.affordable_upgrades() > 0, "UPGRADES shows %s affordable" % badge.text)
 	t.check(main.get("_title") == "(%d) Scrap Titans" % GameState.affordable_upgrades(), "window title shows the count: %s" % main.get("_title"))
@@ -1690,6 +1690,16 @@ func pane() -> void:
 	t.check(fit.visible and fit.get_global_rect().position.y == bar_edge and hire.get_global_rect().end.y == bar_edge + 1.0
 			and fit.get_global_rect().end.y == machine.get_global_rect().position.y + 1.0,
 			"hire and fit share the crew bar's bottom edge, fit shares the machine's top edge")
+	var strip_edge := line.get_global_rect().position.x + LineView.PAUSE_W - 1.0
+	t.check(hire.get_global_rect().end.x == column.size.x + 1.0 and fit.get_global_rect().position.x == strip_edge
+			and line.segment_view(3).get_node("Apply").get_global_rect().end.x == column.size.x + 1.0,
+			"hire and the last fit end on the rail seam, the first fit starts on the pause strip's edge")
+	var tag: Label = line.get_node("Tag")
+	var crew_label: Label = line.get_node("Crew")
+	var text_row := func(l: Label) -> float: return l.position.y + (l.size.y - l.get_line_height()) / 2.0
+	t.check(tag.size == LineView.TAG and tag.position.y == 3.0 and tag.position.y + tag.size.y == LineView.CREW_H - 3.0,
+			"line tag 16x20, 2 px inside the bar's edges (%s at %d)" % [tag.size, tag.position.y])
+	t.check(text_row.call(tag) == text_row.call(crew_label), "tag digit on the crew text's rows (%d, %d)" % [text_row.call(tag), text_row.call(crew_label)])
 	await t.shot("pane_top")
 
 	await t.click(yard_pin)

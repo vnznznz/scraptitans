@@ -208,6 +208,11 @@ func _update_apply() -> void:
 		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost)
 
 
+func share_edges(left: bool, right: bool) -> void:
+	_apply.position.x = -1.0 if left else 0.0
+	_apply.size.x = WIDTH + (1.0 if left else 0.0) + (1.0 if right else 0.0)
+
+
 func header_width() -> float:
 	return _header.get_combined_minimum_size().x
 

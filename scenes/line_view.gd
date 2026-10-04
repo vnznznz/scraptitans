@@ -81,6 +81,8 @@ func _ready() -> void:
 	tag_style.bg_color = Pal.line(line_index)
 	tag_style.border_color = Pal.INK
 	tag_style.set_border_width_all(1)
+	tag_style.content_margin_top = 0
+	tag_style.content_margin_bottom = 0
 	_tag.add_theme_stylebox_override("normal", tag_style)
 	_tag.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_tag)
@@ -145,6 +147,7 @@ func _layout() -> void:
 		var w := seg.header_width()
 		var x := minf(roundf(_seg_x(i) + (SegmentView.WIDTH - w) / 2.0), right - w)
 		seg.place_header(x - _seg_x(i))
+		seg.share_edges(_left() > 0.0 and _seg_x(i) == _left(), _seg_x(i) + SegmentView.WIDTH == size.x)
 		right = x - HEADER_GAP
 	custom_minimum_size = Vector2(0, _top + SegmentView.BELT_Y + 8.0)
 	_pause.visible = _strip_k > 0.0
@@ -153,9 +156,9 @@ func _layout() -> void:
 	_tag.position = Vector2(_left() + TAG_GAP, bar_y + 3.0)
 	_tag.size = TAG
 	var crew_x := _left() + 6.0 + (TAG.x + TAG_GAP if _tagged else 0.0)
-	_crew.position = Vector2(crew_x, bar_y)
-	_crew.size = Vector2(maxf(size.x - HIRE_W - crew_x, 0.0), CREW_H - 1.0)
-	_hire.position = Vector2(size.x - HIRE_W, bar_y + 1.0)
+	_crew.position = Vector2(crew_x, bar_y + 1.0)
+	_crew.size = Vector2(maxf(size.x - HIRE_W - crew_x, 0.0), CREW_H - 2.0)
+	_hire.position = Vector2(size.x - HIRE_W + 1.0, bar_y + 1.0)
 	_hire.size = Vector2(HIRE_W, CREW_H - 1.0)
 	clip_contents = Reveal.moving(_strip_k) or Reveal.moving(_bar_k)
 	queue_redraw()
@@ -304,7 +307,8 @@ func _draw_frame() -> void:
 		var x := _left() - PAUSE_W
 		draw_rect(Rect2(x, 0, PAUSE_W, bottom), L_FILL)
 		draw_rect(Rect2(x, 0, 1, bottom), L_LIGHT)
-		draw_rect(Rect2(x + PAUSE_W - 1.0, _top, 1, bottom - _top), L_EDGE)
+		var edge_top := _top - 1.0 if _bar_k > 0.0 else _top
+		draw_rect(Rect2(x + PAUSE_W - 1.0, edge_top, 1, bottom - edge_top), L_EDGE)
 		draw_rect(Rect2(x, bottom - 1.0, PAUSE_W, 1), L_EDGE)
 		if _bar_k <= 0.0:
 			draw_rect(Rect2(x, 0, PAUSE_W, 1), L_LIGHT)

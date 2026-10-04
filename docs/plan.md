@@ -369,7 +369,7 @@ Test:
 Build: one look for every price, frame edge and overlay; stations and the pile show what was bought for them. Done before M14.
 
 - [x] Prices: every purchase button reads what · currency icon · price (coin on hire, nut on fit, UNLOCK LINE's coin at its price); white price on the lit face; one hire glyph
-- [ ] Crew bars: line tag 16×20 and centered, tag digit / crew text / hire price on the same rows; hire and fit share the rail's and the pause strip's edge; L frame corner closed
+- [x] Crew bars: line tag 16×20 and centered, tag digit / crew text / hire price on the same rows; hire and fit share the rail's and the pause strip's edge; L frame corner closed
 - [ ] Stations: pad as wide as the build button; stat icons at one distance from the name; headers end before the rail; crews never cross behind the mech
 - [ ] Intro guide: label on a plate, centered on its arrow; `BUY IT` beside the arrow, clear of row text and prices
 - [ ] Upgrade menu: nearly opaque; scroll thumb in the right margin; 4 px pips, unlit ones readable

@@ -92,9 +92,9 @@ func _layout() -> void:
 	var bar_y := _top - LineView.CREW_H
 	custom_minimum_size.y = _top + BODY_H
 	_yard.position = Vector2(roundf(size.x / 2.0 - (PILE_POS.x + PILE_TEX.get_width() / 2.0)), _top)
-	_crew.position = Vector2(6, bar_y)
-	_crew.size = Vector2(maxf(size.x - LineView.HIRE_W - 6.0, 0.0), LineView.CREW_H - 1.0)
-	_hire.position = Vector2(size.x - LineView.HIRE_W, bar_y + 1.0)
+	_crew.position = Vector2(6, bar_y + 1.0)
+	_crew.size = Vector2(maxf(size.x - LineView.HIRE_W - 6.0, 0.0), LineView.CREW_H - 2.0)
+	_hire.position = Vector2(size.x - LineView.HIRE_W + 1.0, bar_y + 1.0)
 	_hire.size = Vector2(LineView.HIRE_W, LineView.CREW_H - 1.0)
 	clip_contents = Reveal.moving(_bar_k)
 	queue_redraw()
