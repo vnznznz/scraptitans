@@ -9,7 +9,6 @@ const PILE_POS := Vector2(62, 20)
 const PILE_EDGES := Vector2(75, 163)
 const GROUND_Y := 84.0
 const BODY_H := 88.0
-const FLOOR := Pal.NAVY
 const GROUND := Pal.SLATE_D
 const GROUND_LIGHT := Pal.SLATE
 const WORKER_DX := 7.0
@@ -101,7 +100,6 @@ func _layout() -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(0, _top, size.x, BODY_H), FLOOR)
 	draw_rect(Rect2(0, _top + GROUND_Y, size.x, BODY_H - GROUND_Y), GROUND)
 	draw_rect(Rect2(0, _top + GROUND_Y, size.x, 1), GROUND_LIGHT)
 	if _bar_k > 0.0 and not _collapsed:

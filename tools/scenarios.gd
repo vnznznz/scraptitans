@@ -2010,12 +2010,14 @@ func field() -> void:
 	GameState.tap_dps = 0.0
 	await t.frames(1)
 	var strip := field.strip()
-	t.check(strip.visible and strip.widths.size() == 5 and strip.widths[0] == 248 and strip.widths[2] == 82 and strip.widths[1] + strip.widths[3] + strip.widths[4] == 0,
+	var strip_w := int(strip.size.x) - 2
+	t.check(strip.get_rect().position.x == 6.0 and strip.get_rect().end.x == Battlefield.WIDTH - 6.0, "wave bar and strip 6 px in from the field's sides")
+	t.check(strip.visible and strip.widths.size() == 5 and strip.widths[0] == roundi(strip_w * 0.75) and strip.widths[2] == strip_w - strip.widths[0] and strip.widths[1] + strip.widths[3] + strip.widths[4] == 0,
 			"DPS strip: one segment per line by its mechs' damage (%s)" % [strip.widths])
 	t.check(strip.colors[2] == Pal.line(2) and strip.colors[4] == Pal.WHITE, "segments in the gate colours, taps white")
 	GameState.tap_dps = 4.0
 	await t.frames(1)
-	t.check(strip.widths[4] == 165, "taps take their share (%s)" % [strip.widths])
+	t.check(strip.widths[4] == strip_w / 2, "taps take their share (%s)" % [strip.widths])
 	GameState.field.clear()
 	GameState.tap_dps = 0.0
 	await t.frames(1)

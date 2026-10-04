@@ -27,12 +27,12 @@
 - Pin states (`ScrollRail.state`): PINNED (area reparented from `Content` into `Column` above/below `Scroll`, fixed; `PinnedButton`, red pin) / SHOWN (≥ 50 % visible: plain, dim pin; tap pins it) / AWAY (`AwayButton`, arrow + glyph: quick access, tap = 0.3 s scroll to it); unpinning puts it back and scrolls to it; pinning the field keeps the lines in place; scroll changes wait a frame for the new layout; pins not saved
 - `ScrollRail.reach(c)`: the pin when `c` is in an AWAY area and the rail is shown (intro guide points there, arrow up at the field pin, down at the yard pin); `release()`: unpin both, scroll to the top (nuke); unpinning puts an area back before its original next sibling (`YardSpacer` stays last)
 - Draw order by `z_index` (`Main`): discs 1, HUD + wave bar text 2 (discs pass behind text), menu 2 (later in tree, covers wave text; bg 92 % opaque, row panels opaque), purchase discs (`Flyers.pay`) 3 so they fly over the menu, intro guide 3, Debug/Settings/Nuke 4
-- Scrapyard: crew bar (once the yard hire is affordable) like a line's (`PILE CREW n/slots`, hire 112×25 flush right, hidden when full) + body 88 (NAVY floor, SLATE_D ground strip at 84); pile/workers/tap in child `Yard`, centered, workers on both sides
+- Scrapyard: crew bar (once the yard hire is affordable) like a line's (`PILE CREW n/slots`, hire 112×25 flush right, hidden when full) + body 88 (no floor fill: the INK page, like the factory; SLATE_D ground strip at 84); pile/workers/tap in child `Yard`, centered, workers on both sides
 - `Flyers.clip` = column rect (Main, each frame): discs from a scrolled-away source (field, yard) start at the pane edge
 - Pile size sprite by scrap stock in seconds of yard worker output (`yard_rate()`), not gross gain (taps/salvage bursts shrank it)
 - Pile squash (0.12 s, frame clock): a weaker hit never interrupts a running one; yard hits ≥ 0.2 s apart, taps ≥ 0.06 s, so a busy yard bounces instead of staying flattened
 - Views build their children in code; main adds one `LineView` per line, more on `line_added`
-- UPGRADES button toggles the menu (reads CLOSE while open); badge = `GameState.affordable_upgrades()` (visible, unmaxed, unlocked, affordable rows): red with count, inside the button (right, 8 px in, centered); hidden at 0 and while the menu is open
+- UPGRADES button toggles the menu (reads CLOSE while open); badge = `GameState.affordable_upgrades()` (visible, unmaxed, unlocked, affordable rows): red with white count, inside the button (right, 8 px in, centered); hidden at 0 and while the menu is open
 - Button heights: 44 main (build, menu buy, dialogs, big unlock, UPGRADES, rail pins), 25 bar buttons (line/yard hire, fit)
 - Shared edges: a button flush with a frame edge shares that edge's INK row or column, no double outlines: crew bar hire at y 1 (its bottom row = the bar's INK edge) and 1 px past the pane (the rail seam is its right border), fit y −1..25 (crew bar edge to the machine's top beam) and 1 px wider toward the pause strip / the rail when its station touches them (`SegmentView.share_edges`), build button's bottom row on the pad's top row; panels keep their 6 px inset (HUD, bar, menu, dialogs)
 - UNLOCK LINE (`+ LINE n`, coin, cost): 220×36 while unaffordable, 300×44 and lit once affordable
@@ -121,7 +121,7 @@
 
 ## Battlefield
 - 340 wide (`WIDTH`; background layers are 360, cropped by the rail): mech slots from x 214 (step 26), enemies 242..326
-- Wave bar at top (`WaveBar`): `WAVE n` left, `x DMG/S` right = `wave_dps()` (mech DPS + `tap_dps`); the bar alone shows HP
+- Wave bar at top (`WaveBar`, 6 px in from the sides like the panels' content, 4 px under the HUD): `WAVE n` left, `x DMG/S` right = `wave_dps()` (mech DPS + `tap_dps`); the bar alone shows HP
 - DPS strip under it (`DpsStrip`, 4 px: INK frame, 2 px fill): `wave_dps()` split by line (Σ mech `dps` by `MechState.line`, in the gate colours) + taps (`tap_dps`, white), integer widths, redrawn when they change; hidden at 0 damage
 - Always 160 tall once shown; bg, enemies, mechs and fx live in `World` (Node2D) at y = height − 160 (wave bar too), so while the height grows in, the field slides down from under the HUD
 - Layers (`LAYERS`, `Sprite2D` regions 360 wide): `sky.png` (static) / `far.png` (parallax 0.3) / `near.png` (0.6) / `ground.png` (1.0, from y 106), then `smoke.png` tiled and drifting (`SMOKE_SPEED`)

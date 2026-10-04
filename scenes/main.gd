@@ -74,6 +74,7 @@ func _ready() -> void:
 	_badge_style.content_margin_left = 5
 	_badge_style.content_margin_right = 5
 	_badge.add_theme_stylebox_override("normal", _badge_style)
+	_badge.add_theme_color_override("font_color", Pal.WHITE)
 	_upgrades.add_child(_badge)
 	var guide := IntroGuide.new()
 	guide.name = "IntroGuide"
