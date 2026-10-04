@@ -2012,6 +2012,16 @@ func field() -> void:
 	GameState.debug_spawn_mechs(30)
 	await t.frames(2)
 	t.check(field.mech_count() == 24, "HIGH: 3 rows drawn (%d)" % field.mech_count())
+	var reach := 0
+	for type_id: String in ["frame", "core", "arms", "plating"]:
+		for tier in range(1, 7):
+			var sheet := (load("res://art/mech/%s_%d.png" % [type_id, tier]) as Texture2D).get_image()
+			for cell in sheet.get_width() / 40:
+				reach = maxi(reach, 20 - sheet.get_region(Rect2i(cell * 40, 0, 40, 48)).get_used_rect().position.x)
+	var gate_end := Gate.X + Gate.WALL.get_width()
+	var slots_x := range(24).map(func(i: int) -> float: return field.call("_slot_pos", i).x)
+	t.check(slots_x.min() == Battlefield.SLOT_LEFT and slots_x.min() - reach >= gate_end,
+			"no slot on the gate: leftmost %s, widest mech %d px left of its feet, gate ends at %s" % [slots_x.min(), reach, gate_end])
 	t.check(not main.line_view(0).get_node("Tag").visible, "one line: no line tag on the crew bar")
 
 	var settings: SettingsOverlay = main.get_node("%Settings")

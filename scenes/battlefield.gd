@@ -11,7 +11,9 @@ const ROW_Y := [156.0, 141.0, 126.0]
 const ROW_SHADE := [1.0, 0.78, 0.6]
 const FILL_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
 const SLOT_X0 := 214.0
-const SLOT_DX := 26.0
+const SLOT_DX := 23.0
+const ROW_SHIFT := [0.0, 12.0, 6.0]
+const SLOT_LEFT := 40.0
 const WALK_SPEED := 64.0
 const WALK_ANIM := 1.6
 const NUKE_SPEED := 22.0
@@ -751,7 +753,7 @@ func _slot_pos(slot: int) -> Vector2:
 	var row := int(float(slot) / SLOTS_PER_ROW)
 	var col: int = FILL_ORDER[slot % SLOTS_PER_ROW]
 	var jitter := float((slot * 37) % 7 - 3)
-	return Vector2(SLOT_X0 - col * SLOT_DX - [0.0, SLOT_DX / 2.0, SLOT_DX / 4.0][row] + jitter, ROW_Y[row])
+	return Vector2(SLOT_X0 - col * SLOT_DX - ROW_SHIFT[row] + jitter, ROW_Y[row])
 
 
 func _fly(m: MechState, kind: Flyers.Kind, amount: float, count: int) -> void:
@@ -781,7 +783,7 @@ func _clear_path() -> void:
 			continue
 		var view: MechView = _views[id]
 		var side := -1.0 if view.position.x < NUKE_POS.x else 1.0
-		view.step_aside(Vector2(clampf(view.position.x + side * ASIDE.x, 12.0, ENEMY_X0 - 16.0), view.position.y + ASIDE.y))
+		view.step_aside(Vector2(clampf(view.position.x + side * ASIDE.x, SLOT_LEFT, ENEMY_X0 - 16.0), view.position.y + ASIDE.y))
 
 
 func _on_income(m: MechState, credits: float) -> void:

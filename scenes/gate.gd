@@ -3,6 +3,7 @@ extends Node2D
 
 const WALL := preload("res://art/battlefield/gate_wall.png")
 const DOOR := preload("res://art/battlefield/gate_door.png")
+const X := -9.0
 const BOTTOM := 160.0
 const DOOR_POS := Vector2(3, 14)
 const EXIT := Vector2(5, 159)
@@ -28,7 +29,7 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var top := Vector2(0, BOTTOM - WALL.get_height())
+	var top := Vector2(X, BOTTOM - WALL.get_height())
 	draw_texture(WALL, top)
 	var door := Vector2(DOOR.get_width(), _shown)
 	draw_texture_rect_region(DOOR, Rect2(top + DOOR_POS, door), Rect2(Vector2(0, DOOR.get_height() - _shown), door))
