@@ -49,7 +49,7 @@
 		"enemy_shot_drone": {"bus": "battle", "files": ["sfx_wpn_laser8"], "volume_db": -17, "pitch": 0.1, "cooldown": 0.1, "voices": 2, "group": "field", "area": "field"},
 		"enemy_shot_crawler": {"bus": "battle", "files": ["sfx_laser"], "volume_db": -8, "pitch": 0.08, "cooldown": 0.12, "voices": 2, "group": "field", "area": "field"},
 		"enemy_shot_brute": {"bus": "battle", "files": ["sfx_wpn_cannon4"], "volume_db": -21, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "group": "field", "area": "field"},
-		"field_tap": {"bus": "battle", "files": ["sfx_sounds_impact12", "sfx_sounds_impact11", "sfx_damage_hit1", "sfx_damage_hit5", "sfx_damage_hit7", "sfx_damage_hit10"],
+		"field_tap": {"bus": "ui", "files": ["sfx_sounds_impact12", "sfx_sounds_impact11", "sfx_damage_hit1", "sfx_damage_hit5", "sfx_damage_hit7", "sfx_damage_hit10"],
 			"file_db": {"sfx_sounds_impact11": 3, "sfx_damage_hit1": -1, "sfx_damage_hit5": 3, "sfx_damage_hit7": 1, "sfx_damage_hit10": -2},
 			"volume_db": -10, "pitch": 0.08, "cooldown": 0.04, "voices": 3, "soften": true, "area": "field"},
 		"enemy_pop": {"bus": "battle", "files": ["sfx_exp_shortest_soft2", "sfx_exp_shortest_soft5", "sfx_exp_shortest_soft6", "sfx_exp_shortest_soft8"],

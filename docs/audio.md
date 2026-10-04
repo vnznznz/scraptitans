@@ -37,8 +37,8 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 ## Buses
 
 - MASTER: everything (HUD mute and step 0 mute it)
-- UI: only what a direct press or tap triggers: buttons, menus, buys, pause/resume, pile and station taps (battlefield taps stay on BATTLE)
-- BATTLE: battlefield (shots, enemy fire, taps, pops, deaths, wave clear/bounty/arrival) + nuke sequence
+- UI: every direct user interaction and nothing else: buttons, menus, buys, pause/resume, pile, station and battlefield taps
+- BATTLE: battlefield (shots, enemy fire, pops, deaths, wave clear/bounty/arrival) + nuke sequence
 - FACTORY: yard crew, assembly, deploys, stall, collapse, credit coins
 - AMBIENCE: all beds (wind, battle rumble, factory hum); ducked under the music
 - MUSIC: Ending, run card fanfare (`volume_db` −30: no −24 trim on this bus)
