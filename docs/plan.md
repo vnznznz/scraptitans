@@ -373,7 +373,7 @@ Build: one look for every price, frame edge and overlay; stations and the pile s
 - [x] Stations: pad as wide as the build button; stat icons at one distance from the name; headers end before the rail; crews never cross behind the mech
 - [x] Intro guide: label on a plate, centered on its arrow; `BUY IT` beside the arrow, clear of row text and prices
 - [x] Upgrade menu: nearly opaque; scroll thumb in the right margin; 4 px pips, unlit ones readable
-- [ ] Rail pins: away pins light, not green (green = affordable)
+- [x] Rail pins: away pins light, not green (green = affordable)
 - [ ] Pile floor like the factory backdrop; wave bar inset 6 like the panels; white badge count; build version
 - [ ] Station tiers: machine tool in the part's tier colour, tier lamps, more hardware at tiers 3 and 5; flash + puff on a fit
 - [ ] Station upgrade rows: free crew slots as floor marks, flywheel (Lighter work), worker tools (Faster crews)

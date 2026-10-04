@@ -1689,7 +1689,7 @@ func pane() -> void:
 	var bottom := int(bar.max_value - bar.page)
 	t.check(bottom > 300 and rail._thumb().has_area(), "5 lines scroll (%d px), thumb shown" % bottom)
 	t.check(scroll.scroll_vertical == 0 and rail.state(0) == ScrollRail.Pin.SHOWN and rail.state(1) == ScrollRail.Pin.AWAY, "starts at the top: field in view, yard away")
-	t.check(yard_pin.theme_type_variation == &"LitButton" and field_pin.theme_type_variation == &"", "away pin lit as quick access, the other plain")
+	t.check(yard_pin.theme_type_variation == &"AwayButton" and field_pin.theme_type_variation == &"", "away pin light as quick access, the other plain")
 	t.check(Sound.presence.field == 1.0 and Sound.presence.yard == 0.0 and Sound.presence.factory > 0.0, "sound: field and lines present, yard hidden")
 	GameState.scrap = 1e6
 	GameState.credits = 1e6
@@ -1720,7 +1720,7 @@ func pane() -> void:
 	await t.click(yard_pin)
 	await t.wait(ScrollRail.JUMP_TIME + 0.1)
 	t.check(scroll.scroll_vertical == bottom and Sound.visible_share(yard) == 1.0 and rail.state(1) == ScrollRail.Pin.SHOWN, "quick access scrolls down to the yard")
-	t.check(rail.state(0) == ScrollRail.Pin.AWAY and field_pin.theme_type_variation == &"LitButton", "the field pin turns into quick access")
+	t.check(rail.state(0) == ScrollRail.Pin.AWAY and field_pin.theme_type_variation == &"AwayButton", "the field pin turns into quick access")
 	t.check(Sound.presence.field == 0.0 and Sound.presence.yard == 1.0 and is_equal_approx(Sound._area_gain("field"), db_to_linear(Data.audio.areas.field.hidden_db)),
 			"sound: field down to hidden_db, yard present")
 	await t.shot("pane_bottom")

@@ -16,7 +16,7 @@ const DIM := Color(1, 1, 1, 0.45)
 const GLYPHS := [preload("res://art/ui/rail_field.png"), preload("res://art/ui/rail_yard.png")]
 const ARROWS := [preload("res://art/ui/arrow_up.png"), preload("res://art/ui/arrow_down.png")]
 const PIN_TEX := preload("res://art/ui/pin.png")
-const STYLES := [&"", &"PinnedButton", &"LitButton"]
+const STYLES := [&"", &"PinnedButton", &"AwayButton"]
 
 @export var scroll: ScrollContainer
 @export var top: Control
