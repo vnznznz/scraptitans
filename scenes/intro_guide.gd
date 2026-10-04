@@ -1,10 +1,13 @@
 class_name IntroGuide
 extends Control
 
+enum Place { ABOVE, BELOW, BESIDE }
+
 const COLOR := Pal.YELLOW
 const OUTLINE := Pal.INK
 const ARROW := Vector2(8, 10)
-const MARGIN := 16.0
+const MARGIN := 6.0
+const PLATE_PAD := 4
 const FIELD_TAPS := 3
 const AREA_DIP := 20.0
 const BUTTON_DIP := 2.0
@@ -27,11 +30,14 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 	_label = Label.new()
 	_label.name = "Text"
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_label.add_theme_color_override("font_color", COLOR)
-	_label.add_theme_color_override("font_outline_color", OUTLINE)
-	_label.add_theme_constant_override("outline_size", 4)
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = OUTLINE
+	plate.content_margin_left = PLATE_PAD
+	plate.content_margin_right = PLATE_PAD
+	plate.content_margin_top = 0
+	plate.content_margin_bottom = 0
+	_label.add_theme_stylebox_override("normal", plate)
 	add_child(_label)
 
 
@@ -47,20 +53,25 @@ func _process(delta: float) -> void:
 	_t += delta
 	var bob := roundf(sin(_t * 6.0) * 3.0)
 	var target: Control = step[1]
-	_down = step[2]
+	var place: Place = step[2]
 	if target and rail and rail.reach(target) != target:
 		target = rail.reach(target)
-		_down = target == rail.pin_button(1)
+		place = Place.ABOVE if target == rail.pin_button(1) else Place.BELOW
+	_down = place == Place.ABOVE
 	_arrow = target != null
 	if _arrow:
 		var rect := target.get_global_rect()
 		var dip := BUTTON_DIP if target is BaseButton else AREA_DIP
 		_tip = Vector2(rect.get_center().x, (rect.position.y + dip - bob) if _down else (rect.end.y + 2.0 + bob)) - global_position
 	_label.text = step[0]
-	_label.custom_minimum_size.x = size.x - MARGIN * 2.0
 	_label.reset_size()
-	var y := _tip.y - ARROW.y - 2.0 - _label.size.y if _down else _tip.y + ARROW.y + 2.0
-	_label.position = Vector2(MARGIN, y)
+	var at := Vector2(_tip.x - _label.size.x / 2.0, _tip.y + ARROW.y + 2.0)
+	match place:
+		Place.ABOVE:
+			at.y = _tip.y - ARROW.y - 2.0 - _label.size.y
+		Place.BESIDE:
+			at = Vector2(_tip.x - ARROW.x - PLATE_PAD - _label.size.x, _tip.y - bob - 2.0)
+	_label.position = Vector2(clampf(at.x, MARGIN, size.x - MARGIN - _label.size.x), at.y).round()
 	modulate.a = 0.75 + 0.25 * sin(_t * 4.0)
 	queue_redraw()
 
@@ -85,11 +96,11 @@ func _step() -> Array:
 		if segs[i].built:
 			continue
 		if GameState.scrap < GameState.build_cost(0, i):
-			return ["TAP THE SCRAP PILE", pile, true]
-		return ["BUILD THE %s STATION" % str(Data.segment_type(segs[i].type_id).name).to_upper(), line.segment_view(i).get_node("Build"), false]
+			return ["TAP THE SCRAP PILE", pile, Place.ABOVE]
+		return ["BUILD THE %s STATION" % str(Data.segment_type(segs[i].type_id).name).to_upper(), line.segment_view(i).get_node("Build"), Place.BELOW]
 	for i in segs.size():
 		if segs[i].stall == SegmentState.Stall.NO_SCRAP:
-			return ["OUT OF SCRAP: TAP THE PILE", pile, true]
+			return ["OUT OF SCRAP: TAP THE PILE", pile, Place.ABOVE]
 	var from := 0
 	for i in segs.size():
 		var m := segs[i].mech
@@ -97,17 +108,17 @@ func _step() -> Array:
 			from = i + 1 if segs[i].assembling or m.has_part(segs[i].type_id) else i
 	for i in range(from, segs.size()):
 		if not segs[i].bar_full():
-			return ["TAP STATIONS TO BUILD A MECH", line.segment_view(i), false]
-	return ["TAP STATIONS TO BUILD A MECH", null, false]
+			return ["TAP STATIONS TO BUILD A MECH", line.segment_view(i), Place.BELOW]
+	return ["TAP STATIONS TO BUILD A MECH", null, Place.BELOW]
 
 
 func _hint() -> Array:
 	if GameState.levels.is_empty() and GameState.affordable_upgrades() > 0 and upgrades and menu:
 		if not menu.visible:
-			return ["UPGRADE AVAILABLE", upgrades, true]
+			return ["UPGRADE AVAILABLE", upgrades, Place.ABOVE]
 		var buy := menu.first_affordable()
 		if buy:
-			return ["BUY IT", buy, false]
+			return ["BUY IT", buy, Place.BESIDE]
 	if GameState.field_taps < FIELD_TAPS and not GameState.field.is_empty() and battlefield and battlefield.size.y >= Battlefield.HEIGHT and not (menu and menu.visible):
-		return ["TAP THE FIELD TO HIT THE WAVE", battlefield.hint_anchor(), true]
+		return ["TAP THE FIELD TO HIT THE WAVE", battlefield.hint_anchor(), Place.ABOVE]
 	return []

@@ -2115,10 +2115,13 @@ func intro() -> void:
 	var arrow_x := func() -> float: return guide.get("_tip").x + guide.global_position.x
 	t.check(guide.text() == "TAP THE SCRAP PILE", "fresh game: guide points at the pile (%s)" % guide.text())
 	t.check(absf(arrow_x.call() - pile.get_global_rect().get_center().x) < 1.0, "arrow above the pile")
+	var label: Label = guide.get_node("Text")
+	var on_screen := func() -> bool: return main.get_global_rect().grow(-IntroGuide.MARGIN).encloses(label.get_global_rect())
+	t.check(absf(label.get_global_rect().get_center().x - arrow_x.call()) <= 1.0 and on_screen.call(), "label centered on its arrow")
 	await t.shot("intro_pile")
 	for i in 10:
 		await t.click(pile)
-	t.check(guide.text() == "BUILD THE FRAME STATION", "10 scrap: build the frame (%s)" % guide.text())
+	t.check(guide.text() == "BUILD THE FRAME STATION" and on_screen.call(), "10 scrap: build the frame, label kept on screen (%s)" % guide.text())
 	await t.shot("intro_build")
 	await t.click(_build_button(line, 0))
 	t.check(guide.text() == "TAP THE SCRAP PILE", "short on scrap again: back to the pile")
@@ -2165,6 +2168,10 @@ func intro() -> void:
 	await t.frames(2)
 	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
 	t.check(guide.text() == "BUY IT" and absf(arrow_x.call() - menu.first_affordable().get_global_rect().get_center().x) < 1.0, "menu open: arrow on the cheapest affordable row")
+	var covered := (menu.find_children("*", "Label", true, false) + menu.find_children("Buy", "Button", true, false)).filter(func(c: Control) -> bool:
+		return c.is_visible_in_tree() and c.get_global_rect().intersects(label.get_global_rect()))
+	t.check(covered.is_empty() and label.get_global_rect().end.x < arrow_x.call() and on_screen.call(),
+			"BUY IT beside its arrow, on no row text or buy button %s" % [covered.map(func(c: Control) -> String: return str(c.name))])
 	await t.shot("intro_buy")
 	await t.click(menu.first_affordable())
 	await t.frames(2)
