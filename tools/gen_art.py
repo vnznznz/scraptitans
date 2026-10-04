@@ -1476,11 +1476,25 @@ def workers():
             px(d, 9, 3, CYAN)
         save(img, f"line/worker_{gear}.png")
 
-    img, d = new(10, 14)
-    worker(d, 0, 0)
-    d.line([8, 3, 8, 10], fill=BROWN)
-    sbox(d, 7, 10, 9, 13, R_STEEL, outline=None)
-    save(img, "yard/worker.png")
+    for gear, ramp in enumerate((R_STEEL, R_GOLD, R_BLUE)):
+        for haul in range(3):
+            img, d = new(16, 14)
+            worker(d, 0, 0)
+            if haul == 0:
+                d.line([8, 3, 8, 10], fill=BROWN)
+                sbox(d, 7, 10, 9, 13, ramp, outline=None)
+            elif haul == 1:
+                d.line([9, 1, 9, 8], fill=BROWN)
+                sbox(d, 7, 8, 12, 13, ramp, outline=None)
+            else:
+                rect(d, 7, 8, 9, 8, BROWN)
+                d.polygon([(9, 6), (15, 6), (15, 10), (11, 10)], fill=ramp[1], outline=INK)
+                rect(d, 11, 7, 14, 7, ramp[2])
+                rect(d, 10, 5, 14, 5, RUST)
+                px(d, 12, 4, ORANGE)
+                rect(d, 12, 11, 14, 13, INK)
+                px(d, 13, 12, STEEL_L)
+            save(img, f"yard/worker_{gear}_{haul}.png")
 
     img, d = new(16, 16)
     worker(d, 2, 1)
@@ -1511,6 +1525,26 @@ def yard():
             px(d, cx + 10, base - hh * 0.6, INK)
             d.line([cx - 12, base - hh * 0.7, cx - 4, base - hh * 0.95], fill=RUST_L, width=2)
         save(img, f"yard/pile_{level + 1}.png")
+    for k, (mw, mh) in enumerate([(12, 7), (18, 9), (24, 12)]):
+        save(magnet(mw, mh), f"yard/magnet_{k + 1}.png")
+
+
+def magnet(w, h):
+    img, d = new(w + 2, h + 8)
+    cx = (w + 2) // 2
+    sbox(d, cx - 3, 0, cx + 2, 2, R_IRON, outline=None)
+    rect(d, cx - 1, 3, cx, 6, STEEL)
+    rect(d, 1, 7, w, 6 + h, RED)
+    rect(d, 1, 7, w, 7, PINK)
+    rect(d, w, 8, w, 6 + h, RED_D)
+    leg = max(3, w // 4)
+    rect(d, 1 + leg, 7 + leg, w - leg, 6 + h, CLEAR)
+    rect(d, leg, 8 + leg, leg, 6 + h, RED_D)
+    for x0 in (1, w - leg + 1):
+        rect(d, x0, 5 + h, x0 + leg - 1, 6 + h, STEEL_L)
+        rect(d, x0, 6 + h, x0 + leg - 1, 6 + h, STEEL)
+    outline(img)
+    return img
 
 
 CREDIT_TIERS = [(ORANGE, GOLD, YELLOW), (GREEN_D, GREEN, WHITE), (PURPLE, MAGENTA, PINK)]

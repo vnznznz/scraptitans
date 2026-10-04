@@ -4,7 +4,11 @@ extends Control
 const PILE_TEX := preload("res://art/yard/pile_3.png")
 const PILE_LEVELS := [preload("res://art/yard/pile_1.png"), preload("res://art/yard/pile_2.png"), PILE_TEX]
 const PILE_SECONDS := [5.0, 30.0]
-const WORKER_TEX := preload("res://art/yard/worker.png")
+const MAGNET_TEX := [preload("res://art/yard/magnet_1.png"), preload("res://art/yard/magnet_2.png"), preload("res://art/yard/magnet_3.png")]
+const MAGNET_LEVELS := 5.0
+const HAUL_HIGH := 8
+const WORKER_SIZE := Vector2(16, 14)
+const BODY_W := 10.0
 const PILE_POS := Vector2(62, 20)
 const PILE_EDGES := Vector2(75, 163)
 const GROUND_Y := 84.0
@@ -13,6 +17,7 @@ const GROUND := Pal.SLATE_D
 const GROUND_LIGHT := Pal.SLATE
 const WORKER_DX := 7.0
 const SQUASH_TIME := 0.12
+const MAGNET_PULL := Color(2, 2, 2)
 
 var _yard: Control
 var _pile: TextureRect
@@ -22,6 +27,9 @@ var _crew: Label
 var _bar_k := 0.0
 var _top := 0.0
 var _workers: Array[TextureRect] = []
+var _worker_tex := []
+var _look := Vector2i.ZERO
+var _magnet: TextureRect
 var _chunks_seen := 0
 var _squash_depth := 0.0
 var _squash_at := -1.0
@@ -44,6 +52,17 @@ func _ready() -> void:
 	_pile.pivot_offset = Vector2(PILE_TEX.get_width() / 2.0, PILE_TEX.get_height())
 	_pile.mouse_filter = MOUSE_FILTER_IGNORE
 	_yard.add_child(_pile)
+
+	_magnet = TextureRect.new()
+	_magnet.name = "Magnet"
+	_magnet.mouse_filter = MOUSE_FILTER_IGNORE
+	_magnet.visible = false
+	_yard.add_child(_magnet)
+	for gear in 3:
+		var hauls := []
+		for haul in 3:
+			hauls.append(load("res://art/yard/worker_%d_%d.png" % [gear, haul]))
+		_worker_tex.append(hauls)
 
 	_tap = TapArea.new()
 	_tap.name = "Pile"
@@ -81,6 +100,7 @@ func collapse() -> void:
 	_collapsed = true
 	_hire.visible = false
 	_crew.visible = false
+	_magnet.visible = false
 	for w in _workers:
 		w.visible = false
 	queue_redraw()
@@ -111,18 +131,29 @@ func _process(delta: float) -> void:
 	_pile.texture = PILE_LEVELS[pile_level()]
 	if _collapsed:
 		return
+	var magnet := mini(ceili(GameState.level("tap") / MAGNET_LEVELS), MAGNET_TEX.size())
+	_magnet.visible = magnet > 0
+	if magnet > 0:
+		_magnet.texture = MAGNET_TEX[magnet - 1]
+		_magnet.position = Vector2(PILE_POS.x + roundf((PILE_TEX.get_width() - _magnet.texture.get_width()) / 2.0), 0)
+	var look := Vector2i(SegmentView.step(GameState.level("interval"), SegmentView.STEP_HIGH), SegmentView.step(GameState.level("yard_haul"), HAUL_HIGH))
+	if look != _look:
+		_look = look
+		for w in _workers:
+			w.texture = _worker_tex[look.x][look.y]
 	var slots := GameState.yard_slots()
 	while _workers.size() < slots:
 		var i := _workers.size()
 		var j := int(i / 2.0)
 		var w := TextureRect.new()
-		w.texture = WORKER_TEX
+		w.name = "Worker%d" % i
+		w.texture = _worker_tex[look.x][look.y]
 		w.mouse_filter = MOUSE_FILTER_IGNORE
 		w.flip_h = i % 2 == 1
 		w.position = _home(i)
 		w.modulate = Color.WHITE.darkened(0.25) if j % 2 == 1 else Color.WHITE
 		_yard.add_child(w)
-		_yard.move_child(w, _pile.get_index())
+		_yard.move_child(w, _pile.get_index() + 1)
 		_workers.append(w)
 	var bar := Reveal.step(_bar_k, GameState.shown("yard_crew"), delta)
 	if bar != _bar_k:
@@ -152,18 +183,17 @@ func pile_level() -> int:
 
 func _home(i: int) -> Vector2:
 	var j := int(i / 2.0)
-	var h := WORKER_TEX.get_height()
-	var w := WORKER_TEX.get_width()
-	var y := GROUND_Y - h - (j % 2) * 4.0
+	var y := GROUND_Y - WORKER_SIZE.y - (j % 2) * 4.0
 	if i % 2 == 0:
-		return Vector2(PILE_EDGES.x - w - 4.0 - j * WORKER_DX, y)
-	return Vector2(PILE_EDGES.y + 4.0 + j * WORKER_DX, y)
+		return Vector2(PILE_EDGES.x - BODY_W - 4.0 - j * WORKER_DX, y)
+	return Vector2(PILE_EDGES.y + 4.0 + j * WORKER_DX - (WORKER_SIZE.x - BODY_W), y)
 
 
 func _dig(i: int) -> void:
 	var w := _workers[i]
 	var home := _home(i)
-	var hit_x := PILE_EDGES.x - WORKER_TEX.get_width() + 2.0 if i % 2 == 0 else PILE_EDGES.y - 2.0
+	var hit_x := PILE_EDGES.x - BODY_W + 2.0 if i % 2 == 0 else PILE_EDGES.y - 2.0 - (WORKER_SIZE.x - BODY_W)
+	var body_x := BODY_W / 2.0 if i % 2 == 0 else WORKER_SIZE.x - BODY_W / 2.0
 	var speed := maxf(GameState.time_scale, 1.0)
 	if w.has_meta("tween"):
 		(w.get_meta("tween") as Tween).kill()
@@ -175,7 +205,7 @@ func _dig(i: int) -> void:
 	tw.tween_callback(func() -> void:
 		_squash(0.97, 1.0, 0.2)
 		Sound.play(&"yard_hit")
-		Flyers.spawn(Flyers.Kind.SCRAP, w.global_position + Vector2(WORKER_TEX.get_width() / 2.0, -4), GameState.yard_chunk()))
+		Flyers.spawn(Flyers.Kind.SCRAP, w.global_position + Vector2(body_x, -4), GameState.yard_chunk()))
 	tw.tween_property(w, "position", Vector2((hit_x + home.x) / 2.0, home.y - 4.0), 0.1 / speed) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(w, "position", home, 0.12 / speed).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -213,3 +243,10 @@ func _on_tap(at: Vector2) -> void:
 	Sound.play(&"pile_tap")
 	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), amount, 1, true)
 	_squash(0.92, 2.0, 0.06)
+	if _magnet.visible:
+		if _magnet.has_meta("tween"):
+			(_magnet.get_meta("tween") as Tween).kill()
+		_magnet.modulate = MAGNET_PULL
+		var tw := _magnet.create_tween()
+		_magnet.set_meta("tween", tw)
+		tw.tween_property(_magnet, "modulate", Color.WHITE, SQUASH_TIME)

@@ -1938,6 +1938,43 @@ func stations() -> void:
 			"level 6: big flywheel, spinning while assembling; power tools (%s)" % [spin.keys()])
 	await t.shot("station_upgrades_high")
 
+	var yard: Scrapyard = t.node("Scrapyard")
+	var magnet: TextureRect = yard.get_node("Yard/Magnet")
+	GameState.hire_yard_worker()
+	GameState.hire_yard_worker()
+	await t.frames(2)
+	var digger: TextureRect = yard.get_node("Yard/Worker0")
+	var look := func() -> String: return digger.texture.resource_path.get_file()
+	t.check(not magnet.visible and look.call() == "worker_2_0.png", "pile: no magnet yet, shovels with the crews' power tools (%s)" % look.call())
+	GameState.buy_upgrade("yard_haul")
+	GameState.buy_upgrade("tap")
+	await t.frames(2)
+	t.check(look.call() == "worker_2_1.png" and magnet.visible and magnet.texture == Scrapyard.MAGNET_TEX[0], "Bigger shovels: bigger blade; Scrap magnet: a magnet over the pile")
+	var pile_rect: Rect2 = (yard.get_node("Yard/PileSprite") as Control).get_global_rect()
+	t.check(absf(magnet.get_global_rect().get_center().x - pile_rect.get_center().x) <= 1.0 and magnet.get_global_rect().position.y == yard.get_node("Yard").global_position.y
+			and magnet.get_global_rect().end.y < pile_rect.position.y + 9.0, "magnet hangs centered from the top, above the biggest pile's peak")
+	(t.node("Scroll") as ScrollContainer).scroll_vertical = 100000
+	await t.frames(2)
+	await t.shot("pile_upgrades")
+	for i in 7:
+		GameState.buy_upgrade("yard_haul")
+	for i in 10:
+		GameState.buy_upgrade("tap")
+	for i in 6:
+		GameState.buy_upgrade("yard_crew")
+		GameState.hire_yard_worker()
+	await t.frames(2)
+	t.check(look.call() == "worker_2_2.png" and magnet.texture == Scrapyard.MAGNET_TEX[2] and magnet.get_global_rect().end.y < pile_rect.position.y + 9.0,
+			"level 8: wheelbarrows; magnet level 11: biggest magnet, still above the peak")
+	var bodies_clear := range(GameState.yard_workers).all(func(i: int) -> bool:
+		var w: Control = yard.get_node("Yard/Worker%d" % i)
+		return w.position.x + Scrapyard.BODY_W <= Scrapyard.PILE_EDGES.x if i % 2 == 0 else w.position.x + Scrapyard.WORKER_SIZE.x - Scrapyard.BODY_W >= Scrapyard.PILE_EDGES.y)
+	t.check(bodies_clear, "pile workers stand beside the pile, tools toward it")
+	await t.click(yard.pile())
+	t.check(magnet.modulate != Color.WHITE, "pile tap: the magnet lights up")
+	await t.wait(0.3)
+	await t.shot("pile_upgrades_high")
+
 
 const PERF_MECHS := 170
 const PERF_FRAMES := 480
