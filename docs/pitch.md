@@ -84,7 +84,7 @@ Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything i
 A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**, cheapest first. Everything here costs credits. Rows the player can't afford are greyed.
 
 - **Tiers:** unlock the next tier of each station type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
-- **Crew:** more worker slots on every station.
+- **Station crew:** more worker slots on every station.
 - **Workers:** shorter chunk interval, lighter work bars (all stations).
 - **Tap damage:** battlefield taps hit harder.
 - **Yard:** scrap per tap, yard slots, yard haul (scrap per worker trip).
@@ -133,13 +133,13 @@ Every row has an info button with a plain description. Tapping the station body 
 │ BATTLEFIELD (~25%)        │P │  pin P: fixed on top while pinned
 │ ▓▓▓▓▓▓▓░░░ 1.2K/3K 45 DPS │  │  wave healthbar, tap = hit the wave
 │  mechs →  smoke ✸  ← enemy│  │
-│┌ CREW 5/9       [+w  67]  │▐ │  one scroll pane, pixel scroll bar
+│┌ STATION CREW 5/9 [+w 67] │▐ │  one scroll pane, pixel scroll bar
 ││ FRAME [⬆ 2K] ARMS PLATING│▐ │  crew bar + pause strip form an L
 ││[▓▓▓]=[▓▓░]=[░░░]=[+ ]→   │  │  work bar = machine top,
 │⏸ [ww ]  [w  ]  [ww ]      │  │  crew inside, belt, mech exits →
-│┌ CREW 3/9 ...             │  │  next line flush below
+│┌ STATION CREW 3/9 ...     │  │  next line flush below
 │  [ + UNLOCK LINE 2 · cr ] │  │
-│ YARD CREW 2/4   [+w  40]  │  │  yard crew bar
+│ PILE CREW 2/4   [+w  40]  │  │  pile crew bar
 │ w⛏ [SCRAP PILE] ⛏w        │P │  pin P: fixed at the bottom while pinned
 ├───────────────────────────┴──┤
 │ [          UPGRADES     (3)] │  thumb zone → menu
@@ -154,7 +154,7 @@ Every row has an info button with a plain description. Tapping the station body 
   1. A new game (and START AGAIN: "only scrap remains") shows only the scrap pile, centered; the HUD shows only scrap.
   2. Once the pile has paid for the first station, line 1 fades in with all three pads while the scrapyard slides down to the bottom.
   3. The first mech deployed: the battlefield slides down from under the HUD (the mech walks onto it), with the scroll bar and the HUD's mechs and credits.
-  4. Each purchase appears the first time it's affordable: yard crew, line crew, UPGRADES, UNLOCK LINE; pause strips at the first stall.
+  4. Each purchase appears the first time it's affordable: pile crew, station crew, UPGRADES, UNLOCK LINE; pause strips at the first stall.
 - Desktop layout is out of scope for v1 (letterbox the portrait column).
 
 ## Tech (Godot 4)

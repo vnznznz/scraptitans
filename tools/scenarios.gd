@@ -385,14 +385,14 @@ func m5() -> void:
 	await t.frames(1)
 	var hire := line.hire_button()
 	var crew: Label = line.get_node("Crew")
-	t.check(hire.visible and not hire.disabled and crew.text == "CREW 0/9", "one hire button per line, crew 0/9")
+	t.check(hire.visible and not hire.disabled and crew.text == "STATION CREW 0/9", "one hire button per line, crew 0/9")
 	var pause: Control = line.get_node("Pause")
 	t.check(hire.position.y == 1.0 and hire.get_rect().end.y == LineView.CREW_H and is_equal_approx(hire.get_rect().end.x, line.size.x), "hire sits in the crew bar at the right, on its bottom edge")
 	t.check(is_equal_approx(pause.position.y, LineView.CREW_H) and crew.position.x >= pause.size.x and line.segment_view(0).position.y >= LineView.CREW_H, "crew bar on top, pause strip below it at the left: an L")
 	for i in 9:
 		await t.click(hire)
 	await t.frames(1)
-	t.check(not hire.visible and crew.text == "CREW 9/9", "full crew: hire hidden, no MAX")
+	t.check(not hire.visible and crew.text == "STATION CREW 9/9", "full crew: hire hidden, no MAX")
 	t.check(not line.segment_view(0).get_node("Apply").visible and line.segment_view(0).get_node("Header").visible, "nothing to fit: station name shown")
 
 	GameState.scrap = 0.0
@@ -840,14 +840,17 @@ func m8() -> void:
 
 	var hud_mechs: Label = main.find_child("Mechs", true, false)
 	var hud_rate: Label = main.find_child("MechsRate", true, false)
-	var built := GameState.mechs_built
+	var on_field := GameState.field.size()
 	GameState.debug_spawn_mechs(3)
 	GameState.advance(1.1)
 	await t.frames(2)
-	t.check(hud_mechs.text == str(built + 3) and GameState.mechs_per_min == 3 and hud_rate.text == "3/MIN", "HUD: %s mechs, %s" % [hud_mechs.text, hud_rate.text])
+	t.check(hud_mechs.text == str(on_field + 3) and GameState.mechs_per_min == 3 and hud_rate.text == "3/MIN", "HUD: %s mechs, %s" % [hud_mechs.text, hud_rate.text])
 	GameState.advance(60.0)
 	await t.frames(2)
 	t.check(GameState.mechs_per_min == 0 and hud_rate.text == "0/MIN", "rate covers the last minute")
+	GameState.field.pop_back()
+	await t.frames(2)
+	t.check(hud_mechs.text == str(GameState.field.size()), "HUD counts mechs on the field, not built")
 
 	GameState.wave = 3
 	GameState.wave_hp = GameState.wave_max_hp()
@@ -1444,6 +1447,9 @@ func ui() -> void:
 	var upgrades: Button = main.get_node("%Upgrades")
 	var line_hire: Button = main.line_view(0).hire_button()
 	t.check(yard_hire.size == line_hire.size and yard_hire.get_meta("row", false), "yard hire is a crew bar button like the line hire (%s)" % yard_hire.size)
+	var crew: Label = main.line_view(1).get_node("Crew")
+	var crew_w := crew.get_theme_font("font").get_string_size("STATION CREW 99/99", HORIZONTAL_ALIGNMENT_LEFT, -1, crew.get_theme_font_size("font_size")).x
+	t.check(crew_w <= crew.size.x, "STATION CREW 99/99 fits a tagged line's crew bar (%d of %d)" % [crew_w, crew.size.x])
 	var up_rect := upgrades.get_global_rect()
 	t.check(up_rect == Rect2(6, 590, 348, 44), "UPGRADES spans the bottom (%s)" % up_rect)
 	await t.shot("ui_lines")

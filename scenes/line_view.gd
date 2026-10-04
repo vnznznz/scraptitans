@@ -5,7 +5,7 @@ const SEG_STEP := 84.0
 const PAUSE_W := 20.0
 const STRIP_PAD := 2.0
 const CREW_H := 26.0
-const HIRE_W := 120.0
+const HIRE_W := 112.0
 const HEADER_GAP := 4.0
 const L_FILL := Pal.SLATE_D
 const L_LIGHT := Pal.SLATE
@@ -233,7 +233,7 @@ func _process(delta: float) -> void:
 		_layout()
 	var line := _line()
 	var slots := line.worker_slots()
-	_crew.text = "CREW %d/%d" % [line.workers, slots]
+	_crew.text = "STATION CREW %d/%d" % [line.workers, slots]
 	_crew.visible = _bar_k > 0.0
 	_tag.visible = _bar_k > 0.0 and _tagged
 	_crew.modulate.a = 1.0 if slots > 0 else 0.5

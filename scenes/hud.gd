@@ -63,7 +63,7 @@ func _process(delta: float) -> void:
 	_scrap.text = Fmt.num(GameState.scrap)
 	_scrap_rate.text = Fmt.rate(GameState.scrap_rate)
 	_scrap_rate.modulate = STARVED if GameState.starved() else RATE_COLOR
-	_mechs.text = Fmt.num(GameState.mechs_built)
+	_mechs.text = Fmt.num(GameState.field.size())
 	_mechs_rate.text = "%d/MIN" % GameState.mechs_per_min
 	var icon := SOUND_OFF if Sound.muted else SOUND_ON
 	if _mute.icon != icon:

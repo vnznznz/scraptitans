@@ -137,7 +137,7 @@ func _process(delta: float) -> void:
 		_dig((GameState.yard_chunks - 1) % n)
 	_chunks_seen = GameState.yard_chunks
 	_crew.visible = _bar_k > 0.0
-	_crew.text = "YARD CREW %d/%d" % [n, slots]
+	_crew.text = "PILE CREW %d/%d" % [n, slots]
 	var cost := GameState.yard_worker_cost()
 	_hire.visible = _bar_k > 0.0 and n < slots
 	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
