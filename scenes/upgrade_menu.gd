@@ -1,8 +1,10 @@
 class_name UpgradeMenu
 extends Control
 
-const PANEL_ALPHA := 0.85
+const BG_ALPHA := 0.92
 const MARGIN := 6
+const THUMB_W := 4.0
+const THUMB_MIN := 20.0
 const TIER_STATS := {
 	"lifetime": "LIFE %s » %s S",
 	"credits_per_sec": "PAY %s » %s/S",
@@ -14,15 +16,16 @@ var _rows: VBoxContainer
 var _row_nodes := {}
 var _maxed: PanelContainer
 var _maxed_list: Label
+var _thumb: Control
 
 
 class Pips:
 	extends Control
 
-	const SIZE := 3.0
+	const SIZE := 4.0
 	const GAP := 1.0
 	const ON := Pal.GOLD
-	const OFF := Pal.SLATE_D
+	const OFF := Pal.SLATE
 
 	var level := 0
 	var max_level := 1
@@ -45,7 +48,7 @@ func _ready() -> void:
 	visible = false
 	add_to_group("upgrade_menu")
 	var bg := ColorRect.new()
-	bg.color = Color(Pal.INK, 0.8)
+	bg.color = Color(Pal.INK, BG_ALPHA)
 	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -69,7 +72,6 @@ func _ready() -> void:
 	_maxed = PanelContainer.new()
 	_maxed.name = "Maxed"
 	_maxed.mouse_filter = MOUSE_FILTER_PASS
-	_maxed.self_modulate.a = PANEL_ALPHA
 	_rows.add_child(_maxed)
 	var maxed_box := VBoxContainer.new()
 	maxed_box.add_theme_constant_override("separation", 0)
@@ -83,6 +85,11 @@ func _ready() -> void:
 	_maxed_list.modulate = Color(1, 1, 1, 0.6)
 	_maxed_list.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
 	maxed_box.add_child(_maxed_list)
+	_thumb = Control.new()
+	_thumb.name = "Thumb"
+	_thumb.mouse_filter = MOUSE_FILTER_IGNORE
+	_thumb.draw.connect(_draw_thumb)
+	add_child(_thumb)
 
 
 func open() -> void:
@@ -117,7 +124,6 @@ func _add_row(r: Dictionary) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "Row_" + r.id
 	panel.mouse_filter = MOUSE_FILTER_PASS
-	panel.self_modulate.a = PANEL_ALPHA
 	_rows.add_child(panel)
 	var box := VBoxContainer.new()
 	panel.add_child(box)
@@ -202,6 +208,34 @@ func _refresh() -> void:
 	_maxed.visible = not maxed_names.is_empty()
 	_maxed_list.text = ", ".join(maxed_names)
 	_rows.move_child(_maxed, -1)
+	_thumb.queue_redraw()
+
+
+func track() -> Rect2:
+	return Rect2(size.x - MARGIN + 1.0, MARGIN, THUMB_W, size.y - 2.0 * MARGIN)
+
+
+func thumb() -> Rect2:
+	var bar := _scroll.get_v_scroll_bar()
+	var span := bar.max_value - bar.page
+	if span <= 0.0:
+		return Rect2()
+	var groove := track()
+	var h := maxf(THUMB_MIN, roundf(groove.size.y * bar.page / bar.max_value))
+	var y := groove.position.y + roundf((groove.size.y - h) * _scroll.scroll_vertical / span)
+	return Rect2(groove.position.x, y, THUMB_W, h)
+
+
+func _draw_thumb() -> void:
+	var grabber := thumb()
+	if not grabber.has_area():
+		return
+	var groove := track()
+	_thumb.draw_rect(groove, Pal.INK)
+	_thumb.draw_rect(groove.grow_individual(-1, 0, -1, 0), Pal.NAVY)
+	_thumb.draw_rect(grabber, Pal.INK)
+	_thumb.draw_rect(grabber.grow(-1), Pal.SLATE)
+	_thumb.draw_rect(Rect2(grabber.position + Vector2.ONE, Vector2(THUMB_W - 2.0, 1)), Pal.STEEL)
 
 
 func _describe(r: Dictionary, title: Label, effect: Label, pips: Pips) -> void:

@@ -1504,9 +1504,14 @@ func ui() -> void:
 	var scrap := GameState.scrap
 	await t.click(pile)
 	t.check(GameState.scrap == scrap, "menu blocks the pile")
+	t.check(menu.get_child(0).color.a >= 0.9 and menu.row("tap").self_modulate.a == 1.0, "menu nearly opaque, rows opaque")
+	var groove := menu.track()
+	t.check(menu.thumb().has_area() and menu.thumb().position.y == groove.position.y and groove.end.x < menu.size.x and groove.position.x > list.get_rect().end.x,
+			"list scrolls: thumb at the top of the right margin (%s)" % menu.thumb())
 	await t.shot("ui_menu")
 	list.scroll_vertical = 100000
 	await t.frames(2)
+	t.check(menu.thumb().end.y == groove.end.y, "scrolled to the end: thumb at the bottom")
 	await t.shot("ui_menu_end")
 	GameState.credits = 1e30
 	for r: Dictionary in Data.upgrade_list:
