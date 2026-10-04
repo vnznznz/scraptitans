@@ -156,7 +156,6 @@ func _add_row(r: Dictionary) -> void:
 	h.add_child(info)
 	var buy := Button.new()
 	buy.name = "Buy"
-	buy.icon = preload("res://art/ui/credits.png")
 	buy.custom_minimum_size = Vector2(104, 44)
 	buy.mouse_filter = MOUSE_FILTER_PASS
 	buy.set_meta(&"silent", true)

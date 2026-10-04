@@ -84,7 +84,6 @@ func _ready() -> void:
 
 	_build = Button.new()
 	_build.name = "Build"
-	_build.icon = preload("res://art/ui/scrap.png")
 	Price.setup(_build, Flyers.Kind.SCRAP)
 	_build.size = Vector2(72, 44)
 	_build.position = Vector2(4, _pad.position.y + 1.0 - _build.size.y)
@@ -123,7 +122,7 @@ func _ready() -> void:
 
 	_apply = Button.new()
 	_apply.name = "Apply"
-	_apply.icon = preload("res://art/ui/up.png")
+	_apply.icon = preload("res://art/ui/up_s.png")
 	_apply.add_theme_constant_override("h_separation", 2)
 	_apply.position = Vector2(0, -1)
 	_apply.size = Vector2(WIDTH, NAME_H + 2)

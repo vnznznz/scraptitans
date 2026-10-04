@@ -999,7 +999,7 @@ func m9() -> void:
 	t.check(build.disabled and build.theme_type_variation == &"PriceButton", "unaffordable build: normal button, dim price")
 	GameState.scrap = 100.0
 	await t.frames(2)
-	t.check(not build.disabled and build.theme_type_variation == &"LitButton" and Price.color(build) == Price.COLORS[Flyers.Kind.SCRAP], "affordable build: lit, scrap-colored price")
+	t.check(not build.disabled and build.theme_type_variation == &"LitButton" and Price.color(build) == Price.ON, "affordable build: lit, white price")
 	for i in 3:
 		await t.click(_build_button(line, i))
 
@@ -1435,22 +1435,38 @@ func ui() -> void:
 	GameState.buy_upgrade("lines")
 	GameState.credits = 5000.0
 	GameState.build_segment(0, 0)
+	GameState.buy_upgrade("tier_frame")
 	await t.frames(3)
 	var buttons := main.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
 		return b.has_node("Price") and b.is_visible_in_tree())
-	t.check(buttons.size() >= 6, "price buttons on screen (%d)" % buttons.size())
+	t.check(buttons.size() >= 7, "price buttons on screen (%d)" % buttons.size())
 	for b: Button in buttons:
 		var box: HBoxContainer = b.get_node("Price")
 		var first: Control = box.get_child(0)
 		var last: Control = box.get_child(-1)
 		var group_x := (first.get_global_rect().position.x + last.get_global_rect().end.x) / 2.0
-		var label: Label = box.get_node("Text")
+		var label: Label = box.get_node("Cost/Text")
 		var center := b.get_global_rect().get_center()
 		t.check(absf(group_x - center.x) <= 1.0 and absf(label.get_global_rect().get_center().y - center.y) <= 1.0,
 				"%s: icon + price centered (dx %.1f, dy %.1f)" % [b.name, group_x - center.x, label.get_global_rect().get_center().y - center.y])
+		var icon: TextureRect = box.get_node("Cost/Icon")
+		var credits: bool = b.name in ["Hire", "HireYard", "Buy", "UnlockLine"]
+		var icons: Array = Price.ICONS_SMALL if b.get_meta("row", false) else Price.ICONS
+		t.check(icon.texture == icons[Flyers.Kind.CREDITS if credits else Flyers.Kind.SCRAP] and icon.get_index() == label.get_index() - 1 and label.get_index() == label.get_parent().get_child_count() - 1,
+				"%s: %s icon right before the price" % [b.name, "coin" if credits else "nut"])
 	var yard_hire: Button = main.find_child("HireYard", true, false)
 	var upgrades: Button = main.get_node("%Upgrades")
 	var line_hire: Button = main.line_view(0).hire_button()
+	var fit: Button = main.line_view(0).segment_view(0).get_node("Apply")
+	var unlock: Button = main.find_child("UnlockLine", true, false)
+	var widest := [[fit, "52.3K", ""], [line_hire, "21.8K", ""], [yard_hire, "21.8K", ""], [unlock, "84.5K", "+ LINE 5"],
+			[main.line_view(1).segment_view(0).get_node("Build"), "200", ""]]
+	for w: Array in widest:
+		var b: Button = w[0]
+		Price.show(b, w[1], false, w[2])
+		var need: float = (b.get_node("Price") as Control).get_combined_minimum_size().x
+		var room := b.size.x - b.get_theme_stylebox("normal").get_minimum_size().x
+		t.check(b.is_visible_in_tree() and need <= room, "%s: widest price %s fits (%d of %d)" % [b.name, w[1], need, room])
 	t.check(yard_hire.size == line_hire.size and yard_hire.get_meta("row", false), "yard hire is a crew bar button like the line hire (%s)" % yard_hire.size)
 	var crew: Label = main.line_view(1).get_node("Crew")
 	var crew_w := crew.get_theme_font("font").get_string_size("LINE CREW 99/99", HORIZONTAL_ALIGNMENT_LEFT, -1, crew.get_theme_font_size("font_size")).x

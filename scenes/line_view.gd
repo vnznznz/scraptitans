@@ -92,7 +92,7 @@ func _ready() -> void:
 	add_child(_crew)
 	_hire = Button.new()
 	_hire.name = "Hire"
-	_hire.icon = preload("res://art/line/worker.png")
+	_hire.icon = preload("res://art/ui/worker.png")
 	_hire.mouse_filter = MOUSE_FILTER_PASS
 	Price.setup(_hire, Flyers.Kind.CREDITS, true)
 	_hire.set_meta(&"silent", true)

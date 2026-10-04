@@ -51,9 +51,8 @@ func _ready() -> void:
 		theme.set_stylebox("grabber_highlight", "VScrollBar", theme.get_stylebox("grabber", "VScrollBar"))
 	_unlock = Button.new()
 	_unlock.name = "UnlockLine"
-	_unlock.icon = preload("res://art/ui/credits.png")
 	_unlock.custom_minimum_size = UNLOCK_SMALL
-	Price.setup(_unlock, Flyers.Kind.CREDITS)
+	Price.setup(_unlock, Flyers.Kind.CREDITS, false, true)
 	_unlock.mouse_filter = MOUSE_FILTER_PASS
 	_unlock.set_meta(&"silent", true)
 	_unlock.pressed.connect(_on_unlock)
@@ -114,7 +113,7 @@ func _process(delta: float) -> void:
 	if _unlock_slot.visible:
 		var cost := GameState.upgrade_cost("lines")
 		var can_buy := GameState.credits >= cost
-		Price.show(_unlock, "+ LINE %d  %s" % [GameState.lines.size() + 1, Fmt.num(cost)], can_buy)
+		Price.show(_unlock, Fmt.num(cost), can_buy, "+ LINE %d" % (GameState.lines.size() + 1))
 		_unlock.custom_minimum_size = UNLOCK_BIG if can_buy else UNLOCK_SMALL
 
 

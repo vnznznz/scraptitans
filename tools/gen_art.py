@@ -1506,6 +1506,8 @@ def rail_icons():
 def ui():
     save(coin(16, CREDIT_TIERS[0]), "ui/credits.png")
     save(nut(16, SCRAP_TIERS[0]), "ui/scrap.png")
+    save(coin(12, CREDIT_TIERS[0]), "ui/credits_s.png")
+    save(nut(12, SCRAP_TIERS[0]), "ui/scrap_s.png")
     for i in range(3):
         save(coin(10, CREDIT_TIERS[i]), f"fx/disc_credits_{i + 1}.png")
         save(nut(10, SCRAP_TIERS[i]), f"fx/disc_scrap_{i + 1}.png")
@@ -1602,10 +1604,12 @@ def ui():
     d.polygon([(4, 2), (13, 8), (4, 13)], fill=GREEN, outline=INK)
     rect(d, 5, 5, 5, 9, WHITE)
     save(img, "ui/play.png")
-    img, d = new(16, 16)
-    d.polygon([(8, 1), (14, 8), (10, 8), (10, 14), (6, 14), (6, 8), (2, 8)], fill=GREEN, outline=INK)
-    d.line([8, 3, 12, 7], fill=WHITE)
-    save(img, "ui/up.png")
+    img, d = new(8, 12)
+    for k in range(3):
+        rect(d, 3 - k, 1 + k, 4 + k, 1 + k, WHITE)
+    rect(d, 3, 4, 4, 10, WHITE)
+    outline(img)
+    save(img, "ui/up_s.png")
 
     img, d = new(16, 16)
     sbox(d, 3, 1, 12, 2, R_STEEL, outline=None)
