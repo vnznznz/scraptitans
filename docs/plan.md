@@ -364,6 +364,31 @@ Test:
 - Open the menu early, mid and late in a run: each row's name and effect line make sense without the info button; the info text agrees
 - Buy Scrap magnet with a pile crew: pile taps give visibly more scrap
 
+## M17 · Graphics consistency
+
+Build: one look for every price, frame edge and overlay; stations and the pile show what was bought for them. Done before M14.
+
+- [ ] Prices: every purchase button reads what · currency icon · price (coin on hire, nut on fit, UNLOCK LINE's coin at its price); white price on the lit face; one hire glyph
+- [ ] Crew bars: line tag 16×20 and centered, tag digit / crew text / hire price on the same rows; hire and fit share the rail's and the pause strip's edge; L frame corner closed
+- [ ] Stations: pad as wide as the build button; stat icons at one distance from the name; headers end before the rail; crews never cross behind the mech
+- [ ] Intro guide: label on a plate, centered on its arrow; `BUY IT` beside the arrow, clear of row text and prices
+- [ ] Upgrade menu: nearly opaque; scroll thumb in the right margin; 4 px pips, unlit ones readable
+- [ ] Rail pins: away pins light, not green (green = affordable)
+- [ ] Pile floor like the factory backdrop; wave bar inset 6 like the panels; white badge count; build version
+- [ ] Station tiers: machine tool in the part's tier colour, tier lamps, more hardware at tiers 3 and 5; flash + puff on a fit
+- [ ] Station upgrade rows: free crew slots as floor marks, flywheel (Lighter work), worker tools (Faster crews)
+- [ ] Pile upgrade rows: bigger shovel, then wheelbarrow (Bigger shovels); magnet crane over the pile (Scrap magnet)
+
+Test (browser + phone):
+- Every button that costs something shows a coin or a nut left of its price; affordable prices are white on green and easy to read
+- Line tags sit centered in their crew bar; no doubled outlines where hire meets the scroll bar or fit meets the pause strip
+- New game: no guide text on top of other text; `BUY IT` sits beside its arrow
+- Open the menu: the factory no longer shows through; a thumb on the right shows the list position
+- Scroll away from the field or the pile: its pin turns light, not green
+- Fit a tier: the station flashes and its tool takes the new part's colour; one more tier lamp is lit
+- Buy Crew per station: one more floor mark per station; Lighter work: a flywheel appears and spins while assembling; Faster crews: workers hold a better tool
+- Buy Bigger shovels and Scrap magnet: pile workers get bigger shovels, later wheelbarrows; a magnet hangs over the pile and grows
+
 ## Not in the prototype
 
 A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.
