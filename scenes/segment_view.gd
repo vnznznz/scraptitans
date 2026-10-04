@@ -22,13 +22,15 @@ const WORKER_TEX := preload("res://art/line/worker.png")
 const TOOL_HEAD := Vector2(40, 56)
 const BLOCKED_DELAY := 3.0
 const WORK_FPS := 11.0
+const FIT_FLASH := 0.12
+const FLASH := Color(3, 3, 3)
 
 var line_index := 0
 var seg_index := 0
 
 var _header: HBoxContainer
 var _name: Label
-var _machine: TextureRect
+var _machine: Sprite2D
 var _frames: Array[Texture2D] = []
 var _pad: TextureRect
 var _build: Button
@@ -42,6 +44,8 @@ var _assemblies_seen := 0
 var _scroll: ScrollContainer
 var _bump_t := 0.0
 var _blocked_t := 0.0
+var _tier_seen := 0
+var _flash_t := 0.0
 
 
 func _ready() -> void:
@@ -71,15 +75,18 @@ func _ready() -> void:
 	header.add_child(stat)
 	place_header(roundf((WIDTH - header_width()) / 2.0))
 
-	_machine = TextureRect.new()
+	_machine = Sprite2D.new()
+	_machine.name = "Machine"
 	for f in 3:
 		_frames.append(load("res://art/line/machine_%s_%d.png" % [type_id, f]))
 	_machine.texture = _frames[0]
+	_machine.centered = false
+	_machine.hframes = Data.segment_type(type_id).tiers.size()
 	_machine.position = Vector2(0, MACHINE_Y)
-	_machine.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_machine)
 
 	_pad = TextureRect.new()
+	_pad.name = "Pad"
 	_pad.texture = preload("res://art/line/pad.png")
 	_pad.position = Vector2(4, BELT_Y - 8)
 	_pad.mouse_filter = MOUSE_FILTER_IGNORE
@@ -136,6 +143,7 @@ func _ready() -> void:
 	add_child(_apply)
 	_chunks_seen = _state().chunks
 	_assemblies_seen = _state().assemblies
+	_tier_seen = _state().tier
 	var n := get_parent()
 	while n and not n is ScrollContainer:
 		n = n.get_parent()
@@ -159,7 +167,13 @@ func _process(delta: float) -> void:
 		return
 	_update_apply()
 	_update_workers(s)
-	_machine.modulate = PAUSED if GameState.lines[line_index].paused else Color.WHITE
+	_machine.frame = s.tier
+	_flash_t = maxf(0.0, _flash_t - delta)
+	if s.tier != _tier_seen:
+		_tier_seen = s.tier
+		_flash_t = FIT_FLASH
+		Fx.puff(self, Vector2(WIDTH / 2.0, MACHINE_Y + 28.0), 1.0, Color.WHITE)
+	_machine.modulate = FLASH if _flash_t > 0.0 else PAUSED if GameState.lines[line_index].paused else Color.WHITE
 	if s.assemblies != _assemblies_seen:
 		_assemblies_seen = s.assemblies
 		_consume(s)

@@ -1198,6 +1198,10 @@ def nuke_fx():
 
 
 MACHINE = (80, 56)
+TIERS = 6
+TIER_RAMPS = [style[0] for style in FRAME_STYLE]
+CORE_RAMPS = TIER_RAMPS[:5] + [R_RED]
+PLATE_RAMPS = [R_STEEL, R_RUST, R_STEEL, R_CERAMIC, R_TAN, R_IRON]
 
 
 def back_wall(d, x0, x1):
@@ -1212,12 +1216,19 @@ def lamp(d, x, y, on, color):
     sbox(d, x - 1, y - 1, x + 2, y + 2, (INK, color if on else SLATE_D, WHITE if on else SLATE))
 
 
+def tier_lamps(d, x, y, t):
+    rect(d, x - 1, y - 1, x + 2, y + TIERS * 3 - 1, INK)
+    for k in range(TIERS):
+        ly = y + (TIERS - 1 - k) * 3
+        rect(d, x, ly, x + 1, ly + 1, TIER_RAMPS[t][2] if k <= t else NAVY)
+
+
 def top_beam(d, ramp=R_DARK):
     w, _ = MACHINE
     sbox(d, 0, 0, w - 1, 11, ramp)
 
 
-def machine_frame(d, f):
+def machine_frame(d, f, t):
     w, h = MACHINE
     back_wall(d, 8, 71)
     for x0 in (0, 72):
@@ -1226,21 +1237,24 @@ def machine_frame(d, f):
         hazard(d, x0 + 1, h - 8, x0 + 6, h - 2)
     top_beam(d)
     drop = [0, 6, 4][f]
-    for cx in (15, 58):
+    for cx in [(15, 58), (15, 36, 58), (15, 29, 44, 58)][t // 2]:
         sbox(d, cx, 11, cx + 6, 20, R_STEEL)
         rect(d, cx + 2, 21, cx + 4, 22 + drop, STEEL_L)
-    sbox(d, 14, 22 + drop, 65, 26 + drop, R_BLUE)
-    rect(d, 20, 27 + drop, 59, 27 + drop, INK)
+    thick = 4 + t // 4
+    sbox(d, 14, 22 + drop, 65, 22 + thick + drop, TIER_RAMPS[t])
+    rect(d, 20, 23 + thick + drop, 59, 23 + thick + drop, INK)
     lamp(d, 3, 14, f > 0, YELLOW if f == 1 else ORANGE)
+    tier_lamps(d, 3, 21, t)
     if f > 0:
         for x, y in [(24, 30), (38, 31), (52, 29), (30, 33), (46, 34)][f - 1::2]:
-            px(d, x, y + drop, WHITE)
-            px(d, x + 1, y + drop - 1, YELLOW)
-            px(d, x - 1, y + drop + 1, ORANGE)
+            px(d, x, y + drop + thick - 4, WHITE)
+            px(d, x + 1, y + drop + thick - 5, YELLOW)
+            px(d, x - 1, y + drop + thick - 3, ORANGE)
 
 
-def machine_core(d, f):
+def machine_core(d, f, t):
     w, h = MACHINE
+    ramp = CORE_RAMPS[t]
     back_wall(d, 4, 75)
     glass = CYAN[:3] + ((90 if f else 45),)
     d.ellipse([3, 4, 76, 70], fill=glass)
@@ -1257,29 +1271,63 @@ def machine_core(d, f):
     d.line([12, 14, 18, 10], fill=WHITE)
     d.line([10, 20, 12, 18], fill=WHITE)
     top_beam(d, R_PURPLE)
-    rect(d, 39, 12, 40, 15, INK)
-    ring = PINK if f else MAGENTA
-    d.ellipse([27, 15, 52, 21], outline=INK, width=1)
-    d.ellipse([28, 16, 51, 20], outline=ring, width=1)
+    rings = 1 + t // 2
+    rect(d, 39, 12, 40, 15 + 4 * (rings - 1), INK)
+    for k in range(rings):
+        box = [27 + 2 * k, 15 + 4 * k, 52 - 2 * k, 21 + 4 * k]
+        d.ellipse(box, fill=INK if k else None, outline=INK, width=1)
+        d.ellipse([box[0] + 1, box[1] + 1, box[2] - 1, box[3] - 1], outline=ramp[2] if f else ramp[1], width=1)
     if f:
+        top = 21 + 4 * (rings - 1)
         for k, x in enumerate([31, 40, 48] if f == 1 else [34, 44]):
-            y = 21
+            y = top
             while y < 34:
                 nx = x + (1 if (y + k + f) % 4 < 2 else -1)
-                d.line([x, y, nx, y + 2], fill=WHITE if y % 3 else MAGENTA)
+                d.line([x, y, nx, y + 2], fill=WHITE if y % 3 else ramp[1])
                 x, y = nx, y + 2
     lamp(d, 76, 26, f > 0, MAGENTA if f == 1 else PINK)
+    tier_lamps(d, 2, 34, t)
 
 
-def machine_arms(d, f):
+def rack_gun(d, y, t):
+    rect(d, 2, y - 2, 3, y + 3, INK)
+    if t == 0:
+        sbox(d, 2, y, 10, y + 2, R_RUST)
+        rect(d, 10, y, 16, y + 2, INK)
+        rect(d, 11, y + 1, 15, y + 1, STEEL)
+    elif t == 1:
+        sbox(d, 2, y, 12, y + 2, R_IRON)
+        sbox(d, 11, y - 1, 16, y + 3, R_IRON)
+    elif t == 2:
+        sbox(d, 2, y - 1, 9, y + 3, R_STEEL)
+        sbox(d, 9, y, 19, y + 2, R_STEEL)
+        px(d, 19, y + 1, INK)
+    elif t == 3:
+        sbox(d, 4, y - 2, 16, y + 3, R_BLUE)
+        for x in (9, 13):
+            px(d, x, y - 1, RED)
+            px(d, x, y + 1, RED)
+    elif t == 4:
+        rect(d, 2, y - 2, 19, y + 3, INK)
+        rect(d, 3, y - 1, 18, y - 1, YELLOW)
+        rect(d, 3, y + 2, 18, y + 2, GOLD)
+        rect(d, 5, y, 18, y + 1, CYAN)
+        rect(d, 5, y, 18, y, WHITE)
+        rect(d, 3, y, 4, y + 1, ORANGE)
+    else:
+        sbox(d, 3, y - 1, 15, y + 2, (STEEL, STEEL_L, WHITE))
+        d.polygon([(15, y - 1), (18, y), (18, y + 1), (15, y + 2)], fill=RED, outline=INK)
+        rect(d, 7, y, 8, y + 1, YELLOW)
+        rect(d, 3, y - 2, 4, y + 3, RED_D)
+
+
+def machine_arms(d, f, t):
     w, h = MACHINE
     back_wall(d, 4, 75)
     top_beam(d)
     sbox(d, 0, 8, 13, h - 1, R_DARK)
     for y in (16, 27, 38):
-        rect(d, 2, y - 2, 3, y + 3, INK)
-        sbox(d, 2, y, 12, y + 2, R_RUST)
-        sbox(d, 11, y - 1, 17, y + 1, R_IRON)
+        rack_gun(d, y, t)
     sbox(d, 64, 46, 79, h - 1, R_GOLD)
     hazard(d, 65, 52, 78, 54)
     sbox(d, 70, 14, 75, 46, R_IRON)
@@ -1296,23 +1344,25 @@ def machine_arms(d, f):
         for dx, dy, c in [(-1, 7, WHITE), (-3, 8, YELLOW), (1, 8, YELLOW), (-2, 10, ORANGE), (2, 9, ORANGE)][: 3 + f]:
             px(d, cx + dx, cy + dy, c)
     lamp(d, 67, 42, f > 0, ORANGE if f == 1 else YELLOW)
+    tier_lamps(d, 72, 24, t)
 
 
-def roller(d, cx, cy, r, f):
+def roller(d, cx, cy, r, f, hub=GREEN):
     disc(d, cx, cy, r, SLATE)
     disc(d, cx, cy, r - 2, STEEL, outline=SLATE_D)
     a = f * math.pi / 4
     for k in range(2):
         t = a + k * math.pi / 2
         d.line([cx - math.cos(t) * (r - 2), cy - math.sin(t) * (r - 2), cx + math.cos(t) * (r - 2), cy + math.sin(t) * (r - 2)], fill=SLATE_D)
-    disc(d, cx, cy, 1, GREEN, outline=None)
+    disc(d, cx, cy, 1, hub, outline=None)
 
 
-def machine_plating(d, f):
+def machine_plating(d, f, t):
     w, h = MACHINE
+    ramp = PLATE_RAMPS[t]
     back_wall(d, 10, 69)
     top_beam(d, R_GREEN)
-    sheet = [0, 6, 10][f]
+    sheet = [5, 9, 13][f]
     for x0 in (0, 67):
         sbox(d, x0, 8, x0 + 12, h - 1, R_IRON)
         rect(d, x0 + 1, h - 6, x0 + 11, h - 5, GREEN_D)
@@ -1321,19 +1371,30 @@ def machine_plating(d, f):
     roller(d, 8, 38, 5, f + 1)
     roller(d, 71, 38, 5, f + 1)
     sbox(d, 19, 14, 60, 16, R_STEEL)
-    if sheet:
-        sbox(d, 26, 16, 53, 16 + sheet, R_STEEL)
-        rect(d, 27, 16 + sheet, 52, 16 + sheet, WHITE)
+    half = 12 + t
+    if t >= 4:
+        sbox(d, 42 - half, 18, 37 + half, 20 + sheet, ramp)
+    sbox(d, 40 - half, 16, 39 + half, 16 + sheet, ramp)
+    rect(d, 41 - half, 16 + sheet, 38 + half, 16 + sheet, WHITE if f else ramp[0])
+    if t == 5:
+        hazard(d, 41 - half, 18, 38 + half, 19)
+    if t >= 2:
+        roller(d, 22, 15, 3, f + 1)
+        roller(d, 57, 15, 3, f + 1)
     lamp(d, 39, 12, f > 0, GREEN if f == 1 else YELLOW)
+    tier_lamps(d, 1, 27, t)
 
 
 def line():
     w, h = MACHINE
     for kind, draw in [("frame", machine_frame), ("core", machine_core), ("arms", machine_arms), ("plating", machine_plating)]:
         for f in range(3):
-            img, d = new(w, h)
-            draw(d, f)
-            save(img, f"line/machine_{kind}_{f}.png")
+            sheet, _ = new(w * TIERS, h)
+            for t in range(TIERS):
+                img, d = new(w, h)
+                draw(d, f, t)
+                sheet.paste(img, (t * w, 0))
+            save(sheet, f"line/machine_{kind}_{f}.png")
 
     img, d = new(72, 8)
     sbox(d, 0, 0, 71, 7, R_DARK)

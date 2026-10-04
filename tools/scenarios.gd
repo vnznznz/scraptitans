@@ -1474,7 +1474,7 @@ func ui() -> void:
 	var up_rect := upgrades.get_global_rect()
 	t.check(up_rect == Rect2(6, 590, 348, 44), "UPGRADES spans the bottom (%s)" % up_rect)
 	var build: Button = main.line_view(1).segment_view(0).get_node("Build")
-	var pad: Control = main.line_view(1).segment_view(0).get_child(2)
+	var pad: Control = main.line_view(1).segment_view(0).get_node("Pad")
 	t.check(pad.get_global_rect().position.x == build.get_global_rect().position.x and pad.size.x == build.size.x, "build button as wide as its pad (%d)" % pad.size.x)
 	var crossing := []
 	for slots in range(3, 14):
@@ -1701,9 +1701,9 @@ func pane() -> void:
 	var fit: Button = line.segment_view(0).get_node("Apply")
 	var hire := line.hire_button()
 	var bar_edge := line.get_global_rect().position.y + LineView.CREW_H - 1.0
-	var machine: Control = line.segment_view(0).get_child(1)
+	var machine: Node2D = line.segment_view(0).get_node("Machine")
 	t.check(fit.visible and fit.get_global_rect().position.y == bar_edge and hire.get_global_rect().end.y == bar_edge + 1.0
-			and fit.get_global_rect().end.y == machine.get_global_rect().position.y + 1.0,
+			and fit.get_global_rect().end.y == machine.global_position.y + 1.0,
 			"hire and fit share the crew bar's bottom edge, fit shares the machine's top edge")
 	var strip_edge := line.get_global_rect().position.x + LineView.PAUSE_W - 1.0
 	t.check(hire.get_global_rect().end.x == column.size.x + 1.0 and fit.get_global_rect().position.x == strip_edge
@@ -1862,6 +1862,52 @@ func art() -> void:
 	await t.wait(1.5)
 	await t.shot("nuke_card")
 	t.check(nuke.card_visible(), "nuke ends on the card")
+
+
+func stations() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	_reveal_all()
+	GameState.credits = 1e12
+	GameState.scrap = 1e9
+	GameState.buy_upgrade("tier_plating")
+	for i in 2:
+		GameState.buy_upgrade("lines")
+	await t.frames(2)
+	for li in 3:
+		for si in 4:
+			GameState.build_segment(li, si)
+			GameState.lines[li].segments[si].tier = li * 2 + si % 2
+	await t.frames(3)
+	var wrong := []
+	for li in 3:
+		for si in 4:
+			var cell: Sprite2D = main.line_view(li).segment_view(si).get_node("Machine")
+			if cell.frame != li * 2 + si % 2 or cell.hframes != 6:
+				wrong.append([li, si, cell.frame])
+	t.check(wrong.is_empty(), "every station shows its tier's machine cell %s" % [wrong])
+	var same := []
+	for type: String in Data.line_slots():
+		for f in 3:
+			var img := (load("res://art/line/machine_%s_%d.png" % [type, f]) as Texture2D).get_image()
+			var cells := {}
+			for tier in 6:
+				cells[img.get_region(Rect2i(tier * 80, 0, 80, 56)).get_data().hex_encode()] = true
+			if img.get_size() != Vector2i(480, 56) or cells.size() != 6:
+				same.append("%s_%d: %d" % [type, f, cells.size()])
+	t.check(same.is_empty(), "machine sheets: 6 different tier cells per type and frame %s" % [same])
+	await t.wait(0.5)
+	await t.shot("station_tiers")
+
+	for i in 2:
+		GameState.buy_upgrade("tier_frame")
+	await t.frames(2)
+	var seg: SegmentView = main.line_view(0).segment_view(0)
+	var machine: Sprite2D = seg.get_node("Machine")
+	await t.click(seg.get_node("Apply"))
+	t.check(GameState.lines[0].segments[0].tier == 2 and machine.frame == 2 and machine.modulate == SegmentView.FLASH, "fit: the station flashes and shows the new tier's cell")
+	await t.wait(0.3)
+	t.check(machine.modulate == Color.WHITE, "flash over")
 
 
 const PERF_MECHS := 170
