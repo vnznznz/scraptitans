@@ -1,0 +1,119 @@
+# CrazyGames release
+
+Checklist for publishing on crazygames.com. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.1.0-m17`, checked in desktop Godot only (no browser, no device).
+
+## Why CrazyGames
+
+- Poki rejected the developer application
+- No exclusivity: "Publishing your game on other platforms doesn't affect your eligibility for revenue share on CrazyGames." (FAQ)
+- No rule on AI-generated art in the requirements or quality guidelines; their FAQ lists creating art with AI tools. No ban, not a written permission: QA judges quality and originality
+- No developer application: upload → QA → launch
+- Portrait games welcome; Godot 3.x / 4.x SDK addon
+- Ad revenue share, percentage not public; paid monthly from €100
+
+## Launch stages
+
+- Basic Launch: soft launch to a small share of players; SDK optional, ads off, no revenue. Wider rollout depends on play count, playtime, retention
+- Full Launch: second QA pass; SDK required, ads on
+
+## Blockers for Basic Launch
+
+- [ ] Desktop legibility
+  - Rule: text legible at `devicePixelRatio` 1 in 16:9 iframes
+  - Now: `keep_width` pillarboxes the 360×640 column to the iframe height → scale = height / 640, column = 32 % of the iframe width, black bars beside it
+
+    | Iframe | Column | Scale |
+    |---|---|---|
+    | 821×462 | 259×462 | 0.72× |
+    | 907×510 | 286×510 | 0.80× |
+    | 1077×606 | 341×606 | 0.95× |
+    | 1216×684 | 385×684 | 1.07× |
+    | 1280×720 (fullscreen) | 405×720 | 1.13× |
+    | 1366×768 (fullscreen) | 432×768 | 1.20× |
+    | 1536×864 (fullscreen) | 486×864 | 1.35× |
+    | 1920×1080 (fullscreen) | 607×1080 | 1.69× |
+
+  - Screenshots at 821×462 and 907×510: the font drops strokes (`WAVE 4` garbled, `DMG/S` reads `DNG/S`)
+  - Idea, untried: 1× floor in landscape, the column gets shorter instead (the pane scrolls). At 462 high the pane is 358 px for field 160 + line 115 + yard 114 → scrolls from the first line on
+- [ ] Covers: 1920×1080 (16:9), 800×1200 (2:3), 800×800 (1:1)
+  - Title on each, same look across the three
+  - No borders, no other text, no icons or store logos
+  - Not a plain screenshot; not blurry or pixelated → the 1× sprites need a clean integer upscale or new art
+  - Keep the sources out of the pack: the Web preset exports all resources, so PNGs under `release/` would be imported and packed (`.gdignore` in the folder, like `build/`)
+  - Video preview (mandatory or not: unclear from the docs): 15–20 s, ≤ 50 MB, 1080p landscape 16:9 and portrait 2:3, opens on the cover; no audio, cursor, black bars, logos, promo text
+
+## Should fix before submitting
+
+- [ ] `user-select: none` on `body` (+ `-webkit-`, `-moz-`, `-ms-`): asked for against selection / magnifier on touch; the exported shell only has `touch-action: none` → `html/head_include` in `export_presets.cfg`
+- [ ] Boot splash and icon are Godot's defaults (`index.png` shows while the 13 MB wasm loads; `icon.svg`)
+- [ ] Safe areas: games run fullscreen in the CrazyGames app; the HUD (top) and the UPGRADES bar (bottom) sit on the screen edges, no inset handling
+- [ ] iOS and low-memory Android run at device pixel ratio 1: 390 wide = 1.08×, legible in a desktop shot; the browser's upscale may blur it → check on an iPhone
+- [ ] Upload a release build: `tools/export_web.sh release` (the default `debug` has the DBG panel)
+- [ ] Submission form: orientation portrait (the site asks players to rotate)
+- [ ] Browser checks (user): Chrome, Edge, Safari / iOS, a 4 GB Chromebook if one is at hand. Games that don't run smoothly there are disabled on Chromium OS, likewise on Safari
+
+## Already fine
+
+- Size: release build 15 MB, 9 files (wasm 13.0 MB, pck 1.9 MB). Limits: initial download ≤ 50 MB (≤ 20 MB for the mobile homepage), total ≤ 250 MB (50 MB without SDK), ≤ 1500 files
+- No threads → no cross-origin isolation headers needed in their iframe
+- Relative paths only
+- English; no external links (credits URLs are plain text), ads, login, cross-promotion, custom fullscreen button
+- PEGI 12 (own judgement): machines against machines, cartoon nuke
+- Lands in gameplay: no menu, guide arrow on the pile (Full Launch rule: at most one click)
+- Sim on a fixed 1/30 s tick: same speed at any refresh rate
+- Audio: starts on the first input, HUD mute, hidden tab muted
+- DBG panel removed from release builds
+- No personal data collected → no privacy notice needed
+
+## Full Launch
+
+- [ ] CrazyGames SDK instead of [M14 Poki](../docs/plan.md): Godot addon `crazysdk` (modules ad / banner / game); untested against 4.7 and the trimmed web templates
+- [ ] Gameplay start / stop events (required), loading start / stop (optional)
+- [ ] Ads only through the SDK; the game must work with an ad blocker; `Sound.ad_mute` exists
+- [ ] Save through the Data module: 1 MB limit (save ≈ 15 KB), localStorage for guests; Progress Save toggle in the submission flow, else the module is disabled
+- [ ] Docs still say Poki: `CLAUDE.md`, `docs/pitch.md`, `docs/plan.md` M14, `docs/tech.md`
+- IndexedDB (`user://`) in their iframe: persistence across game updates and on Safari not verified
+
+## Engagement risks
+
+Not requirements; they decide whether Basic Launch leads to a wider rollout. All deliberate prototype cuts.
+
+- Hidden tab: no frames → the sim stands still (delta clamped to 0.25 s, no offline progress); idle players on desktop tab away
+- One 30–60 min run, START AGAIN = fresh save, no prestige → nothing to come back for
+- Desktop: a third of the iframe even once legible, reads as a phone port
+- Name: an itch.io jam game "Scrap Titans" exists; none found on CrazyGames (web search only)
+- The cover drives clicks on a portal
+
+## Re-check
+
+```
+godot --path . --display-driver x11 --resolution 907x510 -- --scenario shots --shots <dir>
+```
+
+- The shot is the column only (286×510 at 907×510), bars not included; editor run, so the DBG panel is in it
+- Overwrites the desktop save (`~/.local/share/godot/app_userdata/Scrap Titans/save.json`, `settings.json`): back up first
+- `--display-driver x11`: with the default driver a window that isn't visible ran at 1 fps and the scenario never finished; x11 runs stalled now and then too, retry
+
+## Other platforms
+
+All non-exclusive, can run alongside. Terms from third-party guides and news, not the platforms' own agreements.
+
+- itch.io: no gate; AI allowed with mandatory disclosure (AI Generated tag + Graphics / Code sub-tags, untagged pages dropped from browse); no ad revenue
+- GameDistribution: dashboard review; 33 % of net revenue; no AI policy found
+- Playgama: one SDK (Bridge) for many portals; courts AI-built games (search snippet only)
+- Newgrounds: AI art banned in the Art Portal, game rules not confirmed → avoid
+
+## Sources
+
+- [Requirements overview](https://docs.crazygames.com/requirements/intro/)
+- [Gameplay requirements](https://docs.crazygames.com/requirements/gameplay/) (iframe sizes)
+- [Technical requirements](https://docs.crazygames.com/requirements/technical/)
+- [Quality guidelines](https://docs.crazygames.com/requirements/quality/)
+- [Game covers](https://docs.crazygames.com/requirements/game-covers/)
+- [FAQ](https://docs.crazygames.com/faq/) (exclusivity, AI tools, portrait, payout)
+- [Data module](https://docs.crazygames.com/sdk/data/)
+- [Godot SDK addon](https://store.godotengine.org/asset/crazygames/crazysdk/)
+- [Playgama: CrazyGames policy on AI generated games](https://playgama.com/blog/?p=15221)
+- [Cinevva: best places to publish a web game in 2026](https://app.cinevva.com/guides/publish-web-game)
+- [GamingOnLinux: itch.io AI disclosure](https://gamingonlinux.com/2024/11/itchio-store-now-requires-ai-generated-content-disclosures-for-assets)
+- [Scrap Titans on itch.io](https://aabattery65021.itch.io/scrap-titans)

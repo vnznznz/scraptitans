@@ -393,6 +393,28 @@ Test (browser + phone):
 - Field: one big gate on the left edge; on a deploy its shutter rolls up, the mech walks out, the shutter closes; with 2+ lines still one gate; full field: no mech stands on the gate
 - Late game (field full, several lines): mechs and small shadows keep coming out of the gate, evenly spaced, the shadows join the crowd; none on EFFECTS LOW
 
+## M18 · CrazyGames basic launch
+
+Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../release/crazygames.md)): readable in their desktop frames, covers, shell and branding fixes. SDK and ads stay in M14. Done before M14.
+
+- [ ] Desktop: never scaled below 1×. In a frame shorter than 640 px the column gets shorter instead (base height = frame height, 462–640, still pillarboxed); from 640 up as now
+- [ ] Short column (462): CREDITS fits (its title and BACK are cut off there now); settings, audio, menu and run card stay inside
+- [ ] Covers 1920×1080, 800×1200, 800×800: the game's sprites at whole-number scale plus the title, by script → `release/covers/`; `release/.gdignore` keeps them out of the pack
+- [ ] Boot splash: title on the page colour instead of the Godot logo; game icon instead of the Godot icon
+- [ ] Web shell: `user-select: none` on `body` via `html/head_include`
+- [ ] Safe areas: HUD and UPGRADES bar move inside `env(safe-area-inset-*)`, read through `JavaScriptBridge`
+- [ ] `--scenario desktop` (windowed `--shots`): at every CrazyGames frame size scale ≥ 1 and UPGRADES on the bottom edge; at 462 every overlay inside the viewport; insets move the HUD and the bar
+- [ ] Docs: `tech.md` (display, shell, splash), pitch (desktop line), `CLAUDE.md` (CrazyGames, release doc), M14 becomes the CrazyGames SDK milestone; tick `release/crazygames.md`
+
+Test (browser + phone):
+- Desktop browser resized to about 907×510 and 821×462: all text sharp and readable, column centered; the pile is reachable by scrolling or its pin; CREDITS and AUDIO fit
+- Tall window or fullscreen: looks as before
+- Loading: title splash, no Godot logo; the tab icon is the game's
+- Phone: a long press selects nothing and shows no magnifier; layout as before
+- Covers: title legible at thumbnail size (about 200 px wide)
+- After upload (release build, orientation portrait): Chrome, Edge, Safari; on an iPhone the text is sharp (if soft: `image-rendering: pixelated` on the canvas); in the CrazyGames app on a notched phone the HUD and UPGRADES are clear of the notch and home bar
+- A 4 GB Chromebook, if one is at hand: runs smoothly
+
 ## Not in the prototype
 
 A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.
