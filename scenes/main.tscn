@@ -168,7 +168,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("settings")
 
-[node name="Nuke" type="Control" parent="." node_paths=PackedStringArray("battlefield", "scroll", "lines", "scrapyard", "rail")]
+[node name="Nuke" type="Control" parent="." node_paths=PackedStringArray("battlefield", "scroll", "lines", "scrapyard", "rail", "hud")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -182,3 +182,4 @@ scroll = NodePath("../Layout/Pane/Column/Scroll")
 lines = NodePath("../Layout/Pane/Column/Scroll/Content/Lines")
 scrapyard = NodePath("../Layout/Pane/Column/Scroll/Content/Scrapyard")
 rail = NodePath("../Layout/Pane/Rail")
+hud = NodePath("../Layout/Hud")

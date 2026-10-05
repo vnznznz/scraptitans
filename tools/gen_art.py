@@ -1952,6 +1952,15 @@ def ui():
 
     rail_icons()
 
+    img, d = new(16, 16)
+    d.ellipse([0, 0, 15, 15], fill=GOLD, outline=INK)
+    d.ellipse([1, 1, 13, 13], fill=YELLOW)
+    for a in (90, 210, 330):
+        d.pieslice([1, 1, 14, 14], a - 30, a + 30, fill=INK)
+    d.ellipse([6, 6, 9, 9], fill=YELLOW)
+    rect(d, 7, 7, 8, 8, INK)
+    save(img, "ui/nuclear.png")
+
     img, d = new(40, 36)
     rnd = random.Random(3)
     rect(d, 17, 16, 22, 31, RUST_L)

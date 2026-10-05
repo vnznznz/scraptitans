@@ -5,7 +5,9 @@ signal settings_pressed
 
 const ICON_Y := 6.0
 const BUTTON_W := 40.0
-const COLUMN_W := 91.0
+const COLUMN_W := 85.0
+const WARS_X := 274.0
+const WARS_W := 24.0
 const SOUND_ON := preload("res://art/ui/sound_on.png")
 const SOUND_OFF := preload("res://art/ui/sound_off.png")
 const LEFT := 6.0
@@ -21,6 +23,9 @@ var _scrap_rate: Label
 var _mechs: Label
 var _mechs_rate: Label
 var _mech_icon: TextureRect
+var _wars_icon: TextureRect
+var _wars: Label
+var _won := 0
 var _mute: Button
 var _late: Array[CanvasItem] = []
 var _late_k := 0.0
@@ -34,6 +39,7 @@ func _ready() -> void:
 
 	_credits = _amount(preload("res://art/ui/credits.png"), _column(2), Price.COLORS[Flyers.Kind.CREDITS])
 	_credits_rate = _rate(_column(2))
+	_credits_rate.name = "CreditsRate"
 	_scrap = _amount(preload("res://art/ui/scrap.png"), _column(0), Price.COLORS[Flyers.Kind.SCRAP])
 	_scrap_rate = _rate(_column(0))
 	_mechs = _amount(preload("res://art/ui/mech.png"), _column(1), Pal.CYAN)
@@ -41,6 +47,13 @@ func _ready() -> void:
 	_mech_icon = _icons.pop_back()
 	_mechs_rate = _rate(_column(1))
 	_mechs_rate.name = "MechsRate"
+	_wars = _amount(preload("res://art/ui/nuclear.png"), WARS_X - 8.0, Pal.ORANGE)
+	_wars.name = "Wars"
+	_wars.position = Vector2(WARS_X - WARS_W / 2.0, RATE_Y)
+	_wars.size.x = WARS_W
+	_wars.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wars_icon = _icons.pop_back()
+	_show_wars()
 	GameState.mech_deployed.connect(_on_deployed)
 	_late = [_icons[Flyers.Kind.CREDITS], _credits, _credits_rate, _mech_icon, _mechs, _mechs_rate]
 	_late_k = Reveal.step(0.0, GameState.revealed(), INF)
@@ -65,9 +78,17 @@ func _process(delta: float) -> void:
 	_scrap_rate.modulate = STARVED if GameState.starved() else RATE_COLOR
 	_mechs.text = Fmt.num(GameState.field.size())
 	_mechs_rate.text = "%d/MIN" % GameState.mechs_per_min
+	_show_wars()
 	var icon := SOUND_OFF if Sound.muted else SOUND_ON
 	if _mute.icon != icon:
 		_mute.icon = icon
+
+
+func _show_wars() -> void:
+	var wars := GameState.prestige + _won
+	_wars_icon.visible = wars > 0
+	_wars.visible = wars > 0
+	_wars.text = str(wars)
 
 
 func _fade_late() -> void:
@@ -103,6 +124,16 @@ func pulse(kind: Flyers.Kind) -> void:
 
 func pulse_out(kind: Flyers.Kind) -> void:
 	_bump(_icons[kind], 0.7)
+
+
+func wars_target() -> Vector2:
+	return _wars_icon.get_global_rect().get_center()
+
+
+func win() -> void:
+	_won = 1
+	_show_wars()
+	_bump(_wars_icon, 1.4)
 
 
 func _on_deployed(_m: MechState) -> void:

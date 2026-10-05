@@ -622,7 +622,7 @@ func m7() -> void:
 	main = t.get_tree().current_scene
 	t.check(GameState.run_over and main.get_node("%Nuke").card_visible(), "reload shows the card, not the old run")
 	await t.click(main.get_node("%Nuke").find_child("StartAgain", true, false))
-	await t.frames(3)
+	await t.wait(Nuke.WIN_FLY + Nuke.WIN_HOLD + 0.3)
 	main = t.get_tree().current_scene
 	t.check(not GameState.run_over and GameState.mechs_built == 0 and not main.get_node("%Nuke").visible, "Start again gives a fresh game")
 	t.check(GameState.prestige == 1, "and counts a war won")
@@ -2029,7 +2029,9 @@ func stations() -> void:
 
 func prestige() -> void:
 	await _fresh()
-	t.check(GameState.prestige == 0 and GameState.war_scale() == 1.0 and GameState.pile_scale() == 1.0, "first war: nothing scaled")
+	var hud: Hud = t.node("Hud")
+	t.check(GameState.prestige == 0 and GameState.war_scale() == 1.0 and GameState.pile_scale() == 1.0 and not hud.get_node("Wars").visible,
+			"first war: nothing scaled, no wars won in the HUD")
 	var first := _war_numbers()
 	GameState.prestige = 3
 	GameState.new_game()
@@ -2058,11 +2060,33 @@ func prestige() -> void:
 	await t.frames(3)
 	t.check(GameState.prestige == 4, "START AGAIN adds one")
 
+	var main := t.get_tree().current_scene
+	hud = t.node("Hud")
+	var wars: Label = hud.get_node("Wars")
+	var mute: Control = hud.get_node("MuteButton")
+	t.check(wars.visible and wars.text == "4" and not hud.get_node("Mechs").visible, "new war: HUD shows scrap and 4 wars won")
+	_reveal_all()
+	GameState.prestige = 99
+	GameState.credits_rate = 999000.0
+	await t.frames(40)
+	var font: Font = ThemeDB.get_project_theme().default_font
+	var rate: Label = hud.get_node("CreditsRate")
+	var rate_end := rate.global_position.x + font.get_string_size(rate.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x - 2.0
+	var count_w := font.get_string_size(wars.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x - 2.0
+	var count_x := wars.get_global_rect().get_center().x - count_w / 2.0
+	var mute_icon := mute.get_global_rect().get_center().x - 8.0
+	t.check(rate.text == "+999K/S" and rate_end + 4.0 <= count_x and count_x + count_w + 4.0 <= mute_icon,
+			"widest credits rate, 99 wars won and the mute icon stay 4 px apart (%d | %d..%d | %d)" % [rate_end, count_x, count_x + count_w, mute_icon])
+	t.check(Fmt.rate(12345.0) == "+12K/S" and Fmt.rate(9999.0) == "+9.9K/S" and Fmt.rate(1234567.0) == "+1.2M/S" and Fmt.rate(-99900.0) == "-99K/S",
+			"rates stay within 7 characters")
+	await t.shot("prestige_hud")
+	GameState.credits_rate = 0.0
+
 	GameState.prestige = 10
 	GameState.new_game()
 	t.get_tree().reload_current_scene()
 	await t.frames(3)
-	var main := t.get_tree().current_scene
+	main = t.get_tree().current_scene
 	_reveal_all()
 	GameState.scrap = 1e30
 	GameState.credits = 1e30
@@ -2097,6 +2121,31 @@ func prestige() -> void:
 	t.check(too_wide.is_empty(), "10 wars won: every menu row fits, also one level before its cap %s" % [too_wide])
 	await t.shot("prestige_menu")
 
+	GameState.prestige = 4
+	GameState.new_game()
+	GameState.run_over = true
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
+	main = t.get_tree().current_scene
+	hud = t.node("Hud")
+	var nuke: Nuke = main.get_node("%Nuke")
+	var again: Button = nuke.find_child("StartAgain", true, false)
+	var won: Label = nuke.find_child("Stats", true, false).get_child(3).get_child(2)
+	var next: Label = nuke.find_child("Next", true, false)
+	await t.wait(Nuke.COUNT_TIME + 0.6)
+	t.check(nuke.card_visible() and won.text == "4 » 5" and next.text == "NEXT WAR: EVERYTHING X2\nYOUR PILE X2.2", "run card: wars won %s, %s" % [won.text, next.text.replace("\n", " / ")])
+	t.check(nuke.get_viewport_rect().encloses(nuke.get_node("Card").get_global_rect()), "card inside the screen (%s in %s)" % [nuke.get_node("Card").get_global_rect(), nuke.get_viewport_rect()])
+	await t.shot("prestige_card")
+	await t.click(again)
+	var discs := nuke.get_children().filter(func(c: Node) -> bool: return c is TextureRect and c.texture == Nuke.NUCLEAR)
+	t.check(again.disabled and discs.size() == 1, "START AGAIN: a nuclear disc leaves the button, which can't be pressed twice")
+	await t.wait(Nuke.WIN_FLY / 2.0)
+	await t.shot("prestige_disc")
+	await t.wait(Nuke.WIN_FLY / 2.0 + 0.15)
+	t.check(hud.get_node("Wars").text == "5" and GameState.prestige == 4 and GameState.run_over, "it lands on the HUD counter, which shows 5 before the new war starts")
+	await t.wait(Nuke.WIN_HOLD + 0.2)
+	hud = t.node("Hud")
+	t.check(GameState.prestige == 5 and not GameState.run_over and GameState.mechs_built == 0 and hud.get_node("Wars").text == "5", "then the next war starts with 5 wars won")
 	GameState.prestige = 0
 	GameState.new_game()
 	Save.save_game()

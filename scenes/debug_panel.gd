@@ -51,12 +51,18 @@ func _ready() -> void:
 	box.add_child(field)
 	_button(field, "KILL WAVE", GameState.kill_wave)
 	_button(field, "+50 MECHS", GameState.debug_spawn_mechs.bind(50))
+	var wars := HBoxContainer.new()
+	box.add_child(wars)
+	_button(wars, "+1 WAR WON", Save.start_again)
+	_button(wars, "0 WARS WON", func() -> void:
+		GameState.prestige = 0
+		Save.reset_run())
 
 
 func _process(_delta: float) -> void:
 	_toggle.visible = not get_tree().get_first_node_in_group("upgrade_menu").visible
 	if _panel.visible:
-		_speed.text = "X%d  MECHS %d" % [GameState.time_scale, GameState.field.size()]
+		_speed.text = "X%d  MECHS %d  WARS %d" % [GameState.time_scale, GameState.field.size(), GameState.prestige]
 
 
 func _button(parent: Control, label: String, action: Callable) -> void:

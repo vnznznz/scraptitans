@@ -4,16 +4,21 @@ extends Control
 const SWEEP_TIME := 3.0
 const COUNT_TIME := 1.2
 const MUSIC_DELAY := 1.5
+const WIN_FLY := 0.6
+const WIN_HOLD := 0.6
+const NUCLEAR := preload("res://art/ui/nuclear.png")
 
 @export var battlefield: Battlefield
 @export var scroll: ScrollContainer
 @export var lines: Control
 @export var scrapyard: Scrapyard
 @export var rail: ScrollRail
+@export var hud: Hud
 
 var _flash: ColorRect
 var _band: TextureRect
 var _card: PanelContainer
+var _again: Button
 var _values: Array[Label] = []
 
 
@@ -64,7 +69,8 @@ func _ready() -> void:
 	stats.name = "Stats"
 	stats.add_theme_constant_override("separation", 2)
 	box.add_child(stats)
-	for row: Array in [[preload("res://art/ui/life.png"), "TIME", Pal.STEEL_L], [preload("res://art/ui/mech.png"), "MECHS", Pal.CYAN], [preload("res://art/ui/credits.png"), "CREDITS", Pal.GOLD]]:
+	for row: Array in [[preload("res://art/ui/life.png"), "TIME", Pal.STEEL_L], [preload("res://art/ui/mech.png"), "MECHS", Pal.CYAN], [preload("res://art/ui/credits.png"), "CREDITS", Pal.GOLD],
+			[NUCLEAR, "WARS WON", Pal.ORANGE]]:
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 8)
 		stats.add_child(h)
@@ -80,13 +86,21 @@ func _ready() -> void:
 		v.add_theme_color_override("font_color", row[2])
 		h.add_child(v)
 		_values.append(v)
-	var again := Button.new()
-	again.name = "StartAgain"
-	again.text = "START AGAIN"
-	again.theme_type_variation = &"LitButton"
-	again.custom_minimum_size = Vector2(0, 44)
-	again.pressed.connect(Save.start_again)
-	box.add_child(again)
+	var next := Label.new()
+	next.name = "Next"
+	next.text = "NEXT WAR: EVERYTHING %s\nYOUR PILE %s" % [_times("prestige_scale"), _times("prestige_pile")]
+	next.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	next.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	next.modulate = Color(1, 1, 1, 0.6)
+	box.add_child(next)
+	_again = Button.new()
+	_again.name = "StartAgain"
+	_again.text = "START AGAIN"
+	_again.icon = NUCLEAR
+	_again.theme_type_variation = &"LitButton"
+	_again.custom_minimum_size = Vector2(0, 44)
+	_again.pressed.connect(_start_again)
+	box.add_child(_again)
 
 	GameState.nuke_launched.connect(_play)
 	if GameState.run_over:
@@ -96,6 +110,31 @@ func _ready() -> void:
 
 func card_visible() -> bool:
 	return _card.visible
+
+
+func _times(key: String) -> String:
+	var v := Data.econ(key)
+	return "X%s" % (str(int(v)) if is_equal_approx(v, roundf(v)) else str(snappedf(v, 0.1)))
+
+
+func _start_again() -> void:
+	_again.disabled = true
+	var half := NUCLEAR.get_size() / 2.0
+	var from := _again.get_global_rect().get_center()
+	var disc := TextureRect.new()
+	disc.texture = NUCLEAR
+	disc.mouse_filter = MOUSE_FILTER_IGNORE
+	disc.position = from - half
+	add_child(disc)
+	var tw := disc.create_tween()
+	tw.tween_property(disc, "position", from + Vector2(0, -28) - half, WIN_FLY * 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(disc, "position", hud.wars_target() - half, WIN_FLY * 0.75).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await tw.finished
+	disc.queue_free()
+	hud.win()
+	Sound.play(&"buy_tier")
+	await get_tree().create_timer(WIN_HOLD).timeout
+	Save.start_again()
 
 
 func _play(m: MechState) -> void:
@@ -173,6 +212,7 @@ func _show_card() -> void:
 	create_tween().tween_callback(Sound.play_music).set_delay(MUSIC_DELAY)
 	var t := int(GameState.run_time)
 	var targets := [float(t), float(GameState.mechs_built), GameState.credits_earned]
+	_values[3].text = "%d » %d" % [GameState.prestige, GameState.prestige + 1]
 	_card.visible = true
 	_card.pivot_offset = _card.size / 2.0
 	_card.scale = Vector2(0.6, 0.6)
