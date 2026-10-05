@@ -1,19 +1,15 @@
 class_name Scrapyard
 extends Control
 
-const PILE_TEX := preload("res://art/yard/pile_5.png")
-const PILE_LEVELS := [preload("res://art/yard/pile_1.png"), preload("res://art/yard/pile_2.png"), preload("res://art/yard/pile_3.png"),
-		preload("res://art/yard/pile_4.png"), PILE_TEX]
-const PILE_SECONDS := [5.0, 10.0, 20.0, 40.0]
-const PILE_SHRINK := 0.5
-const PILE_SETTLE := 8.0
+const PILE_LOOKS := 11
+const PILE_SIZE := Vector2(176, 64)
 const MAGNET_TEX := [preload("res://art/yard/magnet_1.png"), preload("res://art/yard/magnet_2.png"), preload("res://art/yard/magnet_3.png")]
 const MAGNET_LEVELS := 5.0
 const HAUL_HIGH := 8
 const WORKER_SIZE := Vector2(16, 14)
 const BODY_W := 10.0
-const PILE_POS := Vector2(62, 20)
-const PILE_EDGES := Vector2(75, 163)
+const PILE_POS := Vector2(30, 20)
+const PILE_SHOULDER := 10.0
 const GROUND_Y := 84.0
 const BODY_H := 88.0
 const GROUND := Pal.SLATE_D
@@ -33,8 +29,7 @@ var _workers: Array[TextureRect] = []
 var _worker_tex := []
 var _look := Vector2i.ZERO
 var _magnet: TextureRect
-var _fill := 0.0
-var _level := 0
+var _edges := Vector2.ZERO
 var _chunks_seen := 0
 var _squash_depth := 0.0
 var _squash_at := -1.0
@@ -50,15 +45,17 @@ func _ready() -> void:
 	_yard.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_yard)
 
+	var look := mini(GameState.prestige, PILE_LOOKS - 1)
+	var half: float = JSON.parse_string(FileAccess.get_file_as_string("res://art/yard/pile.json")).half_widths[look]
+	var center := PILE_POS.x + PILE_SIZE.x / 2.0
+	_edges = Vector2(center - half + PILE_SHOULDER, center + half - PILE_SHOULDER)
 	_pile = TextureRect.new()
 	_pile.name = "PileSprite"
-	_pile.texture = PILE_TEX
+	_pile.texture = load("res://art/yard/pile_%d.png" % look)
 	_pile.position = PILE_POS
-	_pile.pivot_offset = Vector2(PILE_TEX.get_width() / 2.0, PILE_TEX.get_height())
+	_pile.pivot_offset = Vector2(PILE_SIZE.x / 2.0, PILE_SIZE.y)
 	_pile.mouse_filter = MOUSE_FILTER_IGNORE
 	_yard.add_child(_pile)
-	_fill = _stock_seconds()
-	_size_pile(0.0)
 
 	_magnet = TextureRect.new()
 	_magnet.name = "Magnet"
@@ -73,8 +70,8 @@ func _ready() -> void:
 
 	_tap = TapArea.new()
 	_tap.name = "Pile"
-	_tap.position = Vector2(40, 0)
-	_tap.size = Vector2(160, BODY_H)
+	_tap.position = Vector2(PILE_POS.x, 0)
+	_tap.size = Vector2(PILE_SIZE.x, BODY_H)
 	_tap.highlight = _pile
 	_tap.tapped.connect(_on_tap)
 	_yard.add_child(_tap)
@@ -103,6 +100,10 @@ func pile() -> TapArea:
 	return _tap
 
 
+func pile_edges() -> Vector2:
+	return _edges
+
+
 func collapse() -> void:
 	_collapsed = true
 	_hire.visible = false
@@ -117,7 +118,7 @@ func _layout() -> void:
 	_top = roundf(LineView.CREW_H * Reveal.eased(_bar_k))
 	var bar_y := _top - LineView.CREW_H
 	custom_minimum_size.y = _top + BODY_H
-	_yard.position = Vector2(roundf(size.x / 2.0 - (PILE_POS.x + PILE_TEX.get_width() / 2.0)), _top)
+	_yard.position = Vector2(roundf(size.x / 2.0 - (PILE_POS.x + PILE_SIZE.x / 2.0)), _top)
 	_crew.position = Vector2(6, bar_y + 1.0)
 	_crew.size = Vector2(maxf(size.x - LineView.HIRE_W - 6.0, 0.0), LineView.CREW_H - 2.0)
 	_hire.position = Vector2(size.x - LineView.HIRE_W + 1.0, bar_y + 1.0)
@@ -135,14 +136,13 @@ func _draw() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
-	_size_pile(delta)
 	if _collapsed:
 		return
 	var magnet := mini(ceili(GameState.level("tap") / MAGNET_LEVELS), MAGNET_TEX.size())
 	_magnet.visible = magnet > 0
 	if magnet > 0:
 		_magnet.texture = MAGNET_TEX[magnet - 1]
-		_magnet.position = Vector2(PILE_POS.x + roundf((PILE_TEX.get_width() - _magnet.texture.get_width()) / 2.0), 0)
+		_magnet.position = Vector2(PILE_POS.x + roundf((PILE_SIZE.x - _magnet.texture.get_width()) / 2.0), 0)
 	var look := Vector2i(SegmentView.step(GameState.level("interval"), SegmentView.STEP_HIGH), SegmentView.step(GameState.level("yard_haul"), HAUL_HIGH))
 	if look != _look:
 		_look = look
@@ -179,36 +179,18 @@ func _process(delta: float) -> void:
 	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
 
 
-func pile_level() -> int:
-	return _level
-
-
-func _stock_seconds() -> float:
-	var one_worker := GameState.yard_chunk() / GameState.stat("worker_interval")
-	return GameState.scrap / maxf(GameState.yard_rate(), one_worker)
-
-
-func _size_pile(delta: float) -> void:
-	_fill = lerpf(_stock_seconds(), _fill, exp(-delta / PILE_SETTLE))
-	while _level < PILE_SECONDS.size() and _fill >= PILE_SECONDS[_level]:
-		_level += 1
-	while _level > 0 and _fill < PILE_SECONDS[_level - 1] * PILE_SHRINK:
-		_level -= 1
-	_pile.texture = PILE_LEVELS[_level]
-
-
 func _home(i: int) -> Vector2:
 	var j := int(i / 2.0)
 	var y := GROUND_Y - WORKER_SIZE.y - (j % 2) * 4.0
 	if i % 2 == 0:
-		return Vector2(PILE_EDGES.x - BODY_W - 4.0 - j * WORKER_DX, y)
-	return Vector2(PILE_EDGES.y + 4.0 + j * WORKER_DX - (WORKER_SIZE.x - BODY_W), y)
+		return Vector2(_edges.x - BODY_W - 4.0 - j * WORKER_DX, y)
+	return Vector2(_edges.y + 4.0 + j * WORKER_DX - (WORKER_SIZE.x - BODY_W), y)
 
 
 func _dig(i: int) -> void:
 	var w := _workers[i]
 	var home := _home(i)
-	var hit_x := PILE_EDGES.x - BODY_W + 2.0 if i % 2 == 0 else PILE_EDGES.y - 2.0 - (WORKER_SIZE.x - BODY_W)
+	var hit_x := _edges.x - BODY_W + 2.0 if i % 2 == 0 else _edges.y - 2.0 - (WORKER_SIZE.x - BODY_W)
 	var body_x := BODY_W / 2.0 if i % 2 == 0 else WORKER_SIZE.x - BODY_W / 2.0
 	var speed := maxf(GameState.time_scale, 1.0)
 	if w.has_meta("tween"):

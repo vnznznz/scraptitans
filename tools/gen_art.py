@@ -1503,17 +1503,17 @@ def workers():
     save(img, "ui/worker.png")
 
 
-PILE = (112, 64)
-PILE_SIZES = [(37, 35), (41, 40), (45, 44), (50, 48), (54, 52)]
-PILE_CX, PILE_BASE = 56, 63
-PILE_SEED = 8
-JUNK_CELL = 16
+PILE = (176, 64)
+PILE_SIZES = [(37, 35), (39, 36), (46, 39), (51, 41), (52, 41), (54, 42), (60, 44), (64, 46), (70, 48), (74, 50), (80, 52)]
+PILE_CX, PILE_BASE = 88, 63
+PILE_SEED = 7
+PILE_TIERS = [R_RUST, R_IRON, R_STEEL, R_BLUE, R_GOLD, R_GREEN]
 SLOPES = [math.atan(0.5), -math.atan(0.5), math.atan(1), -math.atan(1), math.atan(2), -math.atan(2)]
 BARRELS = [(BROWN_K, RED_D, RED), (NAVY, BLUE_D, BLUE), (TEAL_K, GREEN_K, GREEN_D), R_RUST]
 DARKER = {
     STEEL_L: STEEL, STEEL: SLATE, SLATE: SLATE_D, SLATE_D: NAVY,
-    GOLD: ORANGE, RUST_L: RUST, RUST: BROWN_D, BROWN: BROWN_D, BROWN_D: BROWN_K,
-    RED: RED_D, RED_D: BROWN_K, CYAN: BLUE, BLUE: BLUE_D, BLUE_D: NAVY, GREEN_D: GREEN_K, GREEN_K: TEAL_K,
+    YELLOW: GOLD, GOLD: ORANGE, ORANGE: RUST, RUST_L: RUST, RUST: BROWN_D, BROWN: BROWN_D, BROWN_D: BROWN_K,
+    RED: RED_D, RED_D: BROWN_K, CYAN: BLUE, BLUE: BLUE_D, BLUE_D: NAVY, GREEN: GREEN_D, GREEN_D: GREEN_K, GREEN_K: TEAL_K,
 }
 
 
@@ -1642,12 +1642,18 @@ JUNK = {
     "plate": (junk_plate, 24), "slab": (junk_slab, 28), "girder": (junk_girder, 10), "pipe": (junk_pipe, 9), "gear": (junk_gear, 9),
     "tire": (junk_tire, 7), "barrel": (junk_barrel, 6), "hazard": (junk_hazard, 2), "head": (junk_head, 2), "nut": (junk_nut, 4),
 }
-JUNK_RAMPS = {R_RUST: 40, R_BROWN: 8, R_IRON: 22, R_DARK: 3, R_STEEL: 24, R_BLUE: 3}
 
 
-def junk(rnd, x, y, back):
+def pile_ramps(look):
+    ramps = {R_RUST: 14, R_BROWN: 6, R_DARK: 4, R_IRON: 14, R_STEEL: 10, R_BLUE: 0, R_GOLD: 0, R_GREEN: 0}
+    for tier, ramp in enumerate(PILE_TIERS):
+        ramps[ramp] += 44 * max(0, 1 - abs(tier - look / 2) / 1.5)
+    return ramps
+
+
+def junk(rnd, x, y, back, ramps):
     kind = rnd.choice(["plate", "slab"]) if back else rnd.choices(list(JUNK), [weight for _, weight in JUNK.values()])[0]
-    p = {"kind": kind, "x": x, "y": y, "a": 0.0, "ramp": rnd.choices(list(JUNK_RAMPS), list(JUNK_RAMPS.values()))[0]}
+    p = {"kind": kind, "x": x, "y": y, "a": 0.0, "ramp": rnd.choices(list(ramps), list(ramps.values()))[0]}
     if kind == "plate":
         p["w"], p["h"], p["style"] = rnd.randint(8, 16 if back else 14), rnd.randint(5, 9 if back else 8), rnd.randrange(5)
     elif kind == "hazard":
@@ -1657,17 +1663,16 @@ def junk(rnd, x, y, back):
     elif kind == "girder":
         p["w"], p["h"], p["a"] = rnd.randint(16, 24), 3, rnd.choice(SLOPES)
     elif kind == "pipe":
-        p["w"], p["h"], p["a"], p["ramp"] = rnd.randint(12, 18), 4, rnd.choice(SLOPES[:4] + [0.0]), rnd.choice([R_IRON, R_STEEL, R_RUST])
+        p["w"], p["h"], p["a"] = rnd.randint(12, 18), 4, rnd.choice(SLOPES[:4] + [0.0])
     elif kind == "gear":
         p["w"] = p["h"] = rnd.choice([9, 11, 13])
-        p["ramp"] = rnd.choice([R_IRON, R_STEEL, R_RUST])
     elif kind == "tire":
         p["w"] = p["h"] = rnd.choice([11, 13])
     elif kind == "barrel":
         p["w"], p["h"] = rnd.choice([(7, 9), (9, 7), (8, 10)])
         p["ramp"] = rnd.choice(BARRELS)
     elif kind == "head":
-        p["w"], p["h"], p["ramp"] = 10, 8, rnd.choice([R_RUST, R_IRON, R_STEEL])
+        p["w"], p["h"] = 10, 8
     elif kind == "nut":
         p["w"] = p["h"] = rnd.choice([7, 8])
         p["ramp"] = SCRAP_TIERS[0]
@@ -1680,48 +1685,54 @@ def mound(x, hw, hh):
     return hh * (1 - t ** 1.1) if t < 1 else -hh
 
 
-def in_mound(p, hw, hh):
+def junk_extent(p):
     ca, sa = abs(math.cos(p["a"])), abs(math.sin(p["a"]))
-    ex, ey = (p["w"] * ca + p["h"] * sa) / 2, (p["w"] * sa + p["h"] * ca) / 2
+    return (p["w"] * ca + p["h"] * sa) / 2, (p["w"] * sa + p["h"] * ca) / 2
+
+
+def in_mound(p, hw, hh):
+    ex, ey = junk_extent(p)
     spill = 4 if p["kind"] in ("girder", "pipe") else 2
     spots = [(p["x"], p["y"] - ey * 0.6), (p["x"] - ex * 0.5, p["y"]), (p["x"] + ex * 0.5, p["y"])]
     return p["y"] + ey <= PILE_BASE + 1 and all(PILE_BASE - y <= mound(x, hw, hh) + spill for x, y in spots)
 
 
-def pile_junk():
+def pile(look):
     rnd = random.Random(PILE_SEED)
-    hw, hh = PILE_SIZES[-1]
+    hw, hh = PILE_SIZES[look]
+    top_hw, top_hh = PILE_SIZES[-1]
+    ramps = pile_ramps(look)
     heap = []
     for back, sx, sy, jitter in ((True, 7, 5, 2), (False, 11, 8, 3)):
-        for row, y in enumerate(range(PILE_BASE - 2, PILE_BASE - hh, -sy)):
-            for x in range(PILE_CX - hw + (sx // 2) * (row % 2), PILE_CX + hw, sx):
-                p = junk(rnd, x + rnd.randint(-jitter, jitter), y + rnd.randint(-jitter, jitter), back)
+        for row, y in enumerate(range(PILE_BASE - 2, PILE_BASE - top_hh, -sy)):
+            for x in range(PILE_CX - top_hw + (sx // 2) * (row % 2), PILE_CX + top_hw, sx):
+                p = junk(rnd, x + rnd.randint(-jitter, jitter), y + rnd.randint(-jitter, jitter), back, ramps)
                 lit = (PILE_CX - p["x"]) / hw * 0.7 + (PILE_BASE - p["y"]) / hh * 0.6 + rnd.uniform(-0.08, 0.08) >= -0.12
-                layer, d = new(JUNK_CELL * 2, JUNK_CELL * 2)
-                JUNK[p["kind"]][0](d, dict(p, x=JUNK_CELL, y=JUNK_CELL))
+                order = p["y"] + rnd.uniform(-4, 4)
+                if not in_mound(p, hw, hh):
+                    continue
+                ex, ey = junk_extent(p)
+                cx, cy = int(ex) + 3, int(ey) + 5
+                layer, d = new(cx * 2, cy * 2)
+                JUNK[p["kind"]][0](d, dict(p, x=cx, y=cy))
                 outline(layer, BROWN_K if back else INK)
                 if back or not lit:
                     darken(layer)
-                heap.append((not back, p["y"] + rnd.uniform(-4, 4), p, layer))
-    heap.sort(key=lambda j: j[:2])
-    return [(p, layer) for _, _, p, layer in heap]
-
-
-def pile(heap, hw, hh):
+                heap.append((not back, order, layer, (p["x"] - cx, p["y"] - cy)))
     img, d = new(*PILE)
     for x in range(PILE_CX - hw + 8, PILE_CX + hw - 7):
         rect(d, x, PILE_BASE - int(mound(x, hw - 8, hh - 5)), x, PILE_BASE, BROWN_K)
-    for p, layer in heap:
-        if in_mound(p, hw, hh):
-            img.paste(layer, (p["x"] - JUNK_CELL, p["y"] - JUNK_CELL), layer)
+    for _, _, layer, at in sorted(heap, key=lambda j: j[:2]):
+        img.paste(layer, at, layer)
     outline(img, SLATE_D)
     return img
 
 
 def yard():
-    heap = pile_junk()
-    for level, (hw, hh) in enumerate(PILE_SIZES):
-        save(pile(heap, hw, hh), f"yard/pile_{level + 1}.png")
+    for look in range(len(PILE_SIZES)):
+        save(pile(look), f"yard/pile_{look}.png")
+    with open(os.path.join(OUT, "yard/pile.json"), "w") as f:
+        json.dump({"half_widths": [hw for hw, _ in PILE_SIZES]}, f)
     for k, (mw, mh) in enumerate([(12, 7), (18, 9), (24, 12)]):
         save(magnet(mw, mh), f"yard/magnet_{k + 1}.png")
 

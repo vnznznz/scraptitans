@@ -897,37 +897,14 @@ func m8() -> void:
 	t.check(not is_equal_approx(pile_sprite.position.x, rest_x), "pile vibrates on tap")
 	await t.wait(0.3)
 	t.check(is_equal_approx(pile_sprite.position.x, rest_x), "and settles back")
-	var heap: Scrapyard = yard.get_parent()
-	var top := Scrapyard.PILE_LEVELS.size() - 1
-	var full := Scrapyard.PILE_SECONDS[-1] * GameState.yard_chunk() / GameState.stat("worker_interval")
+	var look := (pile_sprite as TextureRect).texture
 	GameState.scrap = 0.0
-	heap.call("_process", 1000.0)
-	var looks := {}
 	for i in 20:
 		pile.tapped.emit(Vector2(10, 10))
-		heap.call("_process", 0.25)
-		looks[(pile_sprite as TextureRect).texture] = true
-	t.check(GameState.yard_workers == 0 and GameState.scrap >= 20.0 and looks.size() == 1 and heap.pile_level() == 0,
-			"no crew, 20 taps in 5 s: the pile keeps its size (%d sprites)" % looks.size())
-	GameState.scrap = full * 2.5
-	var steps := [heap.pile_level()]
-	var grow_time := 0.0
-	while steps[-1] < top and grow_time < 60.0:
-		heap.call("_process", 0.25)
-		grow_time += 0.25
-		if heap.pile_level() != steps[-1]:
-			steps.append(heap.pile_level())
-	t.check(steps == range(top + 1) and grow_time > 2.0, "a big stock: the pile grows one size at a time (%s in %.1f s)" % [steps, grow_time])
-	GameState.scrap = full * 0.6
-	heap.call("_process", 1000.0)
-	t.check(heap.pile_level() == top, "a dip under the size's threshold doesn't shrink it")
-	GameState.scrap = 0.0
-	steps = [top]
-	for i in 400:
-		heap.call("_process", 0.25)
-		if heap.pile_level() != steps[-1]:
-			steps.append(heap.pile_level())
-	t.check(steps == range(top, -1, -1), "stock spent: back down one size at a time (%s)" % [steps])
+		await t.frames(1)
+	GameState.scrap = 1e6
+	await t.frames(2)
+	t.check((pile_sprite as TextureRect).texture == look, "taps and a big stock: the pile keeps its look")
 	_reveal_all()
 	GameState.yard_workers = 20
 	GameState.levels["yard_crew"] = 20
@@ -935,17 +912,13 @@ func m8() -> void:
 	GameState._stats.clear()
 	var scale := GameState.time_scale
 	GameState.time_scale = 1.0
-	GameState.scrap = GameState.yard_rate() * 80.0
-	heap.call("_process", 1000.0)
 	var tallest := 0.0
-	var lowest := top
 	for f in 120:
 		if f % 30 == 0:
 			pile.tapped.emit(Vector2(10, 10))
 		await t.frames(1)
 		tallest = maxf(tallest, pile_sprite.scale.y)
-		lowest = mini(lowest, heap.pile_level())
-	t.check(tallest > 0.99 and lowest == top, "busy yard + taps: the pile still springs back (%.3f) and keeps its size (%d)" % [tallest, lowest])
+	t.check(tallest > 0.99 and (pile_sprite as TextureRect).texture == look, "busy yard + taps: the pile still springs back (%.3f) and keeps its look" % tallest)
 	GameState.time_scale = scale
 	GameState.yard_workers = 0
 	GameState.levels.erase("yard_crew")
@@ -2019,7 +1992,7 @@ func stations() -> void:
 			"level 8: wheelbarrows; magnet level 11: biggest magnet, still above the peak")
 	var bodies_clear := range(GameState.yard_workers).all(func(i: int) -> bool:
 		var w: Control = yard.get_node("Yard/Worker%d" % i)
-		return w.position.x + Scrapyard.BODY_W <= Scrapyard.PILE_EDGES.x if i % 2 == 0 else w.position.x + Scrapyard.WORKER_SIZE.x - Scrapyard.BODY_W >= Scrapyard.PILE_EDGES.y)
+		return w.position.x + Scrapyard.BODY_W <= yard.pile_edges().x if i % 2 == 0 else w.position.x + Scrapyard.WORKER_SIZE.x - Scrapyard.BODY_W >= yard.pile_edges().y)
 	t.check(bodies_clear, "pile workers stand beside the pile, tools toward it")
 	await t.click(yard.pile())
 	t.check(magnet.modulate != Color.WHITE, "pile tap: the magnet lights up")
@@ -2146,6 +2119,44 @@ func prestige() -> void:
 	await t.wait(Nuke.WIN_HOLD + 0.2)
 	hud = t.node("Hud")
 	t.check(GameState.prestige == 5 and not GameState.run_over and GameState.mechs_built == 0 and hud.get_node("Wars").text == "5", "then the next war starts with 5 wars won")
+	var widths := []
+	var textures := {}
+	var placed := true
+	for count in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 25]:
+		GameState.prestige = count
+		GameState.new_game()
+		_reveal_all()
+		GameState.credits = 1e30
+		for i in 20:
+			GameState.buy_upgrade("yard_crew")
+			GameState.buy_upgrade("tap")
+		while GameState.hire_yard_worker():
+			pass
+		t.get_tree().reload_current_scene()
+		await t.frames(4)
+		var yard: Scrapyard = t.node("Scrapyard")
+		var sprite: TextureRect = yard.get_node("Yard/PileSprite")
+		var magnet: Control = yard.get_node("Yard/Magnet")
+		var art := sprite.texture.get_image().get_used_rect()
+		var edges := yard.pile_edges()
+		textures[sprite.texture] = true
+		widths.append(art.size.x)
+		var heap := Rect2(sprite.global_position + Vector2(art.position), art.size)
+		for i in GameState.yard_workers:
+			var w: Control = yard.get_node("Yard/Worker%d" % i)
+			var body := w.position.x + Scrapyard.BODY_W <= edges.x if i % 2 == 0 else w.position.x + Scrapyard.WORKER_SIZE.x - Scrapyard.BODY_W >= edges.y
+			placed = placed and body and yard.get_global_rect().encloses(w.get_global_rect())
+		placed = placed and edges.x - 16.0 <= sprite.position.x + art.position.x and edges.y + 16.0 >= sprite.position.x + art.end.x \
+				and absf(heap.get_center().x - yard.get_global_rect().get_center().x) <= 6.0 and magnet.visible and magnet.get_global_rect().end.y + 4.0 <= heap.position.y \
+				and yard.pile().get_global_rect().encloses(heap)
+		if count in [0, 3, 6, 10]:
+			(t.node("Scroll") as ScrollContainer).scroll_vertical = 100000
+			await t.frames(2)
+			await t.shot("prestige_pile_%d" % count)
+	t.check(textures.size() == 11 and widths[-1] == widths[-2], "a pile look per war won up to 10, the same after that (%d looks)" % textures.size())
+	t.check(range(10).all(func(i: int) -> bool: return widths[i + 1] > widths[i]) and widths[10] >= widths[0] * 2, "the pile is wider after every war won, twice as wide after 10 (%s px)" % [widths.slice(0, 11)])
+	t.check(placed, "at every size: 22 workers beside the heap and on screen, heap centered inside the tap area, the biggest magnet clear above it")
+
 	GameState.prestige = 0
 	GameState.new_game()
 	Save.save_game()

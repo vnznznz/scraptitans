@@ -430,8 +430,8 @@ Build: prestige. Every nuke counts as a war won; the next war is bigger and the 
 - [x] HUD: nuclear disc + wars won from the first one, between credits and the mute button; columns and buttons make room
 - [x] Run card: `WARS WON n » n+1`, what the next war brings; START AGAIN sends a nuclear disc from the button to the HUD counter, then the next war starts
 - [x] DBG: +1 war won, 0 wars won
-- [ ] Pile: size and style by wars won, 11 looks (0–10); its size no longer follows the scrap stock
-- [ ] `--scenario prestige` (windowed `--shots`): scaling, save, HUD, run card, disc, menu rows at 10 wars won, pile looks
+- [x] Pile: size and style by wars won, 11 looks (0–10); its size no longer follows the scrap stock
+- [x] `--scenario prestige` (windowed `--shots`): scaling, save, HUD, run card, disc, menu rows at 10 wars won, pile looks
 
 Test (browser + phone):
 - Finish a run, START AGAIN: a nuclear disc flies from the button to the top bar, a count of 1 appears next to the credits, the new game starts with only the pile and that count
