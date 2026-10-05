@@ -625,6 +625,7 @@ func m7() -> void:
 	await t.frames(3)
 	main = t.get_tree().current_scene
 	t.check(not GameState.run_over and GameState.mechs_built == 0 and not main.get_node("%Nuke").visible, "Start again gives a fresh game")
+	t.check(GameState.prestige == 1, "and counts a war won")
 
 
 func m8() -> void:
@@ -1001,6 +1002,9 @@ const PROFILES := {
 	"quit10": {"stop": 600.0},
 	"no_arms": {"no_arms": true},
 	"no_pause": {"no_pause": true},
+	"wars1": {"prestige": 1},
+	"wars5": {"prestige": 5},
+	"wars10": {"prestige": 10},
 }
 const TAPS_PER_S := 3.0
 const STEP := 0.25
@@ -1180,15 +1184,17 @@ func tune() -> void:
 	for key: String in PROFILES:
 		if only.is_empty() or key == only:
 			runs[key] = _tune_run(PROFILES[key], key == only or (only.is_empty() and key == "baseline"))
-	print("  profile    nuke   bounty  starved phases  gap  fit1  final  maxed  taps  work")
+	GameState.prestige = 0
+	print("  profile    nuke   bounty  starved phases  gap  fit1  final  maxed  taps  work  lines  dmg/s  wave")
 	for key: String in runs:
 		var r: Dictionary = runs[key]
-		print("  %-9s %5.1f   %4.0f%%    %4.1f%%  %3d  %4.0f  %4.0f  %5.0f  %5.1f  %4.0f%%  %3.0f%%" % [
+		print("  %-9s %5.1f   %4.0f%%    %4.1f%%  %3d  %4.0f  %4.0f  %5.0f  %5.1f  %4.0f%%  %3.0f%%  %5d  %5s  %4d" % [
 			key, r.time / 60.0, r.bounty * 100.0, r.starved * 100.0, r.phases, r.gap, r.first_fit, r.final_wait,
-			r.first_maxed / 60.0, r.tap_scrap * 100.0, r.tap_work * 100.0])
+			r.first_maxed / 60.0, r.tap_scrap * 100.0, r.tap_work * 100.0, r.lines, Fmt.num(r.peak_dps), r.wave])
 	for key: String in runs:
 		var r: Dictionary = runs[key]
-		t.check(r.over and r.time >= 1800.0 and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
+		var shortest := 1500.0 if PROFILES[key].has("prestige") else 1800.0
+		t.check(r.over and r.time >= shortest and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
 	if not runs.has("baseline"):
 		GameState.new_game()
 		return
@@ -1216,10 +1222,18 @@ func tune() -> void:
 			gain_fit = fit
 	t.check(gain >= 60.0, "pausing gets a fit sooner (%s by %.0f s)" % [gain_fit.trim_prefix("apply L1 "), gain])
 	t.check(runs.no_pause.time <= base.time * 1.1 and runs.no_pause.gap <= 150.0, "never pausing isn't stuck: %.1f vs %.1f min, longest wait %.0f s" % [runs.no_pause.time / 60.0, base.time / 60.0, runs.no_pause.gap])
+	var wars := [base, runs.wars1, runs.wars5, runs.wars10]
+	t.check(range(3).all(func(i: int) -> bool: return wars[i + 1].time < wars[i].time and wars[i + 1].starved < wars[i].starved),
+			"each war won: a shorter run, less often short on scrap (%s min, %s %%)" % [
+			wars.map(func(r: Dictionary) -> String: return "%.1f" % (r.time / 60.0)), wars.map(func(r: Dictionary) -> String: return "%.1f" % (r.starved * 100.0))])
+	t.check(runs.wars10.starved < 0.01 and runs.wars5.starved > 0.0, "the pile gets ahead of the costs over 10 wars, not at once")
+	t.check(range(3).all(func(i: int) -> bool: return wars[i + 1].peak_dps > wars[i].peak_dps * 1.9) and runs.wars10.peak_dps > base.peak_dps * 1000.0,
+			"damage grows with the wars won (%s)" % [wars.map(func(r: Dictionary) -> String: return Fmt.num(r.peak_dps))])
 	GameState.new_game()
 
 
 func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
+	GameState.prestige = p.get("prestige", 0)
 	GameState.new_game()
 	var tps: float = p.get("taps", TAPS_PER_S)
 	var r := {
@@ -1242,6 +1256,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 	GameState.mech_died.connect(on_died)
 	GameState.enemy_killed.connect(on_kill)
 	var taps := 0.0
+	var peak_dps := 0.0
 	var starved_t := 0.0
 	var phases := []
 	var seen := {}
@@ -1257,6 +1272,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		var chunk := GameState.yard_chunk()
 		GameState.advance(STEP)
 		r.scrap.yard += (GameState.yard_chunks - yard_before) * chunk
+		peak_dps = maxf(peak_dps, GameState.field_dps())
 		if GameState.starved():
 			starved_t += STEP
 			if phases.is_empty() or GameState.run_time - phases[-1][1] > PHASE_GAP:
@@ -1313,6 +1329,9 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"l1_fits": _first_times(fits.filter(func(e: Array) -> bool: return e[1].begins_with("apply L1 "))),
 		"tap_scrap": r.scrap.tap / scrap_total,
 		"tap_work": r.work.tap / maxf(r.work.tap + worker_work, 1.0),
+		"lines": GameState.lines.size(),
+		"peak_dps": peak_dps,
+		"wave": GameState.wave + 1,
 	}
 
 
@@ -1336,7 +1355,7 @@ func _bot_tap(p: Dictionary, r: Dictionary) -> void:
 			r.field_acc -= 1.0
 			GameState.tap_wave()
 			return
-	if GameState.scrap < maxf(30.0, r.get("want", 0.0)) or GameState.starved():
+	if GameState.scrap < maxf(30.0 * GameState.war_scale(), r.get("want", 0.0)) or GameState.starved():
 		r.scrap.tap += GameState.tap_scrap()
 		GameState.tap_pile()
 		return
@@ -2006,6 +2025,96 @@ func stations() -> void:
 	t.check(magnet.modulate != Color.WHITE, "pile tap: the magnet lights up")
 	await t.wait(0.3)
 	await t.shot("pile_upgrades_high")
+
+
+func prestige() -> void:
+	await _fresh()
+	t.check(GameState.prestige == 0 and GameState.war_scale() == 1.0 and GameState.pile_scale() == 1.0, "first war: nothing scaled")
+	var first := _war_numbers()
+	GameState.prestige = 3
+	GameState.new_game()
+	var third := _war_numbers()
+	var scale := pow(Data.econ("prestige_scale"), 3)
+	var pile := pow(Data.econ("prestige_pile"), 3)
+	var off := []
+	for key: String in first:
+		var want: float = first[key] * (pile if key in ["tap", "chunk"] else 1.0 if key == "life" else scale)
+		if not is_equal_approx(third[key], want):
+			off.append("%s %s, not %s" % [key, third[key], want])
+	t.check(off.is_empty() and scale > 1.0 and pile > scale, "3 wars won: costs, pay, damage and enemy HP x%s, pile taps and crew x%.1f, lifetime as before %s" % [scale, pile, off])
+
+	Save.save_game()
+	GameState.prestige = 0
+	t.check(Save.load_game() and GameState.prestige == 3, "wars won are saved")
+	var old_save := GameState.to_dict()
+	old_save.erase("prestige")
+	GameState.from_dict(old_save)
+	t.check(GameState.prestige == 0, "a save from before: no wars won")
+	GameState.prestige = 3
+	Save.reset_run()
+	await t.frames(3)
+	t.check(GameState.prestige == 3, "RESET RUN keeps them and grants none")
+	Save.start_again()
+	await t.frames(3)
+	t.check(GameState.prestige == 4, "START AGAIN adds one")
+
+	GameState.prestige = 10
+	GameState.new_game()
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
+	var main := t.get_tree().current_scene
+	_reveal_all()
+	GameState.scrap = 1e30
+	GameState.credits = 1e30
+	for i in 3:
+		GameState.build_segment(0, i)
+	await t.frames(2)
+	var flyers: Flyers = main.get_node("%Flyers")
+	await t.click(main.line_view(0).hire_button())
+	t.check(flyers.get_child_count() == 2, "10 wars won: a first hire still sends 2 credit discs (%d)" % flyers.get_child_count())
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	await t.click(main.get_node("%Upgrades"))
+	var arms: Array = Data.segment_type("arms").tiers
+	var war := GameState.war_scale()
+	var effect: Label = menu.row("tier_arms").find_child("Effect", true, false)
+	t.check(effect.text == "DMG %s » %s" % [Fmt.num(float(arms[0].dps) * war), Fmt.num(float(arms[1].dps) * war)], "menu: part damage at this war's scale (%s)" % effect.text)
+	effect = menu.row("yard_haul").find_child("Effect", true, false)
+	t.check(effect.text.begins_with("LOAD %s »" % Fmt.short(GameState.yard_chunk())), "menu: scrap per trip at the pile's scale (%s)" % effect.text)
+	var wide_rows := func() -> Array:
+		var wide := []
+		for id: String in Data.upgrade_list.map(func(r: Dictionary) -> String: return r.id):
+			var row := menu.row(id)
+			if row.get_combined_minimum_size().x > menu.size.x - 2 * UpgradeMenu.MARGIN:
+				wide.append("%s %d" % [id, row.get_combined_minimum_size().x])
+		return wide
+	var too_wide: Array = wide_rows.call()
+	for r: Dictionary in Data.upgrade_list:
+		if r.get("kind", "") == "" and r.id != "lines":
+			while GameState.level(r.id) < int(r.max_level) - 1:
+				GameState.buy_upgrade(r.id)
+	await t.frames(2)
+	too_wide.append_array(wide_rows.call())
+	t.check(too_wide.is_empty(), "10 wars won: every menu row fits, also one level before its cap %s" % [too_wide])
+	await t.shot("prestige_menu")
+
+	GameState.prestige = 0
+	GameState.new_game()
+	Save.save_game()
+
+
+func _war_numbers() -> Dictionary:
+	GameState.levels["kill_scrap"] = 1
+	GameState._stats.clear()
+	GameState.debug_spawn_mechs(1)
+	var mech := GameState.field[0]
+	return {
+		"build": GameState.build_cost(0, 0), "part": GameState.lines[0].segments[0].scrap_cost(), "hire": GameState.worker_cost(0),
+		"yard_hire": GameState.yard_worker_cost(), "row": GameState.upgrade_cost("crew"), "tier": GameState.upgrade_cost("tier_frame"),
+		"line": GameState.upgrade_cost("lines"), "missile": GameState.upgrade_cost("final_arms"), "hp": GameState.wave_max_hp(),
+		"bounty": GameState.wave_bounty(), "kill": GameState.kill_scrap({"variant": 0}), "fee": mech.deploy_fee, "pay": mech.base_rate,
+		"dps": mech.dps, "field_tap": GameState.stat("tap_damage") * float(Data.tier("arms", 0).dps) * GameState.war_scale(),
+		"life": mech.lifetime, "tap": GameState.tap_scrap(), "chunk": GameState.yard_chunk(),
+	}
 
 
 const PERF_MECHS := 170
@@ -2693,6 +2802,7 @@ func _reveal_all() -> void:
 
 func _fresh(frozen := true) -> void:
 	GameState.time_scale = 0.0 if frozen else 1.0
+	GameState.prestige = 0
 	GameState.new_game()
 	t.get_tree().reload_current_scene()
 	await t.frames(3)

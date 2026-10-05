@@ -33,6 +33,7 @@ var run_over := false
 var stalled_once := false
 var seen := {}
 var field_taps := 0
+var prestige := 0
 var credits_rate := 0.0
 var scrap_rate := 0.0
 var scrap_gain_rate := 0.0
@@ -98,6 +99,14 @@ func new_game() -> void:
 	_reset_rates()
 
 
+func war_scale() -> float:
+	return pow(Data.econ("prestige_scale"), prestige)
+
+
+func pile_scale() -> float:
+	return pow(Data.econ("prestige_pile"), prestige)
+
+
 func stat(key: String) -> float:
 	if _stats.has(key):
 		return _stats[key]
@@ -144,7 +153,7 @@ func tier_apply_cost(line_index: int, seg_index: int) -> float:
 	var cost := 0.0
 	for t in range(s.tier + 1, apply_target(line_index, seg_index) + 1):
 		cost += float(Data.tier(s.type_id, t).apply_cost)
-	return cost
+	return cost * war_scale()
 
 
 func apply_tier(line_index: int, seg_index: int) -> bool:
@@ -194,7 +203,7 @@ func aging() -> float:
 
 
 func tap_scrap() -> float:
-	return stat("scrap_per_tap") + stat("tap_yard_share") * yard_rate()
+	return stat("scrap_per_tap") * pile_scale() + stat("tap_yard_share") * yard_rate()
 
 
 func tap_pile() -> void:
@@ -210,7 +219,7 @@ func tap_segment(line_index: int, seg_index: int) -> bool:
 
 
 func build_cost(line_index: int, seg_index: int) -> float:
-	return float(Data.segment_type(lines[line_index].segments[seg_index].type_id).build_cost)
+	return float(Data.segment_type(lines[line_index].segments[seg_index].type_id).build_cost) * war_scale()
 
 
 func build_segment(line_index: int, seg_index: int) -> bool:
@@ -225,7 +234,7 @@ func build_segment(line_index: int, seg_index: int) -> bool:
 
 
 func worker_cost(line_index: int) -> float:
-	return Data.econ("worker_base") * pow(Data.econ("worker_growth"), lines[line_index].workers)
+	return Data.econ("worker_base") * pow(Data.econ("worker_growth"), lines[line_index].workers) * war_scale()
 
 
 func hire_worker(line_index: int) -> bool:
@@ -244,7 +253,7 @@ func yard_slots() -> int:
 
 
 func yard_chunk() -> float:
-	return stat("yard_chunk") * stat("worker_chunk")
+	return stat("yard_chunk") * stat("worker_chunk") * pile_scale()
 
 
 func yard_rate() -> float:
@@ -252,7 +261,7 @@ func yard_rate() -> float:
 
 
 func yard_worker_cost() -> float:
-	return Data.econ("yard_worker_base") * pow(Data.econ("yard_worker_growth"), yard_workers)
+	return Data.econ("yard_worker_base") * pow(Data.econ("yard_worker_growth"), yard_workers) * war_scale()
 
 
 func hire_yard_worker() -> bool:
@@ -278,10 +287,10 @@ func upgrade_cost(id: String) -> float:
 	var row := Data.upgrade_row(id)
 	match row.get("kind", ""):
 		"tier":
-			return float(Data.tier(row.type, mini(unlocked_tier(row.type) + 1, Data.segment_type(row.type).tiers.size() - 1)).unlock_cost)
+			return float(Data.tier(row.type, mini(unlocked_tier(row.type) + 1, Data.segment_type(row.type).tiers.size() - 1)).unlock_cost) * war_scale()
 		"final":
-			return float(Data.segment_type(row.type).tiers[-1].unlock_cost)
-	return float(row.base_cost) * pow(float(row.get("cost_growth", Data.econ("upgrade_cost_growth"))), level(id))
+			return float(Data.segment_type(row.type).tiers[-1].unlock_cost) * war_scale()
+	return float(row.base_cost) * pow(float(row.get("cost_growth", Data.econ("upgrade_cost_growth"))), level(id)) * war_scale()
 
 
 func upgrade_maxed(id: String) -> bool:
@@ -332,11 +341,11 @@ func salvage_share() -> float:
 
 
 func wave_max_hp() -> float:
-	return float(Data.enemies.base_hp) * pow(float(Data.enemies.hp_growth), wave)
+	return float(Data.enemies.base_hp) * pow(float(Data.enemies.hp_growth), wave) * war_scale()
 
 
 func wave_bounty() -> float:
-	return float(Data.enemies.base_bounty) * pow(float(Data.enemies.bounty_growth), wave)
+	return float(Data.enemies.base_bounty) * pow(float(Data.enemies.bounty_growth), wave) * war_scale()
 
 
 func wave_enemies() -> Array[Dictionary]:
@@ -361,7 +370,7 @@ func wave_alive() -> int:
 
 
 func kill_scrap(e: Dictionary) -> float:
-	return stat("kill_scrap") * pow(float(Data.enemies.variant_scrap), e.variant)
+	return stat("kill_scrap") * pow(float(Data.enemies.variant_scrap), e.variant) * war_scale()
 
 
 func field_dps() -> float:
@@ -398,6 +407,7 @@ func to_dict() -> Dictionary:
 		"stalled_once": stalled_once,
 		"seen": seen.keys(),
 		"field_taps": field_taps,
+		"prestige": prestige,
 	}
 
 
@@ -414,6 +424,7 @@ func from_dict(d: Dictionary) -> void:
 	run_time = float(d.run_time)
 	mechs_built = int(d.mechs_built)
 	credits_earned = float(d.credits_earned)
+	prestige = int(d.get("prestige", 0))
 	levels = {}
 	var saved_levels: Dictionary = d.get("levels", {})
 	for id: String in saved_levels:
@@ -535,7 +546,9 @@ func _deploy(m: MechState) -> void:
 		m.base_rate += float(t.get("credits_per_sec", 0.0))
 		m.deploy_fee += float(t.get("deploy_fee", 0.0))
 		m.dps += float(t.get("dps", 0.0))
-	m.deploy_fee *= stat("deploy_fee_mult")
+	m.deploy_fee *= stat("deploy_fee_mult") * war_scale()
+	m.base_rate *= war_scale()
+	m.dps *= war_scale()
 	m.arrive_t = 0.0
 	field.append(m)
 	mechs_built += 1
@@ -584,7 +597,7 @@ func _step_field(dt: float) -> void:
 
 
 func tap_wave_damage() -> float:
-	return stat("tap_damage") * maxf(field_dps(), float(Data.tier("arms", 0).dps))
+	return stat("tap_damage") * maxf(field_dps(), float(Data.tier("arms", 0).dps) * war_scale())
 
 
 func tap_wave() -> float:

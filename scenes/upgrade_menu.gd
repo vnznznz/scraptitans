@@ -249,8 +249,9 @@ func _describe(r: Dictionary, title: Label, effect: Label, pips: Pips) -> void:
 			var plus := "+" if Data.segment_type(r.type).get("optional", false) else ""
 			for key: String in TIER_STATS:
 				if next.has(key):
-					var from := Fmt.num(float(tiers[unlocked][key])) if unlocked >= 0 else "0"
-					effect.text = TIER_STATS[key] % [plus + from, plus + Fmt.num(float(next[key]))]
+					var scale := 1.0 if key == "lifetime" else GameState.war_scale()
+					var from := Fmt.num(float(tiers[unlocked][key]) * scale) if unlocked >= 0 else "0"
+					effect.text = TIER_STATS[key] % [plus + from, plus + Fmt.num(float(next[key]) * scale)]
 		"final":
 			var tiers: Array = Data.segment_type(r.type).tiers
 			title.text = str(tiers[-1].part).to_upper()
@@ -279,8 +280,8 @@ func _desc(r: Dictionary) -> String:
 			var unlocked := GameState.unlocked_tier(r.type)
 			var part := "%s part. %s " % [type.name, type.desc]
 			if unlocked < 0:
-				return part + "Unlocks a %s station on every line: build it for %s scrap." % [type.name, Fmt.num(float(type.build_cost))]
-			var cost := float(type.tiers[mini(unlocked + 1, type.tiers.size() - 1)].apply_cost)
+				return part + "Unlocks a %s station on every line: build it for %s scrap." % [type.name, Fmt.num(float(type.build_cost) * GameState.war_scale())]
+			var cost := float(type.tiers[mini(unlocked + 1, type.tiers.size() - 1)].apply_cost) * GameState.war_scale()
 			return part + "Unlocks it for every line: tap the arrow on each %s station to fit it for %s scrap." % [type.name, Fmt.num(cost)]
 		"final":
 			return Data.segment_type(r.type).tiers[-1].desc
@@ -289,6 +290,10 @@ func _desc(r: Dictionary) -> String:
 
 func _fmt(r: Dictionary, v: float) -> String:
 	var unit: String = r.get("unit", "")
+	if r.stat == "yard_chunk":
+		return Fmt.short(v * GameState.pile_scale())
+	if r.stat == "kill_scrap":
+		return Fmt.short(v * GameState.war_scale())
 	if unit == "%":
 		return "%d%%" % roundi(v * 100.0)
 	if r.stat == "payout_cap":

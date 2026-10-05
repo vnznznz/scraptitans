@@ -13,6 +13,11 @@ static func num(x: float) -> String:
 	return "%.1f%s" % [floor(v * 10.0) / 10.0, SUFFIXES[e]]
 
 
+static func short(x: float) -> String:
+	var text := num(x)
+	return whole(x) if text.length() > 4 else text
+
+
 static func whole(x: float) -> String:
 	if x < 1000.0:
 		return str(roundi(x))
@@ -25,4 +30,4 @@ static func rate(x: float) -> String:
 	x = absf(x)
 	if x < 10.0:
 		return "%s%.1f/S" % [sign, floor(x * 10.0) / 10.0]
-	return "%s%s/S" % [sign, num(x)]
+	return "%s%s/S" % [sign, short(x)]

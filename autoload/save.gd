@@ -68,6 +68,11 @@ func store_settings(changes: Dictionary) -> void:
 		f.store_string(JSON.stringify(d))
 
 
+func start_again() -> void:
+	GameState.prestige += 1
+	reset_run()
+
+
 func reset_run() -> void:
 	Sound.stop_music()
 	GameState.new_game()

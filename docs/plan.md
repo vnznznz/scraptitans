@@ -423,10 +423,10 @@ Test (browser + phone):
 
 Build: prestige. Every nuke counts as a war won; the next war is bigger and the pile grows faster than the costs. Only the pile changes its look.
 
-- [ ] Wars won: +1 on START AGAIN after the nuke, saved with the run but not reset by a new game; RESET RUN keeps the count and adds nothing; old saves start at 0
-- [ ] Per war won ×2 (`prestige_scale`): scrap and credit costs, fees, payouts, bounties, mech damage, enemy HP, scrap per kill; ×2.2 (`prestige_pile`): pile taps and pile crew. First war unchanged
-- [ ] Menu rows, disc counts and disc tiers follow the scale; rates and scaled rows stay short (`+12K/S`, `LOAD 15K » 21K`)
-- [ ] Tune profiles `wars1` / `wars5` / `wars10`: each run shorter and less often short on scrap than the one before, none under 25 min, damage up with the scale
+- [x] Wars won: +1 on START AGAIN after the nuke, saved with the run but not reset by a new game; RESET RUN keeps the count and adds nothing; old saves start at 0
+- [x] Per war won ×2 (`prestige_scale`): scrap and credit costs, fees, payouts, bounties, mech damage, enemy HP, scrap per kill; ×2.2 (`prestige_pile`): pile taps and pile crew. First war unchanged
+- [x] Menu rows, disc counts and disc tiers follow the scale; rates and scaled rows stay short (`+12K/S`, `LOAD 15K » 21K`)
+- [x] Tune profiles `wars1` / `wars5` / `wars10`: each run shorter and less often short on scrap than the one before, none under 25 min, damage up with the scale
 - [ ] HUD: nuclear disc + wars won from the first one, between credits and the mute button; columns and buttons make room
 - [ ] Run card: `WARS WON n » n+1`, what the next war brings; START AGAIN sends a nuclear disc from the button to the HUD counter, then the next war starts
 - [ ] DBG: +1 war won, 0 wars won

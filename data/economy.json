@@ -26,5 +26,7 @@
 	"yard_worker_base": 40,
 	"yard_worker_growth": 1.35,
 	"lines": 1,
+	"prestige_scale": 2.0,
+	"prestige_pile": 2.2,
 	"upgrade_cost_growth": 2.3
 }

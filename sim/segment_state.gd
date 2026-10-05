@@ -24,7 +24,7 @@ func bar_size() -> float:
 
 
 func scrap_cost() -> float:
-	return float(tier_data().scrap_per_mech) * GameState.stat("scrap_mult")
+	return float(tier_data().scrap_per_mech) * GameState.stat("scrap_mult") * GameState.war_scale()
 
 
 func bar_full() -> bool:

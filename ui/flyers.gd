@@ -50,13 +50,13 @@ static func spend(kind: Kind, to: Vector2, amount: float) -> void:
 
 static func pay(kind: Kind, target: Control, amount: float) -> void:
 	if _instance and amount > 0.0:
-		var count := clampi(1 + int(log(maxf(amount, 1.0)) / log(10.0)), 1, 8)
+		var count := clampi(1 + int(log(maxf(amount / GameState.war_scale(), 1.0)) / log(10.0)), 1, 8)
 		_instance._fly_out(kind, target.get_global_rect().get_center(), tier(kind, amount), count, PAY_Z)
 
 
 static func tier(kind: Kind, amount: float) -> int:
 	var rate := GameState.credits_rate if kind == Kind.CREDITS else GameState.scrap_gain_rate
-	var seconds := amount / maxf(rate, 1.0)
+	var seconds := amount / maxf(rate, GameState.war_scale() if kind == Kind.CREDITS else GameState.pile_scale())
 	var t := 0
 	for s: float in TIER_SECONDS:
 		if seconds >= s:
@@ -70,7 +70,7 @@ func in_flight() -> int:
 
 func _spawn(kind: Kind, from: Vector2, count: int, disc_tier: int, loud: bool) -> void:
 	var tex: Texture2D = TEXTURES[kind][disc_tier]
-	var quiet := not loud and kind == Kind.SCRAP and disc_tier == 0 and GameState.scrap_gain_rate >= QUIET_RATE
+	var quiet := not loud and kind == Kind.SCRAP and disc_tier == 0 and GameState.scrap_gain_rate >= QUIET_RATE * GameState.pile_scale()
 	if quiet:
 		var now := Time.get_ticks_msec()
 		if now - _last_quiet < 1000.0 / QUIET_PER_S:

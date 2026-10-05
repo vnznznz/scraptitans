@@ -801,7 +801,7 @@ func _on_deployed(m: MechState) -> void:
 
 
 func _fly_fee(m: MechState) -> void:
-	_fly(m, Flyers.Kind.CREDITS, m.deploy_fee, clampi(2 + int(log(maxf(m.deploy_fee, 1.0)) / log(10.0)), 2, 6))
+	_fly(m, Flyers.Kind.CREDITS, m.deploy_fee, clampi(2 + int(log(maxf(m.deploy_fee / GameState.war_scale(), 1.0)) / log(10.0)), 2, 6))
 
 
 func _clear_path() -> void:

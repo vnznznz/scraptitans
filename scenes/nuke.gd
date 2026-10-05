@@ -85,7 +85,7 @@ func _ready() -> void:
 	again.text = "START AGAIN"
 	again.theme_type_variation = &"LitButton"
 	again.custom_minimum_size = Vector2(0, 44)
-	again.pressed.connect(Save.reset_run)
+	again.pressed.connect(Save.start_again)
 	box.add_child(again)
 
 	GameState.nuke_launched.connect(_play)
