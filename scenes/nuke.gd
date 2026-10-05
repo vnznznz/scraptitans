@@ -158,12 +158,13 @@ func _collapse(c: Node) -> void:
 
 func _shake(strength: float, time: float) -> void:
 	var layout := get_parent().get_node("Layout") as Control
+	var rest := Vector2(0.0, layout.offset_top)
 	var tw := create_tween()
 	var steps := int(time / 0.04)
 	for k in steps:
 		var fade := 1.0 - float(k) / steps
-		tw.tween_property(layout, "position", Vector2(randf_range(-1, 1), randf_range(-1, 1)).round() * strength * fade, 0.04)
-	tw.tween_property(layout, "position", Vector2.ZERO, 0.04)
+		tw.tween_property(layout, "position", rest + Vector2(randf_range(-1, 1), randf_range(-1, 1)).round() * strength * fade, 0.04)
+	tw.tween_property(layout, "position", rest, 0.04)
 
 
 func _show_card() -> void:

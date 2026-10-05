@@ -3,6 +3,15 @@ extends Control
 
 const BASE := Vector2i(360, 640)
 const MIN_HEIGHT := 462
+const SAFE_AREA_JS := """(function () {
+	var d = document.createElement('div');
+	d.style.cssText = 'position:fixed;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
+	document.body.appendChild(d);
+	var s = getComputedStyle(d);
+	var r = [parseFloat(s.paddingTop) || 0, parseFloat(s.paddingBottom) || 0, window.innerHeight].join(',');
+	d.remove();
+	return r;
+})()"""
 const BADGE_ON := Pal.RED
 const BADGE_INSET := 8.0
 const BAR_H := 56.0
@@ -14,6 +23,7 @@ const TEXT_Z := 2
 const OVERLAY_Z := 3
 const ASSEMBLY_WINDOW := 4.0
 
+@onready var _layout: Control = $Layout
 @onready var _lines: VBoxContainer = %Lines
 @onready var _settings: SettingsOverlay = %Settings
 @onready var _menu: UpgradeMenu = %UpgradeMenu
@@ -90,7 +100,7 @@ func _ready() -> void:
 	guide.menu = _menu
 	guide.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(guide)
-	move_child(guide, $Layout.get_index() + 1)
+	move_child(guide, _layout.get_index() + 1)
 	guide.z_index = OVERLAY_Z
 	_flyers.z_index = FLYERS_Z
 	_menu.z_index = TEXT_Z
@@ -126,11 +136,29 @@ static func base_height(window: Vector2i) -> int:
 	return clampi(window.y, MIN_HEIGHT, BASE.y)
 
 
+static func window_scale(window: Vector2i) -> float:
+	return minf(float(window.x) / BASE.x, float(window.y) / base_height(window))
+
+
 func _fit_window() -> void:
 	var window := get_window()
 	var base := Vector2i(BASE.x, base_height(window.size))
 	if window.content_scale_size != base:
 		window.content_scale_size = base
+	if OS.has_feature("web"):
+		var css := str(JavaScriptBridge.eval(SAFE_AREA_JS)).split_floats(",")
+		if css.size() == 3 and css[2] > 0.0:
+			var to_base := window.size.y / css[2] / window_scale(window.size)
+			set_safe_area(roundf(css[0] * to_base), roundf(css[1] * to_base))
+
+
+func set_safe_area(top: float, bottom: float) -> void:
+	_layout.offset_top = top
+	_layout.offset_bottom = -bottom
+	_menu.offset_top = top + (%Hud as Control).custom_minimum_size.y
+	_menu.offset_bottom = -bottom - BAR_H
+	_settings.offset_top = top
+	_settings.offset_bottom = -bottom
 
 
 func _reveal(delta: float) -> void:
@@ -148,7 +176,7 @@ func _reveal(delta: float) -> void:
 	_bar_k = Reveal.step(_bar_k, GameState.shown("upgrades") and not GameState.run_over, delta)
 	_bar.visible = _bar_k > 0.0
 	_bar.custom_minimum_size.y = roundf(BAR_H * Reveal.eased(_bar_k))
-	var pane := size.y - (%Hud as Control).custom_minimum_size.y - _bar.custom_minimum_size.y
+	var pane := _layout.size.y - (%Hud as Control).custom_minimum_size.y - _bar.custom_minimum_size.y
 	_spacer.custom_minimum_size.y = roundf(maxf(0.0, pane - _scrapyard.get_combined_minimum_size().y) / 2.0 * (1.0 - factory))
 	_unlock_k = Reveal.step(_unlock_k, GameState.shown("unlock") and not GameState.upgrade_maxed("lines") and not GameState.run_over, delta)
 	_unlock_slot.visible = _unlock_k > 0.0

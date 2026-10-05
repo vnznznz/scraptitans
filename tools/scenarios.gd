@@ -2558,18 +2558,17 @@ func desktop() -> void:
 	var heights := {462: 462, 510: 510, 606: 606, 684: 640, 720: 640, 768: 640, 864: 640, 1080: 640, 400: 462}
 	for h: int in heights:
 		t.check(Main.base_height(Vector2i(1000, h)) == heights[h], "frame height %d: base height %d" % [h, heights[h]])
+	var main := t.get_tree().current_scene as Main
 	for frame: Vector2i in [Vector2i(821, 462), Vector2i(907, 510), Vector2i(1077, 606), Vector2i(1216, 684), Vector2i(1280, 720), Vector2i(1366, 768), Vector2i(1536, 864), Vector2i(1920, 1080)]:
 		window.size = frame
 		await t.frames(10)
-		var main := t.get_tree().current_scene as Control
-		var scale := window.size.y / main.size.y
+		var scale := Main.window_scale(window.size)
 		t.check(window.size.y == frame.y, "%dx%d: window that high (got %s)" % [frame.x, frame.y, window.size])
 		t.check(main.size == Vector2(Main.BASE.x, Main.base_height(window.size)) and scale >= 1.0, "%dx%d: column %s at %.2fx" % [frame.x, frame.y, main.size, scale])
 		t.check(upgrades.get_global_rect() == Rect2(6, main.size.y - 50, 348, 44), "%dx%d: UPGRADES on the bottom edge (%s)" % [frame.x, frame.y, upgrades.get_global_rect()])
 		await t.shot("desktop_%dx%d" % [frame.x, frame.y])
 	window.size = Vector2i(821, 462)
 	await t.frames(10)
-	var main := t.get_tree().current_scene as Control
 	var screen := main.get_global_rect()
 	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
 	GameState.credits = 5000.0
@@ -2611,17 +2610,40 @@ func desktop() -> void:
 	await t.click(licenses.find_child("LicensesClose", true, false))
 	window.size = Vector2i(360, 780)
 	await t.frames(10)
-	main = t.get_tree().current_scene as Control
 	t.check(main.size == Vector2(360, 780), "tall phone: column as tall as the screen")
 	t.check(credits_scroll.size.y == credits.size.y and not credits_scroll.get_v_scroll_bar().visible, "tall phone: credits shown whole, no scroll bar")
 	await t.click(settings.find_child("Close", true, false))
 	await t.click(settings.find_child("Close", true, false))
+	main.set_safe_area(44.0, 30.0)
+	await t.frames(3)
+	var hud: Control = main.get_node("%Hud")
+	t.check(hud.get_global_rect().position.y == 44.0 and upgrades.get_global_rect() == Rect2(6, 700, 348, 44), "safe area 44 / 30: HUD below the top inset, UPGRADES above the bottom one (%s, %s)" % [hud.get_global_rect(), upgrades.get_global_rect()])
+	await t.shot("desktop_safe_area")
+	t.check(Main.window_scale(Vector2i(1170, 2532)) == 3.25 and Main.window_scale(Vector2i(907, 510)) == 1.0, "window scale: 3.25 on a 1170x2532 phone, 1 in a 907x510 frame")
+	await t.click(upgrades)
+	t.check(menu.visible and menu.get_global_rect() == Rect2(0, 92, 360, 602), "safe area: menu between HUD and bar (%s)" % menu.get_global_rect())
+	await t.click(upgrades)
+	await t.click(hud.get_node("SettingsButton"))
+	await t.click(settings.find_child("CreditsButton", true, false))
+	await t.click(settings.find_child("LicensesButton", true, false))
+	await t.frames(2)
+	var safe := Rect2(0, 44, 360, 706)
+	t.check(safe.encloses((settings.find_child("Licenses", true, false) as Control).get_global_rect()), "safe area: licenses popup inside it")
+	await t.click(settings.find_child("LicensesClose", true, false))
+	await t.click(settings.find_child("Close", true, false))
+	await t.click(settings.find_child("Close", true, false))
+	main.get_node("%Nuke").call("_shake", 4.0, 0.2)
+	await t.wait(0.4)
+	t.check(hud.get_global_rect().position == Vector2(0, 44), "safe area: a screen shake ends on the inset (%s)" % hud.get_global_rect().position)
+	main.set_safe_area(0.0, 0.0)
+	await t.frames(3)
+	t.check(hud.get_global_rect().position.y == 0.0 and upgrades.get_global_rect().end.y == 774.0, "no safe area: HUD and UPGRADES back on the edges")
 	window.size = Vector2i(821, 462)
 	GameState.run_over = true
 	t.get_tree().reload_current_scene()
 	await t.frames(10)
 	await t.wait(0.5)
-	main = t.get_tree().current_scene as Control
+	main = t.get_tree().current_scene as Main
 	var card: Control = main.get_node("%Nuke").find_child("Card", true, false)
 	t.check(card.visible and main.get_global_rect().encloses(card.get_global_rect()), "462: run card inside the screen (%s)" % card.get_global_rect())
 	await t.shot("desktop_card")
