@@ -4,9 +4,11 @@ import math
 import os
 import random
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 OUT = "art"
+FONT = "fonts/silkscreen.ttf"
+SEGMENTS = "data/segments.json"
 
 
 def _hex(h):
@@ -1756,6 +1758,63 @@ def ui():
     save(img, "ui/nuke.png")
 
 
+def upscale(img, k):
+    return img.resize((img.width * k, img.height * k), Image.NEAREST)
+
+
+def word(text, color):
+    font = ImageFont.truetype(FONT, 8)
+    img, d = new(int(font.getlength(text)), 8)
+    d.fontmode = "1"
+    d.text((0, -4), text, font=font, fill=color)
+    return img.crop(img.getbbox())
+
+
+def title():
+    top, bottom = word("SCRAP", INK), word("TITANS", INK)
+    w = max(top.width, bottom.width) + 10
+    img, d = new(w, 24)
+    sbox(d, 0, 0, w - 1, 23, R_GOLD)
+    hazard(d, 1, 1, w - 2, 2)
+    hazard(d, 1, 21, w - 2, 22)
+    img.alpha_composite(top, ((w - top.width) // 2, 5))
+    img.alpha_composite(bottom, ((w - bottom.width) // 2, 13))
+    return img
+
+
+def mech_cell(t, frame=0):
+    with open(SEGMENTS) as f:
+        types = json.load(f)["types"]
+    cell = Image.new("RGBA", CELL, CLEAR)
+    for name in sorted(types, key=lambda k: types[k]["layer"]):
+        sheet = Image.open(os.path.join(OUT, f"mech/{name}_{t}.png")).convert("RGBA")
+        col = frame if name == "frame" else t - 1
+        cell.alpha_composite(sheet.crop((col * CELL[0], 0, (col + 1) * CELL[0], CELL[1])))
+    return cell
+
+
+SPLASH = (360, 640)
+
+
+def brand():
+    img = Image.new("RGBA", SPLASH, INK)
+    d = ImageDraw.Draw(img)
+    plate = upscale(title(), 6)
+    x0 = (SPLASH[0] - plate.width) // 2
+    img.alpha_composite(plate, (x0, 196))
+    y = 196 + plate.height + 24
+    for i, t in enumerate((1, 3, 5)):
+        img.alpha_composite(upscale(mech_cell(t), 2), (x0 + i * 2 * CELL[0], y))
+    rect(d, x0, y + 2 * CELL[1], x0 + plate.width - 1, y + 2 * CELL[1] + 1, SLATE_D)
+    save(img, "ui/splash.png")
+
+    img, d = new(36, 36)
+    for y0, c in [(0, NAVY), (9, PURPLE), (19, MAGENTA), (28, RUST_L)]:
+        rect(d, 0, y0, 35, 35, c)
+    img.alpha_composite(mech_cell(5).crop((2, 7, 38, 43)))
+    save(upscale(img, 5), "ui/icon.png")
+
+
 if __name__ == "__main__":
     ui()
     line()
@@ -1765,3 +1824,4 @@ if __name__ == "__main__":
     fx()
     battlefield()
     nuke_fx()
+    brand()
