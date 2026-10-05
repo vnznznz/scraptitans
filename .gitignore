@@ -3,3 +3,4 @@
 /android/
 build/
 tools/deploy.env
+__pycache__/
