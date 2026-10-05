@@ -419,6 +419,27 @@ Test (browser + phone):
 - After upload (release build, orientation portrait): Chrome, Edge, Safari; on an iPhone the text is sharp (if soft: `image-rendering: pixelated` on the canvas); in the CrazyGames app on a notched phone the HUD and UPGRADES are clear of the notch and home bar
 - A 4 GB Chromebook, if one is at hand: runs smoothly
 
+## M19 · Wars won
+
+Build: prestige. Every nuke counts as a war won; the next war is bigger and the pile grows faster than the costs. Only the pile changes its look.
+
+- [ ] Wars won: +1 on START AGAIN after the nuke, saved with the run but not reset by a new game; RESET RUN keeps the count and adds nothing; old saves start at 0
+- [ ] Per war won ×2 (`prestige_scale`): scrap and credit costs, fees, payouts, bounties, mech damage, enemy HP, scrap per kill; ×2.2 (`prestige_pile`): pile taps and pile crew. First war unchanged
+- [ ] Menu rows, disc counts and disc tiers follow the scale; rates and scaled rows stay short (`+12K/S`, `LOAD 15K » 21K`)
+- [ ] Tune profiles `wars1` / `wars5` / `wars10`: each run shorter and less often short on scrap than the one before, none under 25 min, damage up with the scale
+- [ ] HUD: nuclear disc + wars won from the first one, between credits and the mute button; columns and buttons make room
+- [ ] Run card: `WARS WON n » n+1`, what the next war brings; START AGAIN sends a nuclear disc from the button to the HUD counter, then the next war starts
+- [ ] DBG: +1 war won, 0 wars won
+- [ ] Pile: size and style by wars won, 11 looks (0–10); its size no longer follows the scrap stock
+- [ ] `--scenario prestige` (windowed `--shots`): scaling, save, HUD, run card, disc, menu rows at 10 wars won, pile looks
+
+Test (browser + phone):
+- Finish a run, START AGAIN: a nuclear disc flies from the button to the top bar, a count of 1 appears next to the credits, the new game starts with only the pile and that count
+- The second run: prices, pay and enemy HP doubled, a pile tap gives 2.2 scrap; the run feels a little easier on scrap, not shorter by half
+- The pile looks bigger and less rusty after each war won; nothing else looks different
+- Top bar with large numbers (DBG ×100, a few wars won): rates, the count and the mute button never touch
+- RESET RUN: the war restarts, the count stays
+
 ## Not in the prototype
 
-A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), prestige, offline progress, desktop layout.
+A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), a full wipe of the wars won (DBG only), more lines or tiers for later wars, offline progress, desktop layout.

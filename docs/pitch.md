@@ -109,6 +109,7 @@ One word per thing, in every label, row, info text and guide line:
 | Mech stats | LIFE, PAY, DMG | lifetime |
 | Credits on deploy | fee | bonus |
 | Better part on a station | fit (arrow button) | — |
+| Nukes launched so far | wars won | prestige, level |
 
 ## Station tiers (scrap, per station, per line)
 
@@ -135,14 +136,23 @@ One word per thing, in every label, row, info text and guide line:
   2. White flash, mushroom cloud expanding from the battlefield.
   3. A shockwave sweeps down the scroll pane, auto-scrolling with it. Lines, belts, stations and workers collapse into debris.
   4. Only the **scrap pile** remains. "Start again" prompt.
-- Start again = fresh save. No prestige or carry-over for now; keep the save format open for it.
-- Optional run-stats card: time, mechs built, credits earned.
+- START AGAIN starts the next war and counts a **war won** (below).
+- Run card: time, mechs built, credits earned, wars won `n » n+1` and what the next war brings.
+
+## Wars won (prestige)
+
+- **START AGAIN** after the nuke adds 1 to **wars won**, kept for good. RESET RUN in the settings restarts the current war: it keeps the count and adds nothing.
+- **Every war is bigger than the last.** Per war won, ×2: every cost in scrap and credits (stations, parts, fits, crews, upgrades, lines), every fee, payout and bounty, mech damage, enemy HP and scrap per kill. A run keeps its shape; the numbers grow.
+- **The pile grows faster:** ×2.2 per war won for pile taps and the pile crew. Scrap gets easier war by war (short on scrap for 10 % of the first run, 7 % after one war won, 1 % after five, never after ten), so runs shorten from ~39 to ~29 min.
+- Why pay and enemies scale with the costs: tiers, lines and crews cost credits, and credits come from mechs, not from the pile. With only the pile ahead of rising costs the bot needs 46 min after one war won, 80 after three and doesn't finish in 90 after five.
+- **The pile shows it**, and only the pile: bigger and made of better scrap with every war won, one look per count from 0 to 10 (rust, then iron, steel, composite, gold, atomic). Its size no longer follows the scrap stock. Past 10 only the numbers grow.
+- **HUD:** a nuclear disc with the count, from the first war won. START AGAIN sends that disc from the button to the HUD, the count goes up, then the next war starts.
 
 ## Screen layout (portrait)
 
 ```
 ┌──────────────────────────────┐
-│ HUD: scrap +/s  credits +/s ⚙│  fixed
+│ HUD: scrap mechs credits ☢3 ⚙│  fixed; ☢ = wars won
 ├───────────────────────────┬──┤
 │ BATTLEFIELD (~25%)        │P │  pin P: fixed on top while pinned
 │ ▓▓▓▓▓▓▓░░░ 1.2K/3K 45 DPS │  │  wave healthbar, tap = hit the wave
@@ -190,6 +200,6 @@ One word per thing, in every label, row, info text and guide line:
 - Enemies: 3 types (Scrap Drone, Crawler Tank, Junk Brute) with a death pop; wave explosion and particles.
 - Wave healthbar, credit and scrap discs.
 - Station machines: gantry + tool per station type, idle and working states. Empty slot pad.
-- Belt tile (animated), scrap pile (fill states), stall icon.
+- Belt tile (animated), scrap pile (one look per war won, 0–10), stall icon.
 - Worker: idle, shovel, carry.
 - Battlefield background layers.
