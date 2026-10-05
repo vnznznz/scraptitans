@@ -1503,26 +1503,225 @@ def workers():
     save(img, "ui/worker.png")
 
 
+PILE = (112, 64)
+PILE_SIZES = [(37, 35), (41, 40), (45, 44), (50, 48), (54, 52)]
+PILE_CX, PILE_BASE = 56, 63
+PILE_SEED = 8
+JUNK_CELL = 16
+SLOPES = [math.atan(0.5), -math.atan(0.5), math.atan(1), -math.atan(1), math.atan(2), -math.atan(2)]
+BARRELS = [(BROWN_K, RED_D, RED), (NAVY, BLUE_D, BLUE), (TEAL_K, GREEN_K, GREEN_D), R_RUST]
+DARKER = {
+    STEEL_L: STEEL, STEEL: SLATE, SLATE: SLATE_D, SLATE_D: NAVY,
+    GOLD: ORANGE, RUST_L: RUST, RUST: BROWN_D, BROWN: BROWN_D, BROWN_D: BROWN_K,
+    RED: RED_D, RED_D: BROWN_K, CYAN: BLUE, BLUE: BLUE_D, BLUE_D: NAVY, GREEN_D: GREEN_K, GREEN_K: TEAL_K,
+}
+
+
+def darken(img):
+    data = img.load()
+    for x in range(img.width):
+        for y in range(img.height):
+            data[x, y] = DARKER.get(data[x, y], data[x, y])
+
+
+def slab(d, cx, cy, w, h, a, ramp):
+    dark, mid, light = ramp
+    ca, sa = math.cos(a), math.sin(a)
+
+    def at(u, v):
+        return cx + u * ca - v * sa, cy + u * sa + v * ca
+
+    d.polygon([at(-w / 2, -h / 2), at(w / 2, -h / 2), at(w / 2, h / 2), at(-w / 2, h / 2)], fill=mid)
+    d.line([at(-w / 2, h / 2 - 0.5), at(w / 2, h / 2 - 0.5)], fill=dark)
+    d.line([at(-w / 2, -h / 2 + 0.5), at(w / 2, -h / 2 + 0.5)], fill=light)
+    return at
+
+
+def junk_box(p):
+    x0, y0 = p["x"] - p["w"] // 2, p["y"] - p["h"] // 2
+    return x0, y0, x0 + p["w"] - 1, y0 + p["h"] - 1
+
+
+def junk_plate(d, p):
+    x0, y0, x1, y1 = junk_box(p)
+    dark = p["ramp"][0]
+    sbox(d, x0, y0, x1, y1, p["ramp"], outline=None)
+    if p["style"] == 0:
+        for x in (x0 + 1, x1 - 1):
+            px(d, x, y0 + 1, dark)
+            px(d, x, y1 - 1, INK)
+    elif p["style"] == 1:
+        for x in range(x0 + 2, x1 - 1, 2):
+            rect(d, x, y0 + 1, x, y1 - 1, dark)
+    elif p["style"] == 2:
+        rect(d, x0 + 1, (y0 + y1) // 2, x1 - 1, (y0 + y1) // 2, dark)
+    elif p["style"] == 3:
+        for y in range(y0 + 2, y1, 2):
+            rect(d, x0 + 2, y, x1 - 2, y, INK)
+
+
+def junk_hazard(d, p):
+    x0, y0, x1, y1 = junk_box(p)
+    rect(d, x0, y0, x1, y1, SLATE_D)
+    hazard(d, x0 + 1, y0 + 1, x1 - 1, y1 - 1, GOLD, INK)
+    rect(d, x0, y0, x1, y0, SLATE)
+
+
+def junk_slab(d, p):
+    slab(d, p["x"], p["y"], p["w"], p["h"], p["a"], p["ramp"])
+
+
+def junk_girder(d, p):
+    at = slab(d, p["x"], p["y"], p["w"], p["h"], p["a"], p["ramp"])
+    for u in range(-p["w"] // 2 + 3, p["w"] // 2 - 1, 4):
+        x, y = at(u, 0)
+        px(d, round(x), round(y), INK)
+
+
+def junk_pipe(d, p):
+    at = slab(d, p["x"], p["y"], p["w"], p["h"], p["a"], p["ramp"])
+    x, y = at(p["w"] / 2 - 1, 0)
+    disc(d, round(x), round(y), 1, INK, outline=p["ramp"][1])
+
+
+def junk_gear(d, p):
+    dark, mid, light = p["ramp"]
+    cx, cy, r = p["x"], p["y"], p["w"] // 2
+    for k in range(8):
+        a = k * math.pi / 4 + 0.2
+        tx, ty = cx + math.cos(a) * (r + 0.6), cy + math.sin(a) * (r + 0.6)
+        rect(d, round(tx - 0.5), round(ty - 0.5), round(tx + 0.5), round(ty + 0.5), dark if ty > cy else mid)
+    disc(d, cx, cy, r, mid, outline=None)
+    d.arc([cx - r, cy - r, cx + r, cy + r], 180, 300, fill=light)
+    d.arc([cx - r, cy - r, cx + r, cy + r], 0, 110, fill=dark)
+    disc(d, cx, cy, r - 3, INK, outline=None)
+
+
+def junk_tire(d, p):
+    cx, cy, r = p["x"], p["y"], p["w"] // 2
+    disc(d, cx, cy, r, NAVY, outline=None)
+    d.arc([cx - r, cy - r, cx + r, cy + r], 170, 300, fill=SLATE_D)
+    disc(d, cx, cy, r - 2, INK, outline=None)
+    disc(d, cx, cy, r - 3, SLATE, outline=None)
+    px(d, cx - 1, cy - 1, STEEL)
+
+
+def junk_barrel(d, p):
+    dark, mid, light = p["ramp"]
+    x0, y0, x1, y1 = junk_box(p)
+    rect(d, x0, y0, x1, y1, mid)
+    if p["w"] > p["h"]:
+        rect(d, x0, y0, x1, y0, light)
+        rect(d, x0, y1, x1, y1, dark)
+        for x in (x0 + 2, x1 - 2):
+            rect(d, x, y0, x, y1, dark)
+        rect(d, x0 + 3, y0 + 1, x1 - 3, y0 + 1, light)
+    else:
+        rect(d, x0, y0, x0, y1, light)
+        rect(d, x1, y0, x1, y1, dark)
+        for y in (y0 + 2, y1 - 2):
+            rect(d, x0, y, x1, y, dark)
+        rect(d, x0, y0, x1 - 1, y0, light)
+
+
+def junk_head(d, p):
+    x0, y0, x1, y1 = junk_box(p)
+    blob(d, x0, y0, x1, y1, p["ramp"], outline=None)
+    rect(d, x0 + 1, y0 + 2, x1 - 1, y0 + 3, INK)
+    px(d, x1 - 3, y0 + 2, RED)
+    px(d, x0 + 3, y0 + 3, SLATE_D)
+    rect(d, x0 + 3, y1 - 1, x1 - 3, y1 - 1, p["ramp"][0])
+    rect(d, x0 + 2, y0 - 3, x0 + 2, y0 - 1, STEEL)
+
+
+def junk_nut(d, p):
+    draw_nut(d, p["x"] - p["w"] // 2, p["y"] - p["w"] // 2, p["w"], p["ramp"])
+
+
+JUNK = {
+    "plate": (junk_plate, 24), "slab": (junk_slab, 28), "girder": (junk_girder, 10), "pipe": (junk_pipe, 9), "gear": (junk_gear, 9),
+    "tire": (junk_tire, 7), "barrel": (junk_barrel, 6), "hazard": (junk_hazard, 2), "head": (junk_head, 2), "nut": (junk_nut, 4),
+}
+JUNK_RAMPS = {R_RUST: 40, R_BROWN: 8, R_IRON: 22, R_DARK: 3, R_STEEL: 24, R_BLUE: 3}
+
+
+def junk(rnd, x, y, back):
+    kind = rnd.choice(["plate", "slab"]) if back else rnd.choices(list(JUNK), [weight for _, weight in JUNK.values()])[0]
+    p = {"kind": kind, "x": x, "y": y, "a": 0.0, "ramp": rnd.choices(list(JUNK_RAMPS), list(JUNK_RAMPS.values()))[0]}
+    if kind == "plate":
+        p["w"], p["h"], p["style"] = rnd.randint(8, 16 if back else 14), rnd.randint(5, 9 if back else 8), rnd.randrange(5)
+    elif kind == "hazard":
+        p["w"], p["h"] = rnd.randint(8, 12), rnd.randint(6, 8)
+    elif kind == "slab":
+        p["w"], p["h"], p["a"] = rnd.randint(10, 16), rnd.randint(4, 6), rnd.choice(SLOPES[:4])
+    elif kind == "girder":
+        p["w"], p["h"], p["a"] = rnd.randint(16, 24), 3, rnd.choice(SLOPES)
+    elif kind == "pipe":
+        p["w"], p["h"], p["a"], p["ramp"] = rnd.randint(12, 18), 4, rnd.choice(SLOPES[:4] + [0.0]), rnd.choice([R_IRON, R_STEEL, R_RUST])
+    elif kind == "gear":
+        p["w"] = p["h"] = rnd.choice([9, 11, 13])
+        p["ramp"] = rnd.choice([R_IRON, R_STEEL, R_RUST])
+    elif kind == "tire":
+        p["w"] = p["h"] = rnd.choice([11, 13])
+    elif kind == "barrel":
+        p["w"], p["h"] = rnd.choice([(7, 9), (9, 7), (8, 10)])
+        p["ramp"] = rnd.choice(BARRELS)
+    elif kind == "head":
+        p["w"], p["h"], p["ramp"] = 10, 8, rnd.choice([R_RUST, R_IRON, R_STEEL])
+    elif kind == "nut":
+        p["w"] = p["h"] = rnd.choice([7, 8])
+        p["ramp"] = SCRAP_TIERS[0]
+    return p
+
+
+def mound(x, hw, hh):
+    peak = PILE_CX - hw * 0.15
+    t = (peak - x) / (hw * 0.85) if x < peak else (x - peak) / (hw * 1.15)
+    return hh * (1 - t ** 1.1) if t < 1 else -hh
+
+
+def in_mound(p, hw, hh):
+    ca, sa = abs(math.cos(p["a"])), abs(math.sin(p["a"]))
+    ex, ey = (p["w"] * ca + p["h"] * sa) / 2, (p["w"] * sa + p["h"] * ca) / 2
+    spill = 4 if p["kind"] in ("girder", "pipe") else 2
+    spots = [(p["x"], p["y"] - ey * 0.6), (p["x"] - ex * 0.5, p["y"]), (p["x"] + ex * 0.5, p["y"])]
+    return p["y"] + ey <= PILE_BASE + 1 and all(PILE_BASE - y <= mound(x, hw, hh) + spill for x, y in spots)
+
+
+def pile_junk():
+    rnd = random.Random(PILE_SEED)
+    hw, hh = PILE_SIZES[-1]
+    heap = []
+    for back, sx, sy, jitter in ((True, 7, 5, 2), (False, 11, 8, 3)):
+        for row, y in enumerate(range(PILE_BASE - 2, PILE_BASE - hh, -sy)):
+            for x in range(PILE_CX - hw + (sx // 2) * (row % 2), PILE_CX + hw, sx):
+                p = junk(rnd, x + rnd.randint(-jitter, jitter), y + rnd.randint(-jitter, jitter), back)
+                lit = (PILE_CX - p["x"]) / hw * 0.7 + (PILE_BASE - p["y"]) / hh * 0.6 + rnd.uniform(-0.08, 0.08) >= -0.12
+                layer, d = new(JUNK_CELL * 2, JUNK_CELL * 2)
+                JUNK[p["kind"]][0](d, dict(p, x=JUNK_CELL, y=JUNK_CELL))
+                outline(layer, BROWN_K if back else INK)
+                if back or not lit:
+                    darken(layer)
+                heap.append((not back, p["y"] + rnd.uniform(-4, 4), p, layer))
+    heap.sort(key=lambda j: j[:2])
+    return [(p, layer) for _, _, p, layer in heap]
+
+
+def pile(heap, hw, hh):
+    img, d = new(*PILE)
+    for x in range(PILE_CX - hw + 8, PILE_CX + hw - 7):
+        rect(d, x, PILE_BASE - int(mound(x, hw - 8, hh - 5)), x, PILE_BASE, BROWN_K)
+    for p, layer in heap:
+        if in_mound(p, hw, hh):
+            img.paste(layer, (p["x"] - JUNK_CELL, p["y"] - JUNK_CELL), layer)
+    outline(img, SLATE_D)
+    return img
+
+
 def yard():
-    rnd = random.Random(7)
-    colors = [R_IRON, R_RUST, R_DARK, R_BROWN, R_STEEL, R_GOLD]
-    for level, (hw, hh) in enumerate([(38, 30), (46, 42), (54, 54)]):
-        img, d = new(112, 64)
-        cx, base = 56, 63
-        pts = [(cx - hw, base), (cx - hw * 0.6, base - hh * 0.55), (cx - hw * 0.2, base - hh), (cx + hw * 0.15, base - hh * 0.9),
-               (cx + hw * 0.55, base - hh * 0.5), (cx + hw, base)]
-        d.polygon(pts, fill=BROWN_K, outline=INK)
-        for _ in range(40 + level * 50):
-            x = rnd.randint(cx - hw + 4, cx + hw - 6)
-            y = rnd.randint(base - hh, base - 3)
-            if not img.getpixel((x, y))[3] or img.getpixel((x, y)) == INK:
-                continue
-            sbox(d, x, y, x + rnd.randint(2, 6), y + rnd.randint(2, 4), rnd.choice(colors))
-        if level:
-            disc(d, cx + 10, base - hh * 0.6, 3, SLATE)
-            px(d, cx + 10, base - hh * 0.6, INK)
-            d.line([cx - 12, base - hh * 0.7, cx - 4, base - hh * 0.95], fill=RUST_L, width=2)
-        save(img, f"yard/pile_{level + 1}.png")
+    heap = pile_junk()
+    for level, (hw, hh) in enumerate(PILE_SIZES):
+        save(pile(heap, hw, hh), f"yard/pile_{level + 1}.png")
     for k, (mw, mh) in enumerate([(12, 7), (18, 9), (24, 12)]):
         save(magnet(mw, mh), f"yard/magnet_{k + 1}.png")
 
@@ -1562,18 +1761,23 @@ def coin(size, ramp):
     return img
 
 
-def nut(size, ramp):
-    img, d = new(size, size)
+def draw_nut(d, x, y, size, ramp):
     dark, mid, light = ramp
     c = size // 3
     e = size - 1
-    d.polygon([(c, 0), (e - c, 0), (e, c), (e, e - c), (e - c, e), (c, e), (0, e - c), (0, c)], fill=mid, outline=INK)
-    rect(d, c, 1, e - c, 1, light)
-    rect(d, c, e - 1, e - c, e - 1, dark)
+    d.polygon([(x + c, y), (x + e - c, y), (x + e, y + c), (x + e, y + e - c), (x + e - c, y + e), (x + c, y + e), (x, y + e - c), (x, y + c)],
+              fill=mid, outline=INK)
+    rect(d, x + c, y + 1, x + e - c, y + 1, light)
+    rect(d, x + c, y + e - 1, x + e - c, y + e - 1, dark)
     if size >= 8:
         m = size // 2
         h = 1 if size < 12 else 2
-        rect(d, m - h, m - h, m + h - 1, m + h - 1, INK)
+        rect(d, x + m - h, y + m - h, x + m + h - 1, y + m + h - 1, INK)
+
+
+def nut(size, ramp):
+    img, d = new(size, size)
+    draw_nut(d, 0, 0, size, ramp)
     return img
 
 

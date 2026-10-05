@@ -381,6 +381,7 @@ Build: one look for every price, frame edge and overlay; stations and the pile s
 - [x] Station upgrade rows: free crew slots as floor marks, flywheel (Lighter work), worker tools (Faster crews)
 - [x] Pile upgrade rows: bigger shovel, then wheelbarrow (Bigger shovels); magnet crane over the pile (Scrap magnet)
 - [x] Fix: the pile changed size after a few taps on a new game (without a crew the stock was measured against 1 scrap/s) and every 10–30 s later; its size now follows the stock smoothed over 8 s and only shrinks under half a size's threshold
+- [x] Pile redrawn: a heap of junk (plates, girders, pipes, gears, tires, barrels, mech heads) lit from the top left over darker pieces behind, with an outline against the page; 5 sizes that differ only by their outer pieces, so it grows and shrinks in small steps
 - [x] Field: one big gate for all lines instead of a door per line (no line plates, numbers or lamps); its shutter rolls up on a deploy; mech slots closer together, none on the gate
 - [x] Field: with all slots taken, new mechs still walk out of the gate: a mech that fades after a few steps and a small shadow that walks into the crowd; one every 0.25 s at most, so a steady flow late in the run
 

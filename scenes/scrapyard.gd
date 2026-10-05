@@ -1,9 +1,10 @@
 class_name Scrapyard
 extends Control
 
-const PILE_TEX := preload("res://art/yard/pile_3.png")
-const PILE_LEVELS := [preload("res://art/yard/pile_1.png"), preload("res://art/yard/pile_2.png"), PILE_TEX]
-const PILE_SECONDS := [5.0, 30.0]
+const PILE_TEX := preload("res://art/yard/pile_5.png")
+const PILE_LEVELS := [preload("res://art/yard/pile_1.png"), preload("res://art/yard/pile_2.png"), preload("res://art/yard/pile_3.png"),
+		preload("res://art/yard/pile_4.png"), PILE_TEX]
+const PILE_SECONDS := [5.0, 10.0, 20.0, 40.0]
 const PILE_SHRINK := 0.5
 const PILE_SETTLE := 8.0
 const MAGNET_TEX := [preload("res://art/yard/magnet_1.png"), preload("res://art/yard/magnet_2.png"), preload("res://art/yard/magnet_3.png")]
