@@ -312,17 +312,19 @@ Test (browser + phone):
 - Reload mid-run: everything already seen is there at once, no animation
 - START AGAIN after the nuke: back to the pile alone
 
-## M14 · Poki
+## M14 · CrazyGames SDK
 
-Build: Poki integration.
+Build: CrazyGames SDK integration, needed for Full Launch ([crazygames.md](../release/crazygames.md)). After M18.
 
-- [ ] `html/head_include` loads the Poki SDK; `Poki` autoload wraps it via `JavaScriptBridge`, no-op off web
-- [ ] `gameLoadingFinished`; `gameplayStart` on first tap and when menus close, `gameplayStop` while the menu or end card is open
-- [ ] `commercialBreak` before Start again; game paused and `Sound.ad_mute` during ads
-- [ ] Rewarded: 2× payout for 5 min (HUD timer, saved), fill all work bars
+- [ ] `html/head_include` loads the CrazyGames SDK; `CrazyGames` autoload wraps it via `JavaScriptBridge`, no-op off web
+- [ ] `loadingStart` / `loadingStop`; `gameplayStart` on first tap and when menus close, `gameplayStop` while the menu or end card is open
+- [ ] Midgame ad (`requestAd("midgame")`) before Start again; game paused and `Sound.ad_mute` from `adStarted` to `adFinished` / `adError`
+- [ ] Rewarded (`requestAd("rewarded")`): 2× payout for 5 min (HUD timer, saved), fill all work bars
+- [ ] `game.settings.muteAudio` mutes like the HUD mute
+- [ ] Save through the Data module (1 MB limit); Progress Save toggle in the submission
 
 Test:
-- SDK calls fire in order (log them); rewards only on success.
+- SDK calls fire in order (log them); rewards only on `adFinished`.
 - Game still runs with the SDK blocked (ad blocker).
 
 ## M15 · Battlefield progression
@@ -404,7 +406,7 @@ Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../
 - [x] Web shell: `user-select: none` on `body` via `html/head_include`
 - [x] Safe areas: HUD and UPGRADES bar move inside `env(safe-area-inset-*)`, read through `JavaScriptBridge`
 - [x] `--scenario desktop` (windowed `--shots`): at every CrazyGames frame size scale ≥ 1 and UPGRADES on the bottom edge; at 462 every overlay inside the viewport; insets move the HUD and the bar
-- [ ] Docs: `tech.md` (display, shell, splash), pitch (desktop line), `CLAUDE.md` (CrazyGames, release doc), M14 becomes the CrazyGames SDK milestone; tick `release/crazygames.md`
+- [x] Docs: `tech.md` (display, shell, splash), pitch (desktop line), `CLAUDE.md` (CrazyGames, release doc), M14 becomes the CrazyGames SDK milestone; tick `release/crazygames.md`
 
 Test (browser + phone):
 - Desktop browser resized to about 907×510 and 821×462: all text sharp and readable, column centered; the pile is reachable by scrolling or its pin; CREDITS and AUDIO fit

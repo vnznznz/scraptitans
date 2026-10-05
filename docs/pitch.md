@@ -1,6 +1,6 @@
 # Scrap Titans — Pitch (working title)
 
-Idle/clicker for Poki.com. Scrap in, combat mechs out. Pixel art, **everything in side view**, portrait mobile first. Target run: **30–60 min** from first tap to the nuke.
+Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything in side view**, portrait mobile first. Target run: **30–60 min** from first tap to the nuke.
 
 ## Core loop
 
@@ -169,7 +169,7 @@ One word per thing, in every label, row, info text and guide line:
   2. Once the pile has paid for the first station, line 1 fades in with all three pads while the scrapyard slides down to the bottom.
   3. The first mech deployed: the battlefield slides down from under the HUD (the mech walks onto it), with the scroll bar and the HUD's mechs and credits.
   4. Each purchase appears the first time it's affordable: pile crew, station crew, UPGRADES, UNLOCK LINE; pause strips at the first stall.
-- Desktop layout is out of scope for v1 (letterbox the portrait column).
+- Desktop layout is out of scope for v1: the portrait column is pillarboxed and never scaled below 1× (in a short frame it gets shorter).
 
 ## Tech (Godot 4)
 
@@ -179,7 +179,7 @@ One word per thing, in every label, row, info text and guide line:
 - **Scene structure:** `Main` (HUD, `ScrollContainer` → `VBox` → `Battlefield` + `AssemblyLine` × N + `Scrapyard`, scroll bar with pins, fixed `UpgradeButton`, `UpgradeMenu` overlay). `AssemblyLine` owns `Segment` nodes, the belt and mechs in transit. `Battlefield` owns active mechs, the enemy wave and its healthbar, and effects. A top-level `Flyers` layer draws income discs.
 - **Simulation:** one tick in a central autoload (`GameState`), separate from visuals. Workers fire on timers, not per frame.
 - **Save:** JSON in `user://` (IndexedDB on web). Save on change and on hide. No offline progress.
-- **Poki:** Poki SDK via `JavaScriptBridge`. Gameplay start/stop, commercial break on run end, rewarded ads: 2× payout for 5 min, fill all work bars.
+- **CrazyGames:** CrazyGames SDK via `JavaScriptBridge`. Gameplay start/stop, midgame ad on run end, rewarded ads: 2× payout for 5 min, fill all work bars.
 - **Input:** mouse and touch, one-thumb reachable. Touch targets ≥ 44 px at display scale.
 
 ## Art list (side view)

@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.1.0-m17`, checked in desktop Godot only (no browser, no device).
+Checklist for publishing on crazygames.com. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.1.0-m18` ([M18](../docs/plan.md)), checked in desktop Godot only (no browser, no device).
 
 ## Why CrazyGames
 
@@ -18,36 +18,34 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
 
 ## Blockers for Basic Launch
 
-- [ ] Desktop legibility
+- [x] Desktop legibility
   - Rule: text legible at `devicePixelRatio` 1 in 16:9 iframes
-  - Now: `keep_width` pillarboxes the 360×640 column to the iframe height → scale = height / 640, column = 32 % of the iframe width, black bars beside it
+  - Before M18 the 360×640 column was fitted to the iframe height (0.72× at 821×462, 0.80× at 907×510): the font dropped strokes (`WAVE 4` garbled, `DMG/S` read `DNG/S`)
+  - Now the column gets shorter instead, so nothing is below 1× from 462 px up; still pillarboxed, black bars beside it
 
-    | Iframe | Column | Scale |
-    |---|---|---|
-    | 821×462 | 259×462 | 0.72× |
-    | 907×510 | 286×510 | 0.80× |
-    | 1077×606 | 341×606 | 0.95× |
-    | 1216×684 | 385×684 | 1.07× |
-    | 1280×720 (fullscreen) | 405×720 | 1.13× |
-    | 1366×768 (fullscreen) | 432×768 | 1.20× |
-    | 1536×864 (fullscreen) | 486×864 | 1.35× |
-    | 1920×1080 (fullscreen) | 607×1080 | 1.69× |
+    | Iframe | Column | Scale | Share of the width |
+    |---|---|---|---|
+    | 821×462 | 360×462 | 1.00× | 44 % |
+    | 907×510 | 360×510 | 1.00× | 40 % |
+    | 1077×606 | 360×606 | 1.00× | 33 % |
+    | 1216×684 | 385×684 | 1.07× | 32 % |
+    | 1280×720 (fullscreen) | 405×720 | 1.13× | 32 % |
+    | 1366×768 (fullscreen) | 432×768 | 1.20× | 32 % |
+    | 1536×864 (fullscreen) | 486×864 | 1.35× | 32 % |
+    | 1920×1080 (fullscreen) | 607×1080 | 1.69× | 32 % |
 
-  - Screenshots at 821×462 and 907×510: the font drops strokes (`WAVE 4` garbled, `DMG/S` reads `DNG/S`)
-  - Idea, untried: 1× floor in landscape, the column gets shorter instead (the pane scrolls). At 462 high the pane is 358 px for field 160 + line 115 + yard 114 → scrolls from the first line on
-- [ ] Covers: 1920×1080 (16:9), 800×1200 (2:3), 800×800 (1:1)
-  - Title on each, same look across the three
-  - No borders, no other text, no icons or store logos
-  - Not a plain screenshot; not blurry or pixelated → the 1× sprites need a clean integer upscale or new art
-  - Keep the sources out of the pack: the Web preset exports all resources, so PNGs under `release/` would be imported and packed (`.gdignore` in the folder, like `build/`)
-  - Video preview (mandatory or not: unclear from the docs): 15–20 s, ≤ 50 MB, 1080p landscape 16:9 and portrait 2:3, opens on the cover; no audio, cursor, black bars, logos, promo text
+  - Trade-off: at 462 high the pile is below the fold once the UPGRADES bar and UNLOCK LINE show (scroll or the pile pin); CREDITS scrolls there
+- [x] Covers: `release/covers/` 1920×1080 (16:9), 800×1200 (2:3), 800×800 (1:1), from `tools/gen_covers.py`
+  - Rules: title on each, same look across the three; no borders, no other text, no icons or store logos; not a plain screenshot; not blurry or pixelated
+  - Pixel art at ×8: crisp, but their "pixelated" rule is a judgement call → look at them before submitting
+- [ ] Video preview, only if the submission form asks for one: 15–20 s, ≤ 50 MB, 1080p landscape 16:9 and portrait 2:3, opens on the cover; no audio, cursor, black bars, logos, promo text
 
 ## Should fix before submitting
 
-- [ ] `user-select: none` on `body` (+ `-webkit-`, `-moz-`, `-ms-`): asked for against selection / magnifier on touch; the exported shell only has `touch-action: none` → `html/head_include` in `export_presets.cfg`
-- [ ] Boot splash and icon are Godot's defaults (`index.png` shows while the 13 MB wasm loads; `icon.svg`)
-- [ ] Safe areas: games run fullscreen in the CrazyGames app; the HUD (top) and the UPGRADES bar (bottom) sit on the screen edges, no inset handling
-- [ ] iOS and low-memory Android run at device pixel ratio 1: 390 wide = 1.08×, legible in a desktop shot; the browser's upscale may blur it → check on an iPhone
+- [x] `user-select: none` on `body` (+ `-webkit-`, `-moz-`, `-ms-`): asked for against selection / magnifier on touch; via `html/head_include`
+- [x] Boot splash and icon: title plate on the page colour, game icon (were Godot's defaults)
+- [x] Safe areas: games run fullscreen in the CrazyGames app; the HUD and the UPGRADES bar move inside `env(safe-area-inset-*)`. Layout checked with a set inset; the real insets only show in their app → check on a notched phone after upload
+- [ ] iOS and low-memory Android run at device pixel ratio 1: 390 wide = 1.08×, legible in a desktop shot; the browser's upscale may blur it → check on an iPhone (if soft: `image-rendering: pixelated` on the canvas, same head include)
 - [ ] Upload a release build: `tools/export_web.sh release` (the default `debug` has the DBG panel)
 - [ ] Submission form: orientation portrait (the site asks players to rotate)
 - [ ] Browser checks (user): Chrome, Edge, Safari / iOS, a 4 GB Chromebook if one is at hand. Games that don't run smoothly there are disabled on Chromium OS, likewise on Safari
@@ -67,11 +65,10 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
 
 ## Full Launch
 
-- [ ] CrazyGames SDK instead of [M14 Poki](../docs/plan.md): Godot addon `crazysdk` (modules ad / banner / game); untested against 4.7 and the trimmed web templates
+- [ ] CrazyGames SDK ([M14](../docs/plan.md)): Godot addon `crazysdk` (modules ad / banner / game); untested against 4.7 and the trimmed web templates
 - [ ] Gameplay start / stop events (required), loading start / stop (optional)
-- [ ] Ads only through the SDK; the game must work with an ad blocker; `Sound.ad_mute` exists
+- [ ] Ads only through the SDK; the game must work with an ad blocker; `Sound.ad_mute` exists; `game.settings.muteAudio` has to mute the game
 - [ ] Save through the Data module: 1 MB limit (save ≈ 15 KB), localStorage for guests; Progress Save toggle in the submission flow, else the module is disabled
-- [ ] Docs still say Poki: `CLAUDE.md`, `docs/pitch.md`, `docs/plan.md` M14, `docs/tech.md`
 - IndexedDB (`user://`) in their iframe: persistence across game updates and on Safari not verified
 
 ## Engagement risks
@@ -80,18 +77,19 @@ Not requirements; they decide whether Basic Launch leads to a wider rollout. All
 
 - Hidden tab: no frames → the sim stands still (delta clamped to 0.25 s, no offline progress); idle players on desktop tab away
 - One 30–60 min run, START AGAIN = fresh save, no prestige → nothing to come back for
-- Desktop: a third of the iframe even once legible, reads as a phone port
+- Desktop: a third to under half of the iframe, reads as a phone port
 - Name: an itch.io jam game "Scrap Titans" exists; none found on CrazyGames (web search only)
 - The cover drives clicks on a portal
 
 ## Re-check
 
 ```
-godot --path . --display-driver x11 --resolution 907x510 -- --scenario shots --shots <dir>
+godot --headless --path . -- --scenario desktop
+godot --path . --display-driver x11 -- --scenario desktop --shots <dir>
 ```
 
-- The shot is the column only (286×510 at 907×510), bars not included; editor run, so the DBG panel is in it
-- Overwrites the desktop save (`~/.local/share/godot/app_userdata/Scrap Titans/save.json`, `settings.json`): back up first
+- Resizes the window to every frame size above: column size, scale ≥ 1, UPGRADES on the bottom edge; overlays at 462; a set safe area
+- Scenarios overwrite the desktop save (`~/.local/share/godot/app_userdata/Scrap Titans/save.json`, `settings.json`): back up first
 - `--display-driver x11`: with the default driver a window that isn't visible ran at 1 fps and the scenario never finished; x11 runs stalled now and then too, retry
 
 ## Other platforms

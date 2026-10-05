@@ -1,12 +1,13 @@
 # Scrap Titans
 
-Idle/clicker prototype for Poki: web, portrait mobile, pixel art. Godot 4.7, GDScript.
+Idle/clicker prototype for CrazyGames: web, portrait mobile, pixel art. Godot 4.7, GDScript.
 
 - `docs/pitch.md`: game design, the source of truth
 - `docs/plan.md`: milestones, worked in order
 - `docs/tech.md`: how it's built
 - `docs/web_build.md`: lightweight web export templates plan
 - `docs/audio.md`: sound design, rules against annoyance, sound assignment
+- `release/crazygames.md`: CrazyGames requirements and release checklist
 
 ## Rules
 
