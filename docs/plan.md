@@ -401,7 +401,7 @@ Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../
 - [x] Short column (462): CREDITS fits (its text scrolls; title and BACK were cut off); settings, audio, menu and run card stay inside
 - [ ] Covers 1920×1080, 800×1200, 800×800: the game's sprites at whole-number scale plus the title, by script → `release/covers/`; `release/.gdignore` keeps them out of the pack
 - [ ] Boot splash: title on the page colour instead of the Godot logo; game icon instead of the Godot icon
-- [ ] Web shell: `user-select: none` on `body` via `html/head_include`
+- [x] Web shell: `user-select: none` on `body` via `html/head_include`
 - [ ] Safe areas: HUD and UPGRADES bar move inside `env(safe-area-inset-*)`, read through `JavaScriptBridge`
 - [ ] `--scenario desktop` (windowed `--shots`): at every CrazyGames frame size scale ≥ 1 and UPGRADES on the bottom edge; at 462 every overlay inside the viewport; insets move the HUD and the bar
 - [ ] Docs: `tech.md` (display, shell, splash), pitch (desktop line), `CLAUDE.md` (CrazyGames, release doc), M14 becomes the CrazyGames SDK milestone; tick `release/crazygames.md`

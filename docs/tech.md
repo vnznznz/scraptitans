@@ -217,5 +217,6 @@
 - Game starts using a new engine class/format → re-detect profile, rebuild templates, smoke
 
 ## Web gotchas
+- Shell: `html/head_include` (Web preset) sets `user-select: none` on `body`, so a long press selects nothing and shows no magnifier (CrazyGames asks for it)
 - Secure context required (HTTPS or localhost)
 - `user://` → IndexedDB synced on the next frame; hidden tabs get no frames → save-on-hide unreliable
