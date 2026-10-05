@@ -4,6 +4,8 @@ extends Control
 const PILE_TEX := preload("res://art/yard/pile_3.png")
 const PILE_LEVELS := [preload("res://art/yard/pile_1.png"), preload("res://art/yard/pile_2.png"), PILE_TEX]
 const PILE_SECONDS := [5.0, 30.0]
+const PILE_SHRINK := 0.5
+const PILE_SETTLE := 8.0
 const MAGNET_TEX := [preload("res://art/yard/magnet_1.png"), preload("res://art/yard/magnet_2.png"), preload("res://art/yard/magnet_3.png")]
 const MAGNET_LEVELS := 5.0
 const HAUL_HIGH := 8
@@ -30,6 +32,8 @@ var _workers: Array[TextureRect] = []
 var _worker_tex := []
 var _look := Vector2i.ZERO
 var _magnet: TextureRect
+var _fill := 0.0
+var _level := 0
 var _chunks_seen := 0
 var _squash_depth := 0.0
 var _squash_at := -1.0
@@ -52,6 +56,8 @@ func _ready() -> void:
 	_pile.pivot_offset = Vector2(PILE_TEX.get_width() / 2.0, PILE_TEX.get_height())
 	_pile.mouse_filter = MOUSE_FILTER_IGNORE
 	_yard.add_child(_pile)
+	_fill = _stock_seconds()
+	_size_pile(0.0)
 
 	_magnet = TextureRect.new()
 	_magnet.name = "Magnet"
@@ -128,7 +134,7 @@ func _draw() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
-	_pile.texture = PILE_LEVELS[pile_level()]
+	_size_pile(delta)
 	if _collapsed:
 		return
 	var magnet := mini(ceili(GameState.level("tap") / MAGNET_LEVELS), MAGNET_TEX.size())
@@ -173,12 +179,21 @@ func _process(delta: float) -> void:
 
 
 func pile_level() -> int:
-	var seconds := GameState.scrap / maxf(GameState.yard_rate(), 1.0)
-	var level := 0
-	for s: float in PILE_SECONDS:
-		if seconds >= s:
-			level += 1
-	return level
+	return _level
+
+
+func _stock_seconds() -> float:
+	var one_worker := GameState.yard_chunk() / GameState.stat("worker_interval")
+	return GameState.scrap / maxf(GameState.yard_rate(), one_worker)
+
+
+func _size_pile(delta: float) -> void:
+	_fill = lerpf(_stock_seconds(), _fill, exp(-delta / PILE_SETTLE))
+	while _level < PILE_SECONDS.size() and _fill >= PILE_SECONDS[_level]:
+		_level += 1
+	while _level > 0 and _fill < PILE_SECONDS[_level - 1] * PILE_SHRINK:
+		_level -= 1
+	_pile.texture = PILE_LEVELS[_level]
 
 
 func _home(i: int) -> Vector2:

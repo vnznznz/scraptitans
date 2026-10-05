@@ -896,6 +896,37 @@ func m8() -> void:
 	t.check(not is_equal_approx(pile_sprite.position.x, rest_x), "pile vibrates on tap")
 	await t.wait(0.3)
 	t.check(is_equal_approx(pile_sprite.position.x, rest_x), "and settles back")
+	var heap: Scrapyard = yard.get_parent()
+	var top := Scrapyard.PILE_LEVELS.size() - 1
+	var full := Scrapyard.PILE_SECONDS[-1] * GameState.yard_chunk() / GameState.stat("worker_interval")
+	GameState.scrap = 0.0
+	heap.call("_process", 1000.0)
+	var looks := {}
+	for i in 20:
+		pile.tapped.emit(Vector2(10, 10))
+		heap.call("_process", 0.25)
+		looks[(pile_sprite as TextureRect).texture] = true
+	t.check(GameState.yard_workers == 0 and GameState.scrap >= 20.0 and looks.size() == 1 and heap.pile_level() == 0,
+			"no crew, 20 taps in 5 s: the pile keeps its size (%d sprites)" % looks.size())
+	GameState.scrap = full * 2.5
+	var steps := [heap.pile_level()]
+	var grow_time := 0.0
+	while steps[-1] < top and grow_time < 60.0:
+		heap.call("_process", 0.25)
+		grow_time += 0.25
+		if heap.pile_level() != steps[-1]:
+			steps.append(heap.pile_level())
+	t.check(steps == range(top + 1) and grow_time > 2.0, "a big stock: the pile grows one size at a time (%s in %.1f s)" % [steps, grow_time])
+	GameState.scrap = full * 0.6
+	heap.call("_process", 1000.0)
+	t.check(heap.pile_level() == top, "a dip under the size's threshold doesn't shrink it")
+	GameState.scrap = 0.0
+	steps = [top]
+	for i in 400:
+		heap.call("_process", 0.25)
+		if heap.pile_level() != steps[-1]:
+			steps.append(heap.pile_level())
+	t.check(steps == range(top, -1, -1), "stock spent: back down one size at a time (%s)" % [steps])
 	_reveal_all()
 	GameState.yard_workers = 20
 	GameState.levels["yard_crew"] = 20
@@ -903,16 +934,17 @@ func m8() -> void:
 	GameState._stats.clear()
 	var scale := GameState.time_scale
 	GameState.time_scale = 1.0
-	GameState.scrap = GameState.yard_rate() * 40.0
+	GameState.scrap = GameState.yard_rate() * 80.0
+	heap.call("_process", 1000.0)
 	var tallest := 0.0
-	var lowest := 2
+	var lowest := top
 	for f in 120:
 		if f % 30 == 0:
 			pile.tapped.emit(Vector2(10, 10))
 		await t.frames(1)
 		tallest = maxf(tallest, pile_sprite.scale.y)
-		lowest = mini(lowest, (yard.get_parent() as Scrapyard).pile_level())
-	t.check(tallest > 0.99 and lowest == 2, "busy yard + taps: the pile still springs back (%.3f) and keeps its size (%d)" % [tallest, lowest])
+		lowest = mini(lowest, heap.pile_level())
+	t.check(tallest > 0.99 and lowest == top, "busy yard + taps: the pile still springs back (%.3f) and keeps its size (%d)" % [tallest, lowest])
 	GameState.time_scale = scale
 	GameState.yard_workers = 0
 	GameState.levels.erase("yard_crew")
