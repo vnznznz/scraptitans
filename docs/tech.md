@@ -6,6 +6,7 @@
 
 ## Display
 - Viewport 360×640, stretch `canvas_items`, aspect `keep_width`
+- Short frames: base height = window height clamped to 462–640 (`Main.base_height`, set as the window's `content_scale_size` on `size_changed`), so from 462 px up nothing is scaled below 1× (a pixel font drops strokes there; CrazyGames desktop frames start at 821×462); the column gets shorter instead, still pillarboxed; under 462 it shrinks
 - Texture filter Nearest (project default)
 - Font: Silkscreen (OFL), `fonts/`; import antialiasing/hinting/subpixel off; size 16 everywhere (2× pixel grid), 8 is illegible
 - Silkscreen covers ASCII + Latin-1 only (no `→`, `⬆`…); import `allow_system_fallback=false`, so desktop shows missing glyphs like the web build (no system fonts there)
@@ -57,7 +58,7 @@
 - `Data`: loads `data/*.json`
 - `GameState`: sim; fixed tick 1/30 s × `time_scale`; frame delta clamped to 0.25 s (no offline progress); `advance(s)` for instrumentation
 - `Save`: `user://save.json`, `version` 1; every 5 s, after purchases, on focus out/close
-- `Instrument`: no-op unless `--scenario` user arg; `Sound.shutdown()` + 0.1 s before quitting (streams still playing at exit leak)
+- `Instrument`: no-op unless `--scenario` user arg; headless: window set to 450×800 (64×64 there, which would clamp the base height to 462); `Sound.shutdown()` + 0.1 s before quitting (streams still playing at exit leak)
 - `Sound`: audio (see Audio)
 - `Effects`: battlefield load level (see Effects)
 
@@ -188,6 +189,7 @@
 - Progression check: `--scenario progression` (animated reveals; windowed `--shots` for `start_pile`, `start_factory_mid`, `start_factory`, `start_field_mid`, `start_field`, `start_buying`): pile alone and centered, HUD scrap only; line at 10 scrap while the yard slides down; first mech → battlefield under the HUD + rail + HUD columns, factory/yard stay at the bottom; crew bars, UPGRADES, UNLOCK LINE each at their first affordable price and staying; reload shows them at once; old-save migration; START AGAIN → pile alone
 - Stations check: `--scenario stations` (windowed `--shots` for `station_tiers`, `station_upgrades`, `station_upgrades_high`, `pile_upgrades`, `pile_upgrades_high`): every station shows its tier's machine cell, 6 different cells per sheet, a fit flashes the station; free crew slots marked, flywheel and worker tools follow their rows' levels; pile workers' tools and the magnet follow theirs, magnet centered above the peak, workers beside the pile
 - Pane check: `--scenario pane` (windowed `--shots` for `pane_top`, `pane_bottom`, `pane_pinned`): rail size, 4 stations flush + headers apart, hire/fit/machine share edges (also the rail seam and the pause strip's edge), line tag centered in its bar with its digit on the crew text's rows, quick access both ways, pin/unpin both areas, track press/drag, sound presence follows the view, disc clip, guide points at an away pin, `release()`
+- Desktop check: `--scenario desktop` (windowed `--shots` for `desktop_<w>x<h>`): base height per frame height; window resized to every CrazyGames frame size (821×462 … 1920×1080): column 360 × base height at ≥ 1×, UPGRADES on the bottom edge; tall phone and back to 360×640 (X11 rounds odd widths up, so only the height is checked)
 - Pixel checks: `--resolution 720x1280` on a windowed run gives exact 2× shots (the default 450×800 window scales unevenly)
 - Tuning: `godot --headless --path . -- --scenario tune [--profile <name>]`: bot runs (3 taps/s: pile while short on scrap or saving for a fit, else the emptiest station bar; builds, buys cheapest, fits tiers, pauses all lines while a fit isn't reachable in 60 s of net scrap but is within 30 s of gross). Profiles: `baseline`, `casual` (1.5 taps/s), `field` / `third` (all / ⅓ of taps on the battlefield after the reveal), `quit10` (no taps after 10 min), `no_arms` (never fits Arms, except the missile), `no_pause`. Prints a summary row per profile (nuke min, bounty share of credits, NO_SCRAP share, phases ≥ 10 s (stalls < 30 s apart merge), longest wait between buys, first fit, final wait before the missile, first regular row maxed, tap share of scrap / of station work); per-minute economy + timeline for baseline or the named profile; checks the M9 targets
 - Pause checks: pausing gets some L1 fit ≥ 60 s sooner than never pausing; never pausing ends within 10 % of baseline with no wait between buys > 150 s
@@ -199,7 +201,7 @@
 - Battlefield art: `gen_art.py` layer width = 360 + 1080 × parallax (`TRAVEL` = `Battlefield.FRONT_END`); a spot's stage = the front offset at which it is mid-screen
 - Art shots: `godot --path . -- --scenario art --shots <dir>` (windowed): full mixed-tier field at wave 27 with one hurt mech, 3 lines of high-tier stations, then the whole nuke sequence
 - Templates: `tools/build_templates.sh [web|smoke]` → `build/templates/`; scons in `~/work/source/godot` (`GODOT_SRC`, at `4.7.2-stable`); web via emsdk 4.0.11 in `~/work/source/emsdk` (`EMSDK_DIR`), ~25 min for both; smoke = Linux `template_debug` in a `fedora:43` podman container (no host g++), `x11=no wayland=no vulkan=no accesskit=no` (vulkan=no: link error without x11/wayland)
-- Template smoke: `tools/smoke_templates.sh [binary]` (default `build/templates/linux_smoke.x86_64`): "Linux smoke" preset (includes `tools/`) → `build/smoke/smoke.pck` next to the binary, runs m0–m9, intro, ui, progression, pane, art, audio, field, stations headless (templates refuse `--main-pack`); the templates have no regex module, so scenarios can't use `RegEx`
+- Template smoke: `tools/smoke_templates.sh [binary]` (default `build/templates/linux_smoke.x86_64`): "Linux smoke" preset (includes `tools/`) → `build/smoke/smoke.pck` next to the binary, runs m0–m9, intro, ui, progression, pane, art, audio, field, stations, desktop headless (templates refuse `--main-pack`); the templates have no regex module, so scenarios can't use `RegEx`
 - Web build: `tools/export_web.sh [debug|release]` → `build/web/`; debug build has the DBG panel; `build/.gdignore` keeps the editor from importing the exported PNGs
 - Deploy: `tools/deploy_web.sh` → release build, `lftp` FTPS mirror (`--delete`, temp file + rename per file, `index.html` put last) via `www161.your-server.de` to `https://distco.de/games/scraptitans/`; credentials in gitignored `tools/deploy.env` (`FTP_HOST/USER/PASS/DIR`, FTP user chrooted to the game folder, so `FTP_DIR=/`); `FTP_VERIFY_CERT=false` if the host cert doesn't match
 - Serve: `tools/serve_web.sh` → Caddy, `tls internal` (cert generated on the fly, untrusted: accept the browser warning), `https://localhost:8443`, `https://<lan-ip>:8443`, `Cache-Control: no-cache`; `LAN_IP` overrides detection

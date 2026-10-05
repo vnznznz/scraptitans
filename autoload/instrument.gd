@@ -10,6 +10,8 @@ func _ready() -> void:
 	if i == -1:
 		return
 	var scenario := args[i + 1] if i + 1 < args.size() else ""
+	if DisplayServer.get_name() == "headless":
+		get_window().size = Vector2i(450, 800)
 	var j := args.find("--shots")
 	if j != -1 and j + 1 < args.size():
 		shots_dir = args[j + 1]

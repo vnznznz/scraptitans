@@ -1,6 +1,8 @@
 class_name Main
 extends Control
 
+const BASE := Vector2i(360, 640)
+const MIN_HEIGHT := 462
 const BADGE_ON := Pal.RED
 const BADGE_INSET := 8.0
 const BAR_H := 56.0
@@ -40,6 +42,8 @@ var _starved := false
 
 
 func _ready() -> void:
+	get_window().size_changed.connect(_fit_window)
+	_fit_window()
 	for b: BaseButton in find_children("*", "BaseButton", true, false):
 		Hover.button(b)
 		Sound.hook_button(b)
@@ -116,6 +120,17 @@ func _process(delta: float) -> void:
 		var can_buy := GameState.credits >= cost
 		Price.show(_unlock, Fmt.num(cost), can_buy, "+ LINE %d" % (GameState.lines.size() + 1))
 		_unlock.custom_minimum_size = UNLOCK_BIG if can_buy else UNLOCK_SMALL
+
+
+static func base_height(window: Vector2i) -> int:
+	return clampi(window.y, MIN_HEIGHT, BASE.y)
+
+
+func _fit_window() -> void:
+	var window := get_window()
+	var base := Vector2i(BASE.x, base_height(window.size))
+	if window.content_scale_size != base:
+		window.content_scale_size = base
 
 
 func _reveal(delta: float) -> void:

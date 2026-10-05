@@ -2549,6 +2549,32 @@ func audio() -> void:
 	Sound._load_settings()
 
 
+func desktop() -> void:
+	await _fresh()
+	_reveal_all()
+	var window := t.get_window()
+	var start := window.size
+	var upgrades: Control = t.node("Upgrades")
+	var heights := {462: 462, 510: 510, 606: 606, 684: 640, 720: 640, 768: 640, 864: 640, 1080: 640, 400: 462}
+	for h: int in heights:
+		t.check(Main.base_height(Vector2i(1000, h)) == heights[h], "frame height %d: base height %d" % [h, heights[h]])
+	for frame: Vector2i in [Vector2i(821, 462), Vector2i(907, 510), Vector2i(1077, 606), Vector2i(1216, 684), Vector2i(1280, 720), Vector2i(1366, 768), Vector2i(1536, 864), Vector2i(1920, 1080)]:
+		window.size = frame
+		await t.frames(10)
+		var main := t.get_tree().current_scene as Control
+		var scale := window.size.y / main.size.y
+		t.check(window.size.y == frame.y, "%dx%d: window that high (got %s)" % [frame.x, frame.y, window.size])
+		t.check(main.size == Vector2(Main.BASE.x, Main.base_height(window.size)) and scale >= 1.0, "%dx%d: column %s at %.2fx" % [frame.x, frame.y, main.size, scale])
+		t.check(upgrades.get_global_rect() == Rect2(6, main.size.y - 50, 348, 44), "%dx%d: UPGRADES on the bottom edge (%s)" % [frame.x, frame.y, upgrades.get_global_rect()])
+		await t.shot("desktop_%dx%d" % [frame.x, frame.y])
+	window.size = Vector2i(360, 780)
+	await t.frames(10)
+	t.check((t.get_tree().current_scene as Control).size == Vector2(360, 780), "tall phone: column as tall as the screen")
+	window.size = start
+	await t.frames(10)
+	t.check((t.get_tree().current_scene as Control).size == Vector2(360, 640), "back to 360x640")
+
+
 func _reveal_all() -> void:
 	GameState.mechs_built = maxi(GameState.mechs_built, 1)
 	for key: String in GameState.REVEALS:
