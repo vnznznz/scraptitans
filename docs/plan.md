@@ -398,7 +398,7 @@ Test (browser + phone):
 Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../release/crazygames.md)): readable in their desktop frames, covers, shell and branding fixes. SDK and ads stay in M14. Done before M14.
 
 - [x] Desktop: never scaled below 1×. In a frame shorter than 640 px the column gets shorter instead (base height = frame height, 462–640, still pillarboxed); from 640 up as now
-- [ ] Short column (462): CREDITS fits (its title and BACK are cut off there now); settings, audio, menu and run card stay inside
+- [x] Short column (462): CREDITS fits (its text scrolls; title and BACK were cut off); settings, audio, menu and run card stay inside
 - [ ] Covers 1920×1080, 800×1200, 800×800: the game's sprites at whole-number scale plus the title, by script → `release/covers/`; `release/.gdignore` keeps them out of the pack
 - [ ] Boot splash: title on the page colour instead of the Godot logo; game icon instead of the Godot icon
 - [ ] Web shell: `user-select: none` on `body` via `html/head_include`

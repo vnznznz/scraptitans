@@ -5,7 +5,7 @@ enum Mode { SETTINGS, AUDIO, CONFIRM, CREDITS }
 
 const VOLUMES := [["master", "MASTER"], ["ui", "UI"], ["battle", "BATTLE"], ["factory", "FACTORY"], ["ambience", "AMBIENCE"], ["music", "MUSIC"]]
 const LICENSE_CHUNK := 1200
-const LICENSE_MARGIN := 8
+const EDGE_MARGIN := 8
 const CREDITS := [
 	["GAME DESIGN", ["VINZENZ SINAPIUS", "DISTCO.DE"]],
 	["SOUNDS AND MUSIC", ["SUBSPACEAUDIO", "MUSIC: JUHANI JUNKALA", "SUBSPACEAUDIO.ITCH.IO", "CC BY 4.0, MIXED TO MONO", "FADED, TRIMMED, FILTERED"]],
@@ -22,7 +22,10 @@ var _confirm: Button
 var _close: Button
 var _volumes: VBoxContainer
 var _effects: HBoxContainer
+var _panel: PanelContainer
 var _credits: VBoxContainer
+var _credits_scroll: ScrollContainer
+var _licenses_button: Button
 var _licenses: Control
 var _pips := {}
 var _effects_pips: VolumePips
@@ -64,16 +67,17 @@ func _ready() -> void:
 	dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(dim)
 
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(280, 0)
-	panel.set_anchors_and_offsets_preset(PRESET_CENTER)
-	panel.grow_horizontal = GROW_DIRECTION_BOTH
-	panel.grow_vertical = GROW_DIRECTION_BOTH
-	add_child(panel)
+	_panel = PanelContainer.new()
+	_panel.name = "Panel"
+	_panel.custom_minimum_size = Vector2(280, 0)
+	_panel.set_anchors_and_offsets_preset(PRESET_CENTER)
+	_panel.grow_horizontal = GROW_DIRECTION_BOTH
+	_panel.grow_vertical = GROW_DIRECTION_BOTH
+	add_child(_panel)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
-	panel.add_child(box)
+	_panel.add_child(box)
 
 	_title = Label.new()
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -92,18 +96,20 @@ func _ready() -> void:
 		_volume_row(v[0], v[1])
 	_effects_row(box)
 
+	_credits_scroll = ScrollContainer.new()
+	_credits_scroll.name = "CreditsScroll"
+	_credits_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_credits_scroll.scroll_deadzone = 8
+	box.add_child(_credits_scroll)
 	_credits = VBoxContainer.new()
 	_credits.name = "Credits"
+	_credits.size_flags_horizontal = SIZE_EXPAND_FILL
 	_credits.add_theme_constant_override("separation", 6)
-	box.add_child(_credits)
+	_credits_scroll.add_child(_credits)
 	for section: Array in CREDITS:
 		_credits_section(section[0], section[1])
-	var licenses := Button.new()
-	licenses.name = "LicensesButton"
-	licenses.text = "OPEN SOURCE LICENSES"
-	licenses.custom_minimum_size = Vector2(0, 44)
-	licenses.pressed.connect(_open_licenses)
-	_credits.add_child(licenses)
+	_licenses_button = _button(box, "LicensesButton", "OPEN SOURCE LICENSES", _open_licenses)
+	resized.connect(_fit_credits)
 
 	_audio_button = _button(box, "AudioButton", "AUDIO", func() -> void: _show(Mode.AUDIO))
 	_credits_button = _button(box, "CreditsButton", "CREDITS", func() -> void: _show(Mode.CREDITS))
@@ -146,9 +152,19 @@ func _show(mode: Mode) -> void:
 	_audio_button.visible = mode == Mode.SETTINGS
 	_credits_button.visible = mode == Mode.SETTINGS
 	_reset.visible = mode == Mode.SETTINGS
-	_credits.visible = mode == Mode.CREDITS
+	_credits_scroll.visible = mode == Mode.CREDITS
+	_licenses_button.visible = mode == Mode.CREDITS
 	_confirm.visible = mode == Mode.CONFIRM
 	_close.text = {Mode.SETTINGS: "CLOSE", Mode.AUDIO: "BACK", Mode.CONFIRM: "CANCEL", Mode.CREDITS: "BACK"}[mode]
+	_fit_credits()
+
+
+func _fit_credits() -> void:
+	if _mode != Mode.CREDITS:
+		return
+	_credits_scroll.custom_minimum_size.y = 0.0
+	var rest := _panel.get_combined_minimum_size().y
+	_credits_scroll.custom_minimum_size.y = minf(_credits.get_combined_minimum_size().y, size.y - rest - 2.0 * EDGE_MARGIN)
 
 
 func _open_licenses() -> void:
@@ -169,10 +185,10 @@ func _build_licenses() -> void:
 	_licenses.add_child(dim)
 	var panel := PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	panel.offset_left = LICENSE_MARGIN
-	panel.offset_top = LICENSE_MARGIN
-	panel.offset_right = -LICENSE_MARGIN
-	panel.offset_bottom = -LICENSE_MARGIN
+	panel.offset_left = EDGE_MARGIN
+	panel.offset_top = EDGE_MARGIN
+	panel.offset_right = -EDGE_MARGIN
+	panel.offset_bottom = -EDGE_MARGIN
 	_licenses.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
