@@ -1509,6 +1509,21 @@ func ui() -> void:
 		if left_end > right_start:
 			crossing.append(slots)
 	t.check(crossing.is_empty(), "station crews never cross behind the mech, 3..13 per station %s" % [crossing])
+	var strip: Button = main.line_view(0).get_node("Pause")
+	var gauge: Array[Rect2] = [(strip.get_node("Scrap") as Control).get_rect(), (strip.get_node("Meter") as Control).get_rect()]
+	var key: Panel = strip.get_node("Face")
+	var glyph: TextureRect = strip.get_node("Glyph")
+	t.check(gauge[0].end.y < gauge[1].position.y and gauge[1].end.y < key.position.y and key.get_rect().end == strip.size and key.size.x == strip.size.x
+			and key.get_rect().encloses(glyph.get_rect()), "pause strip: scrap icon, meter and the pause key stacked without touching, the glyph inside the key")
+	var glyph_y := glyph.position.y
+	t.check(key.get_theme_stylebox("panel") == strip.get_theme_stylebox("normal", "Button") and glyph.texture == LineView.PAUSE_TEX, "running: a raised key with the pause glyph")
+	GameState.toggle_pause(0)
+	await t.frames(2)
+	t.check(key.get_theme_stylebox("panel") == strip.get_theme_stylebox("pressed", "Button") and glyph.texture == LineView.PLAY_TEX and glyph.position.y == glyph_y + 1.0,
+			"paused: the key stays sunken and shows play")
+	await t.shot("ui_paused")
+	GameState.toggle_pause(0)
+	await t.frames(2)
 	await t.shot("ui_lines")
 
 	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
@@ -2034,6 +2049,7 @@ func prestige() -> void:
 	Save.start_again()
 	await t.frames(3)
 	t.check(GameState.prestige == 4, "START AGAIN adds one")
+	t.check(not GameState.stalled_once and t.get_tree().current_scene.line_view(0).get_node("Pause").visible, "a war won: the pause strip is there without waiting for a stall")
 
 	var settings: SettingsOverlay = t.node("Settings")
 	settings.open()
@@ -2975,7 +2991,3 @@ func _fill_bar(line: LineView, i: int) -> void:
 	var tap: Control = line.segment_view(i).get_node("Tap")
 	for k in 8:
 		await t.click(tap)
-
-
-
-

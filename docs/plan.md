@@ -434,6 +434,9 @@ Build: prestige. Every nuke counts as a war won; the next war is bigger and the 
 - [x] `--scenario prestige` (windowed `--shots`): scaling, save, HUD, run card, disc, menu rows at 10 wars won, pile looks
 - [x] Settings: RESET opens a submenu with RESET RUN (wars won kept) and RESET SAVE (everything, wars won too); each asks in a popup before it does anything
 - [x] Settings: the effects row reads VISUAL EFFECTS
+- [x] Fix: a line's top light line stopped at the pause strip while the crew bar was shown
+- [x] Fix: after a war won the pause strip could stay hidden for a whole run (it waited for the first out-of-scrap stall, which the bigger pile prevents); now it is there from the start once a war is won
+- [x] Pause strip: scrap gauge in a recessed well, pause as a raised key under it that stays sunken and shows play while paused; the meter no longer runs into the pause glyph; well, key, crew bar and line edges on one pixel grid with shared ink lines
 
 Test (browser + phone):
 - Finish a run, START AGAIN: a nuclear disc flies from the button to the top bar, a count of 1 appears next to the credits, the new game starts with only the pile and that count

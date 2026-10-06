@@ -178,7 +178,7 @@ One word per thing, in every label, row, info text and guide line:
   1. A new game (and START AGAIN: "only scrap remains") shows only the scrap pile, centered; the HUD shows only scrap.
   2. Once the pile has paid for the first station, line 1 fades in with all three pads while the scrapyard slides down to the bottom.
   3. The first mech deployed: the battlefield slides down from under the HUD (the mech walks onto it), with the scroll bar and the HUD's mechs and credits.
-  4. Each purchase appears the first time it's affordable: pile crew, station crew, UPGRADES, UNLOCK LINE; pause strips at the first stall.
+  4. Each purchase appears the first time it's affordable: pile crew, station crew, UPGRADES, UNLOCK LINE; pause strips at the first stall (from the start once a war is won).
 - Desktop layout is out of scope for v1: the portrait column is pillarboxed and never scaled below 1× (in a short frame it gets shorter).
 
 ## Tech (Godot 4)

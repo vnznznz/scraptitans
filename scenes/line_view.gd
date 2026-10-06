@@ -10,8 +10,8 @@ const HEADER_GAP := 4.0
 const L_FILL := Pal.SLATE_D
 const L_LIGHT := Pal.SLATE
 const L_EDGE := Pal.INK
-const METER := Rect2(6, 26, 8, 44)
-const METER_BG := Color(Pal.INK, 0.6)
+const METER := Rect2(6, 19, 8, 32)
+const FACE_H := 34.0
 const USAGE_COLOR := Pal.STEEL_L
 const BELT_TEX := preload("res://art/line/belt.png")
 const PAUSE_TEX := preload("res://art/ui/pause.png")
@@ -27,6 +27,8 @@ var _crew: Label
 var _tag: Label
 var _tagged := false
 var _pause_icon: TextureRect
+var _face: Panel
+var _face_style := &""
 var _usage: ColorRect
 var _strip_k := 0.0
 var _bar_k := 0.0
@@ -52,22 +54,29 @@ func _ready() -> void:
 	_pause.pressed.connect(_on_pause)
 	add_child(_pause)
 	var scrap_icon := TextureRect.new()
-	scrap_icon.texture = preload("res://art/ui/scrap.png")
-	scrap_icon.position = Vector2(STRIP_PAD, 6)
+	scrap_icon.name = "Scrap"
+	scrap_icon.texture = preload("res://art/ui/scrap_s.png")
+	scrap_icon.position = Vector2(4, 3)
 	scrap_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(scrap_icon)
-	var meter := ColorRect.new()
-	meter.color = METER_BG
-	meter.position = METER.position
-	meter.size = METER.size
-	meter.mouse_filter = MOUSE_FILTER_IGNORE
-	_pause.add_child(meter)
+	for groove: Array in [[METER.grow(1.0), Pal.INK], [METER, Pal.NAVY]]:
+		var meter := ColorRect.new()
+		meter.name = "Meter"
+		meter.color = groove[1]
+		meter.position = groove[0].position
+		meter.size = groove[0].size
+		meter.mouse_filter = MOUSE_FILTER_IGNORE
+		_pause.add_child(meter)
 	_usage = ColorRect.new()
 	_usage.name = "Usage"
 	_usage.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(_usage)
+	_face = Panel.new()
+	_face.name = "Face"
+	_face.mouse_filter = MOUSE_FILTER_IGNORE
+	_pause.add_child(_face)
 	_pause_icon = TextureRect.new()
-	_pause_icon.position = Vector2(STRIP_PAD, _pause.size.y - 22)
+	_pause_icon.name = "Glyph"
 	_pause_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_pause.add_child(_pause_icon)
 
@@ -105,7 +114,7 @@ func _ready() -> void:
 	add_child(_mechs)
 	_fx = Node2D.new()
 	add_child(_fx)
-	_strip_k = Reveal.step(0.0, GameState.stalled_once, INF)
+	_strip_k = Reveal.step(0.0, GameState.pause_shown(), INF)
 	_bar_k = Reveal.step(0.0, GameState.shown("crew"), INF)
 	_tagged = GameState.lines.size() > 1
 	_sync_segments()
@@ -153,6 +162,8 @@ func _layout() -> void:
 	_pause.visible = _strip_k > 0.0
 	_pause.position = Vector2(_left() - PAUSE_W, _top)
 	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
+	_face.position = Vector2(0, _pause.size.y - FACE_H)
+	_face.size = Vector2(PAUSE_W, FACE_H)
 	_tag.position = Vector2(_left() + TAG_GAP, bar_y + 3.0)
 	_tag.size = TAG
 	var crew_x := _left() + 6.0 + (TAG.x + TAG_GAP if _tagged else 0.0)
@@ -226,7 +237,7 @@ func _process(delta: float) -> void:
 		return
 	if _segments.size() != _line().segments.size():
 		_sync_segments()
-	var strip := Reveal.step(_strip_k, GameState.stalled_once, delta)
+	var strip := Reveal.step(_strip_k, GameState.pause_shown(), delta)
 	var bar := Reveal.step(_bar_k, GameState.shown("crew"), delta)
 	var tagged := GameState.lines.size() > 1
 	if strip != _strip_k or bar != _bar_k or tagged != _tagged:
@@ -245,7 +256,14 @@ func _process(delta: float) -> void:
 		var cost := GameState.worker_cost(line_index)
 		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
 	var paused := line.paused
+	var mode := _pause.get_draw_mode()
+	var sunk := paused or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED
+	var style := &"pressed" if sunk else &"hover" if mode == BaseButton.DRAW_HOVER else &"normal"
+	if style != _face_style:
+		_face_style = style
+		_face.add_theme_stylebox_override(&"panel", get_theme_stylebox(style, &"Button"))
 	_pause_icon.texture = PLAY_TEX if paused else PAUSE_TEX
+	_pause_icon.position = Vector2(STRIP_PAD, _face.position.y + (FACE_H - 16.0) / 2.0 + (1.0 if sunk else 0.0))
 	var share := clampf(_line().scrap_used_rate / maxf(GameState.scrap_gain_rate, 1.0), 0.0, 1.0)
 	var h := roundf(METER.size.y * share)
 	_usage.position = Vector2(METER.position.x, METER.end.y - h)
@@ -305,13 +323,10 @@ func _draw_frame() -> void:
 		draw_bar(self, size.x, _left(), _top - CREW_H)
 	if _strip_k > 0.0:
 		var x := _left() - PAUSE_W
-		draw_rect(Rect2(x, 0, PAUSE_W, bottom), L_FILL)
-		draw_rect(Rect2(x, 0, 1, bottom), L_LIGHT)
-		var edge_top := _top - 1.0 if _bar_k > 0.0 else _top
-		draw_rect(Rect2(x + PAUSE_W - 1.0, edge_top, 1, bottom - edge_top), L_EDGE)
-		draw_rect(Rect2(x, bottom - 1.0, PAUSE_W, 1), L_EDGE)
-		if _bar_k <= 0.0:
-			draw_rect(Rect2(x, 0, PAUSE_W, 1), L_LIGHT)
+		var top := _top - 1.0 if _bar_k > 0.0 else 0.0
+		var key_top := _top + _face.position.y
+		draw_rect(Rect2(x, top, PAUSE_W, bottom - top), L_EDGE)
+		draw_rect(Rect2(x + 1.0, top + 1.0, PAUSE_W - 2.0, key_top - top - 1.0), Pal.NAVY)
 
 
 static func draw_bar(ci: CanvasItem, width: float, left: float, y := 0.0) -> void:

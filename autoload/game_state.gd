@@ -181,6 +181,10 @@ func shown(key: String) -> bool:
 	return seen.has(key)
 
 
+func pause_shown() -> bool:
+	return stalled_once or prestige > 0
+
+
 func _update_seen() -> void:
 	if lines.is_empty():
 		return
