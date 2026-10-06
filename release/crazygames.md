@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.1.0-m18` ([M18](../docs/plan.md)), checked in desktop Godot only (no browser, no device).
+Checklist for publishing on crazygames.com. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.1.0-m19` ([M19](../docs/plan.md)), checked in desktop Godot only (no browser, no device).
 
 ## Why CrazyGames
 
@@ -76,7 +76,7 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
 Not requirements; they decide whether Basic Launch leads to a wider rollout. All deliberate prototype cuts.
 
 - Hidden tab: no frames → the sim stands still (delta clamped to 0.25 s, no offline progress); idle players on desktop tab away
-- One 30–60 min run, START AGAIN = fresh save, no prestige → nothing to come back for
+- One 30–60 min run; START AGAIN keeps the wars won (bigger numbers, a bigger pile, M19), but no new content → little to come back for
 - Desktop: a third to under half of the iframe, reads as a phone port
 - Name: an itch.io jam game "Scrap Titans" exists; none found on CrazyGames (web search only)
 - The cover drives clicks on a portal
