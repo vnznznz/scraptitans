@@ -52,7 +52,7 @@ var _starved := false
 
 
 func _ready() -> void:
-	get_window().size_changed.connect(_fit_window)
+	get_window().size_changed.connect(_fit_window, CONNECT_DEFERRED)
 	_fit_window()
 	for b: BaseButton in find_children("*", "BaseButton", true, false):
 		Hover.button(b)
@@ -141,6 +141,8 @@ static func window_scale(window: Vector2i) -> float:
 
 
 func _fit_window() -> void:
+	if not is_inside_tree():
+		return
 	var window := get_window()
 	var base := Vector2i(BASE.x, base_height(window.size))
 	if window.content_scale_size != base:

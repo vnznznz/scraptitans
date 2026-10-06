@@ -89,6 +89,7 @@ godot --path . --display-driver x11 -- --scenario desktop --shots <dir>
 ```
 
 - Resizes the window to every frame size above: column size, scale ≥ 1, UPGRADES on the bottom edge; overlays at 462; a set safe area
+- Shots are the viewport's picture, not the frame's: a stretched picture (QA tool at m19: base height set inside `size_changed`) doesn't show there → look at the frame sizes in their QA tool
 - Scenarios overwrite the desktop save (`~/.local/share/godot/app_userdata/Scrap Titans/save.json`, `settings.json`): back up first
 - `--display-driver x11`: with the default driver a window that isn't visible ran at 1 fps and the scenario never finished; x11 runs stalled now and then too, retry
 
