@@ -403,11 +403,12 @@ Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../
 
 - [x] Desktop: never scaled below 1×. In a frame shorter than 640 px the column gets shorter instead (base height = frame height, 462–640, still pillarboxed); from 640 up as now
 - [x] Short column (462): CREDITS fits (its text scrolls; title and BACK were cut off); settings, audio, menu and run card stay inside
-- [x] Covers 1920×1080, 800×1200, 800×800: the game's sprites at whole-number scale plus the title, by script → `release/covers/`; `release/.gdignore` keeps them out of the pack
+- [x] Covers 1920×1080, 800×1200, 800×800: the game's sprites at whole-number scale plus the title, by script → `release/marketing/covers/`; `release/.gdignore` keeps them out of the pack
 - [x] Boot splash: title on the page colour instead of the Godot logo; game icon instead of the Godot icon
 - [x] Web shell: `user-select: none` on `body` via `html/head_include`
 - [x] Safe areas: HUD and UPGRADES bar move inside `env(safe-area-inset-*)`, read through `JavaScriptBridge`
 - [x] `--scenario desktop` (windowed `--shots`): at every CrazyGames frame size scale ≥ 1 and UPGRADES on the bottom edge; at 462 every overlay inside the viewport; insets move the HUD and the bar
+- [x] Preview videos 1920×1080 and 1080×1620 from recorded play, screenshots and cover layers → `release/marketing/`, deployed next to the game (`tools/make_videos.sh`, `tools/deploy_web.sh`); cover titles out of the top left label area
 - [x] Docs: `tech.md` (display, shell, splash), pitch (desktop line), `CLAUDE.md` (CrazyGames, release doc), M14 becomes the CrazyGames SDK milestone; tick `release/crazygames.md`
 
 Test (browser + phone):

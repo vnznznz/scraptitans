@@ -2925,6 +2925,137 @@ func desktop() -> void:
 	t.check((t.get_tree().current_scene as Control).size == Vector2(360, 640), "back to 360x640")
 
 
+func video() -> void:
+	await _fresh(false)
+	Reveal.instant = false
+	t.get_window().mouse_passthrough = true
+	var main := t.get_tree().current_scene as Main
+	(t.node("Debug") as Control).hide()
+	var pile: Control = (t.node("Scrapyard") as Scrapyard).pile()
+	var line: LineView = main.line_view(0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	await t.wait(0.5)
+
+	t.record("pile")
+	await t.wait(0.3)
+	for i in 10:
+		t.tap(pile.get_global_rect().get_center() + Vector2(rng.randi_range(-14, 14), rng.randi_range(-4, 8)))
+		await t.wait(0.13)
+	await t.wait(1.5)
+	t.record("")
+
+	GameState.scrap = 62.0
+	await t.wait(0.5)
+	t.record("build")
+	await t.wait(0.2)
+	for i in 3:
+		await t.click(_build_button(line, i))
+		await t.wait(0.2)
+	for i in 3:
+		var station: Control = line.segment_view(i).get_node("Tap")
+		for k in ceili(GameState.lines[0].segments[i].bar_size()):
+			await t.click(station)
+			await t.wait(0.1)
+	await t.wait(5.0)
+	t.record("")
+
+	GameState.scrap = 1e6
+	GameState.credits = 1e6
+	for id: String in ["tier_frame", "tier_core", "tier_arms"]:
+		for k in 2:
+			GameState.buy_upgrade(id)
+	for id: String in ["lines", "crew", "interval", "yard_crew", "raises", "deploy_fee"]:
+		GameState.buy_upgrade(id)
+	await t.frames(2)
+	for li in 2:
+		for si in 3:
+			GameState.build_segment(li, si)
+			GameState.lines[li].segments[si].tier = 2 - li
+		for k in [8, 4][li]:
+			GameState.hire_worker(li)
+	for k in 3:
+		GameState.hire_yard_worker()
+	for i in 9:
+		_video_mech(rng, 0, 2, false)
+	GameState.wave = 7
+	GameState.wave_hp = GameState.wave_max_hp()
+	GameState.field_taps = IntroGuide.FIELD_TAPS
+	GameState.scrap = 420.0
+	GameState.credits = 365.0
+	await t.wait(7.0)
+	var field: Battlefield = t.node("Battlefield")
+	GameState.wave_hp = GameState.wave_dps() * 2.8
+	t.record("mid")
+	await t.wait(0.5)
+	for i in 6:
+		t.tap(field.get_global_rect().position + Vector2(rng.randi_range(250, 320), rng.randi_range(50, 110)))
+		await t.wait(0.15)
+	await t.wait(4.0)
+	t.record("")
+
+	await _fresh(false)
+	(t.node("Debug") as Control).hide()
+	field = t.node("Battlefield")
+	_reveal_all()
+	Reveal.instant = true
+	GameState.stalled_once = true
+	GameState.field_taps = IntroGuide.FIELD_TAPS
+	GameState.credits = 1e12
+	GameState.scrap = 1e12
+	for id: String in ["tier_frame", "tier_core", "tier_arms", "tier_plating"]:
+		for k in 4:
+			GameState.buy_upgrade(id)
+	for id: String in ["lines", "lines", "crew", "crew", "interval", "yard_crew", "yard_crew", "raises", "raises", "salvage"]:
+		GameState.buy_upgrade(id)
+	await t.frames(2)
+	for li in GameState.lines.size():
+		var segs := GameState.lines[li].segments
+		for si in segs.size():
+			GameState.build_segment(li, si)
+			segs[si].tier = GameState.unlocked_tier(segs[si].type_id) - mini(li, 1)
+		for k in 14 - li * 3:
+			GameState.hire_worker(li)
+	for k in 4:
+		GameState.hire_yard_worker()
+	GameState.wave = 29
+	GameState.wave_hp = GameState.wave_max_hp()
+	for i in 24:
+		_video_mech(rng, 1, 4, true)
+	GameState.scrap = 8400.0
+	GameState.credits = 2.6e6
+	await t.wait(8.0)
+	Reveal.instant = false
+	for i in GameState.field.size():
+		var m: MechState = GameState.field[i]
+		m.wear = m.lifetime * (0.8 if i % 6 == 5 else 0.15)
+	t.record("late")
+	await t.wait(3.0)
+	t.record("")
+	var nuclear := MechState.new()
+	nuclear.id = GameState.next_mech_id
+	GameState.next_mech_id += 1
+	nuclear.parts = {"frame": 5, "core": 5, "arms": 5, "plating": 5}
+	GameState.call("_deploy", nuclear)
+	await t.frames(2)
+	while field.mech_view(nuclear.id).walking:
+		await t.frames(1)
+	t.record("nuke")
+	await t.wait(6.5)
+	t.record("")
+	Reveal.instant = true
+
+
+func _video_mech(rng: RandomNumberGenerator, low: int, high: int, plated: bool) -> void:
+	var m := MechState.new()
+	m.id = GameState.next_mech_id
+	GameState.next_mech_id += 1
+	for type_id: String in ["frame", "core", "arms"]:
+		m.parts[type_id] = rng.randi_range(low, high)
+	if plated and rng.randf() < 0.6:
+		m.parts["plating"] = rng.randi_range(low, high)
+	GameState.call("_deploy", m)
+
 func _reveal_all() -> void:
 	GameState.mechs_built = maxi(GameState.mechs_built, 1)
 	for key: String in GameState.REVEALS:

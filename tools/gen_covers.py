@@ -6,7 +6,7 @@ from PIL import Image
 from gen_art import CELL, NUKE_CELL, PARALLAX, mech_cell, title, upscale
 
 ART = "art"
-OUT = "release/covers"
+OUT = "release/marketing"
 SCALE = 8
 FRONT = 330
 FIELD_H = 160
@@ -36,8 +36,9 @@ def stand(img, s, x, feet):
 
 
 def save(img, name):
-    os.makedirs(OUT, exist_ok=True)
-    upscale(img, SCALE).save(os.path.join(OUT, name + ".png"))
+    path = os.path.join(OUT, name + ".png")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    upscale(img, SCALE).save(path)
 
 
 def landscape():
@@ -49,17 +50,18 @@ def landscape():
     for t, x in ((1, 2), (3, 28), (5, 56)):
         stand(img, mech_cell(t), x, feet + 4)
     img.alpha_composite(sprite("fx/explosion_big.png", (40, 40), 2), (176, feet - 62))
-    img.alpha_composite(upscale(title(), 2), (8, 6))
-    save(img, "landscape")
+    img.alpha_composite(upscale(title(), 2), (8, 30))
+    save(img, "covers/landscape")
 
 
 def portrait():
     w, h = 100, 150
-    feet = h - (FIELD_H - FEET)
-    img = field(w, h)
-    img.alpha_composite(upscale(title(), 2), (10, 4))
+    drop = 8
+    feet = h - (FIELD_H - FEET) + drop
+    img = field(w, h + drop).crop((0, 0, w, h))
+    img.alpha_composite(upscale(title(), 2), (10, 16))
     stand(img, sprite("mech/nuclear.png", NUKE_CELL), 14, feet)
-    save(img, "portrait")
+    save(img, "covers/portrait")
 
 
 def square():
@@ -67,10 +69,21 @@ def square():
     img = field(w, h + 40).crop((0, 0, w, h))
     img.alpha_composite(sprite("mech/nuclear.png", NUKE_CELL), (14, 4))
     img.alpha_composite(upscale(title(), 2), (10, 50))
-    save(img, "square")
+    save(img, "covers/square")
+
+
+def layers():
+    save(upscale(title(), 2), "layers/title")
+    save(field(240, 135), "layers/background")
+    save(sprite("mech/nuclear.png", NUKE_CELL), "layers/nuclear_mech")
+    save(sprite("battlefield/enemy_boss_1.png"), "layers/boss")
+    save(sprite("fx/explosion_big.png", (40, 40), 2), "layers/explosion")
+    for t in (1, 3, 5):
+        save(mech_cell(t), f"layers/mech_{t}")
 
 
 if __name__ == "__main__":
     landscape()
     portrait()
     square()
+    layers()

@@ -35,10 +35,49 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
     | 1920×1080 (fullscreen) | 607×1080 | 1.69× | 32 % |
 
   - Trade-off: at 462 high the pile is below the fold once the UPGRADES bar and UNLOCK LINE show (scroll or the pile pin); CREDITS scrolls there
-- [x] Covers: `release/covers/` 1920×1080 (16:9), 800×1200 (2:3), 800×800 (1:1), from `tools/gen_covers.py`
+- [x] Covers: `release/marketing/covers/` 1920×1080 (16:9), 800×1200 (2:3), 800×800 (1:1), from `tools/gen_covers.py`
   - Rules: title on each, same look across the three; no borders, no other text, no icons or store logos; not a plain screenshot; not blurry or pixelated
+  - Upload form: no title or important element in the top left (labels cover it; marked about 40 % × 20 % on landscape, 40 % × 10 % on portrait) → titles moved below it
   - Pixel art at ×8: crisp, but their "pixelated" rule is a judgement call → look at them before submitting
-- [ ] Video preview, only if the submission form asks for one: 15–20 s, ≤ 50 MB, 1080p landscape 16:9 and portrait 2:3, opens on the cover; no audio, cursor, black bars, logos, promo text
+- [x] Preview videos (the form requires both): `release/marketing/videos/landscape.mp4` 1920×1080, 17.9 s, 11 MB and `portrait.mp4` 1080×1620, 18.6 s, 12 MB, from `tools/make_videos.sh`
+  - Rules: 15–20 s (longer is cut), ≤ 50 MB, MP4 / MOV, 1080p landscape 16:9 and portrait 2:3, opens on the cover; no sound, cursor, black bars, black screen or logo transition, promo text, app icons; no fast-forwarding (they speed it up a little themselves)
+  - Recorded play at 1× speed with cuts between stages: pile → first line and mech → a wave destroyed → three lines against a boss → nuke. Portrait = the whole screen; landscape = zoomed bands of it (the game itself is pillarboxed there) → their call whether that counts as representative
+  - The in-game guide lines (TAP THE SCRAP PILE…) are in the first clips: game text, not promo text
+
+## Submission form
+
+- Category: Clicker. Tags (max 5): Idle, Incremental, Robot, Pixel, Management
+- Marketing creatives URL: `https://distco.de/games/scraptitans/marketing/` (`release/marketing/`, uploaded by `tools/deploy_web.sh`): covers, videos, screenshots, cover layers
+- Description (no HTML; headings and lists through the editor):
+
+  ```
+  Scrap Titans is a pixel-art idle clicker about turning a pile of scrap into an army of combat mechs. Tap the pile, build an assembly line and send your machines to the front. Every enemy wave you break pays for a bigger factory, until you can build the one weapon that ends the war.
+
+  How to play
+  - Tap the scrap pile to dig up scrap and build the Frame, Core and Arms stations of your first line.
+  - Tap a station to work on it, or hire a crew to do the work for you. A finished mech walks off the line and onto the battlefield.
+  - Mechs shoot at the enemy wave and earn credits for every second they survive. A destroyed wave pays a bounty.
+  - Spend credits on crews, upgrades and up to five assembly lines. Spend scrap on better parts, from Scrap Frames and Pipe Guns to Titan Chassis and Railguns.
+  - Unlock the Atomic Missile, fit it on a fully upgraded line and launch the nuke to win the war.
+
+  Features
+  - A whole factory and its battlefield on one screen
+  - Six tiers of parts that change how your mechs look and fight
+  - Drones, tanks, brutes and a boss every fifth wave
+  - A war takes 30 to 60 minutes, and every war you win starts a bigger one
+  - Plays with one thumb on a phone or with the mouse on desktop
+  ```
+
+- Controls:
+
+  ```
+  - Left click or tap the scrap pile: dig up scrap
+  - Left click or tap a station: work on its mech
+  - Left click or tap the battlefield: hit the enemy wave
+  - Left click or tap the buttons: build stations, hire crews, fit better parts, buy upgrades
+  - Mouse wheel, swipe or the scroll bar on the right: move between the battlefield, the assembly lines and the pile
+  - Pins at the ends of the scroll bar: keep the battlefield or the pile on screen
+  ```
 
 ## Should fix before submitting
 

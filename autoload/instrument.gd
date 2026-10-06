@@ -3,6 +3,9 @@ extends Node
 var failures := 0
 var shots_dir := ""
 
+var _clip := ""
+var _clip_frames := 0
+
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -16,6 +19,7 @@ func _ready() -> void:
 	if j != -1 and j + 1 < args.size():
 		shots_dir = args[j + 1]
 		DirAccess.make_dir_recursive_absolute(shots_dir)
+		RenderingServer.frame_post_draw.connect(_save_frame)
 	await frames(2)
 	var script: GDScript = load("res://tools/scenarios.gd")
 	var runner: Object = script.new(self) if script and script.can_instantiate() else null
@@ -58,7 +62,11 @@ func click(target: Control) -> void:
 	if scroll:
 		scroll.ensure_control_visible(target)
 		await frames(1)
-	var pos := target.get_global_rect().get_center()
+	tap(target.get_global_rect().get_center())
+	await frames(1)
+
+
+func tap(pos: Vector2) -> void:
 	for pressed in [true, false]:
 		var ev := InputEventMouseButton.new()
 		ev.button_index = MOUSE_BUTTON_LEFT
@@ -66,7 +74,6 @@ func click(target: Control) -> void:
 		ev.position = pos
 		ev.global_position = pos
 		get_viewport().push_input(ev, true)
-	await frames(1)
 
 
 func touch(target: Control, index: int, pressed: bool) -> void:
@@ -84,6 +91,18 @@ func shot(shot_name: String) -> void:
 	var path := shots_dir.path_join(shot_name + ".png")
 	get_viewport().get_texture().get_image().save_png(path)
 	print("  shot ", path)
+
+
+func record(clip: String) -> void:
+	_clip = "" if shots_dir.is_empty() or DisplayServer.get_name() == "headless" else clip
+	_clip_frames = 0
+
+
+func _save_frame() -> void:
+	if _clip.is_empty():
+		return
+	get_viewport().get_texture().get_image().save_png(shots_dir.path_join("%s_%04d.png" % [_clip, _clip_frames]))
+	_clip_frames += 1
 
 
 func wait(seconds: float) -> void:
