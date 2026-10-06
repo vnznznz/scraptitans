@@ -9,7 +9,6 @@ const INIT_TIMEOUT := 5.0
 const AD_TIMEOUT := 10.0
 const BANNER_INTERVAL := 30.0
 const BANNER_SIZES: Array[Vector2i] = [Vector2i(468, 60), Vector2i(320, 50)]
-const BLOCKER_LAYER := 10
 const JS := """(function () {
 	var sdk = window.CrazyGames.SDK;
 	function code(e) { return (e && e.code) || 'other'; }
@@ -103,25 +102,24 @@ var _banner_t := -INF
 var _banner_on := false
 var _loaded := false
 var _gameplay := false
-var _blocker: CanvasLayer
+var _blocker: ColorRect
 
 signal _ad_done(finished: bool)
 
 
 func _ready() -> void:
 	process_mode = PROCESS_MODE_ALWAYS
-	_blocker = CanvasLayer.new()
-	_blocker.layer = BLOCKER_LAYER
+	_blocker = ColorRect.new()
+	_blocker.name = "AdBlocker"
+	_blocker.color = Color(Pal.INK, 0.7)
+	_blocker.z_index = RenderingServer.CANVAS_ITEM_Z_MAX
+	_blocker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_blocker.visible = false
-	add_child(_blocker)
-	var dim := ColorRect.new()
-	dim.color = Color(Pal.INK, 0.7)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_blocker.add_child(dim)
 	var label := Label.new()
 	label.text = "AD"
 	label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	dim.add_child(label)
+	_blocker.add_child(label)
+	get_tree().root.add_child.call_deferred(_blocker)
 	if OS.has_feature("web") and OS.has_feature("crazygames"):
 		_pending = true
 		_poll_init(0.0)
@@ -209,7 +207,7 @@ func request_ad(kind: String) -> bool:
 	ad_open = true
 	_ad_waiting = true
 	_ad_t = 0.0
-	_blocker.visible = true
+	_block(true)
 	banner_clear()
 	_note("ad " + kind)
 	if backend == Backend.SDK:
@@ -250,15 +248,21 @@ func _on_ad(event: String, code := "") -> void:
 				set_adblock(true)
 	if ad_open:
 		ad_open = false
-		_blocker.visible = false
+		_block(false)
 		_ad_done.emit(event == "finished")
 
 
 func _set_ad_playing(on: bool) -> void:
 	_ad_playing = on
-	_blocker.visible = on or ad_open
+	_block(on or ad_open)
 	get_tree().paused = on
 	Sound.ad_mute(on)
+
+
+func _block(on: bool) -> void:
+	_blocker.visible = on
+	if on:
+		_blocker.move_to_front()
 
 
 func loading_stop() -> void:
