@@ -189,7 +189,8 @@ One word per thing, in every label, row, info text and guide line:
 - **Scene structure:** `Main` (HUD, `ScrollContainer` → `VBox` → `Battlefield` + `AssemblyLine` × N + `Scrapyard`, scroll bar with pins, fixed `UpgradeButton`, `UpgradeMenu` overlay). `AssemblyLine` owns `Segment` nodes, the belt and mechs in transit. `Battlefield` owns active mechs, the enemy wave and its healthbar, and effects. A top-level `Flyers` layer draws income discs.
 - **Simulation:** one tick in a central autoload (`GameState`), separate from visuals. Workers fire on timers, not per frame.
 - **Save:** JSON in `user://` (IndexedDB on web). Save on change and on hide. No offline progress.
-- **CrazyGames:** CrazyGames SDK via `JavaScriptBridge`. Gameplay start/stop, midgame ad on run end, rewarded ads: 2× payout for 5 min, fill all work bars.
+- **CrazyGames:** CrazyGames SDK via `JavaScriptBridge`, in a build of its own. Gameplay start/stop, midgame ad on START AGAIN, save through their data module, their mute setting.
+- **Ads, all optional:** in the UPGRADES menu a rewarded video doubles all scrap for 5 min, or buys the next level of one of the three cheapest upgrades the player can't afford (never the Atomic Missile); one 3 min cooldown for both. A banner only inside the open UPGRADES menu, never over the live game. No ad UI at all where ads aren't available.
 - **Input:** mouse and touch, one-thumb reachable. Touch targets ≥ 44 px at display scale.
 
 ## Art list (side view)

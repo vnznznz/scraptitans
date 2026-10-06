@@ -455,8 +455,8 @@ Build: what CrazyGames asks for Full Launch ([crazygames.md](../release/crazygam
 - [x] `--scenario intro`: every guide line at full opacity, on screen, off its target and off station names; after a tap on each target the next label is outside the thumb zone
 - [x] Balance: tune profile `ads` (bot takes the scrap boost and the dearest of the three offered upgrades whenever the cooldown is over): no run under 25 min, also at `wars5`; sets the cooldown
 - [x] `--scenario sdk` with the fake backend: ad break pauses, mutes and resumes on finish, error and timeout; rewards only on finish, one level per ad; video icons on the three cheapest unaffordable rows only, none on locked rows or the missile, none during the cooldown, hidden / disabled by availability; midgame only on START AGAIN; gameplay events in order; banner slot rect, request delay, clear on close; site mute; save round trip, version 1 import, take-over, sign-in reload, reset; "Web" build path = no ad UI
-- [ ] `tools/make_videos.sh` again (Plate header, new guide in the first clips) → new videos and screenshots for the Full Launch upload
-- [ ] Build `0.2.0-m20`; docs: `tech.md`, pitch (ads, words), `crazygames.md` (Full Launch list, Progress Save toggle, QA steps)
+- [x] `tools/make_videos.sh` again (Plate header, new guide in the first clips) → new videos and screenshots for the Full Launch upload
+- [x] Build `0.2.0-m20`; docs: `tech.md`, pitch (ads, words), `crazygames.md` (Full Launch list, Progress Save toggle, QA steps)
 
 Test (browser):
 - `tools/serve_web.sh` at `https://localhost:8443` (SDK `local` environment, demo ads; the LAN address is `disabled` = no ad UI): the scrap boost and a free upgrade level arrive after the demo ad and not when it fails; at most three video icons, on the cheapest rows you can't afford, gone for the cooldown after an ad; sound and factory stop during an ad and come back; START AGAIN shows an ad, then the next war

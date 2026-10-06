@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.1.0-m19` ([M19](../docs/plan.md)), checked in desktop Godot only (no browser, no device).
+Checklist for publishing on crazygames.com. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m20` ([M20](../docs/plan.md)), checked in desktop Godot only (no browser, no device); the SDK side only against a fake backend.
 
 ## Why CrazyGames
 
@@ -105,10 +105,12 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
 
 ## Full Launch
 
-- [ ] CrazyGames SDK ([M20](../docs/plan.md)): own wrapper over the HTML5 SDK v3 through `JavaScriptBridge` (their Godot addon is no longer in the asset library)
-- [ ] Gameplay start / stop events (required), loading start / stop (optional)
-- [ ] Ads only through the SDK; the game must work with an ad blocker; `Sound.ad_mute` exists; `game.settings.muteAudio` has to mute the game
-- [ ] Save through the Data module: 1 MB limit (save ≈ 15 KB), localStorage for guests; Progress Save toggle in the submission flow, else the module is disabled
+- [x] CrazyGames SDK ([M20](../docs/plan.md)): own wrapper over the HTML5 SDK v3 through `JavaScriptBridge` (their Godot addon is no longer in the asset library); upload `build/crazygames/` from `tools/export_web.sh release CrazyGames`, not `build/web/`
+- [ ] First run against the real SDK (nothing of it has run in a browser yet): `tools/serve_web.sh` with `WEB_ROOT=build/crazygames` on localhost (demo ads), then their QA tool; the M20 test list in the plan
+- [ ] Unknown until then: whether `sdk.data.getItem` / `game.settings` / `user.addAuthListener` behave as their docs say; ads and banners in Basic Launch are only detected by their first error, so one reward button press there does nothing before the ad UI hides
+- [x] Gameplay start / stop events (required), loading start / stop (optional)
+- [x] Ads only through the SDK; the game must work with an ad blocker; `Sound.ad_mute` exists; `game.settings.muteAudio` has to mute the game
+- [x] Save through the Data module: 1 MB limit (save ≈ 15 KB), localStorage for guests; Progress Save toggle in the submission flow, else the module is disabled
 - IndexedDB (`user://`) in their iframe: persistence across game updates and on Safari not verified
 
 ## Engagement risks
