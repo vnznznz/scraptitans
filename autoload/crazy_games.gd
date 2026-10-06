@@ -28,9 +28,11 @@ const JS := """(function () {
 				});
 			} catch (e) { cb('error', code(e)); }
 		},
-		watch: function (onMute, onAuth, onAdblock) {
+		watch: function (onMute, onAuth) {
 			quiet(function () { sdk.game.addSettingsChangeListener(function (s) { onMute(!!(s && s.muteAudio)); }); });
 			quiet(function () { sdk.user.addAuthListener(function () { onAuth(); }); });
+		},
+		watchAdblock: function (onAdblock) {
 			quiet(function () { return sdk.ad.hasAdblock().then(function (on) { onAdblock(!!on); }); });
 		},
 		muted: function () { try { return !!sdk.game.settings.muteAudio; } catch (e) { return false; } },
@@ -153,11 +155,13 @@ func _start_sdk() -> void:
 	_adblock_cb = JavaScriptBridge.create_callback(func(args: Array) -> void: set_adblock(bool(args[0])))
 	_banner_cb = JavaScriptBridge.create_callback(func(args: Array) -> void: _on_banner_error(str(args[0])))
 	backend = Backend.SDK
-	video_ads = true
-	banners = true
+	video_ads = OS.has_feature("ads")
+	banners = OS.has_feature("ads")
 	data = true
 	site_muted = bool(_js.muted())
-	_js.watch(_mute_cb, _auth_cb, _adblock_cb)
+	_js.watch(_mute_cb, _auth_cb)
+	if OS.has_feature("ads"):
+		_js.watchAdblock(_adblock_cb)
 	changed.emit()
 	store_changed.emit()
 

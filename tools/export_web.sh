@@ -6,6 +6,8 @@ preset="${2:-Web}"
 out=build/web
 if [ "$preset" = CrazyGames ]; then
 	out=build/crazygames
+elif [ "$preset" = CrazyGamesAds ]; then
+	out=build/crazygames_ads
 fi
 rm -rf "$out"
 mkdir -p "$out"
