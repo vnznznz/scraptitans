@@ -1,7 +1,7 @@
 class_name SettingsOverlay
 extends Control
 
-enum Mode { SETTINGS, AUDIO, CONFIRM, CREDITS }
+enum Mode { SETTINGS, AUDIO, RESET, CREDITS }
 
 const VOLUMES := [["master", "MASTER"], ["ui", "UI"], ["battle", "BATTLE"], ["factory", "FACTORY"], ["ambience", "AMBIENCE"], ["music", "MUSIC"]]
 const LICENSE_CHUNK := 1200
@@ -16,10 +16,19 @@ const CREDITS := [
 var _mode := Mode.SETTINGS
 var _title: Label
 var _reset: Button
+var _reset_run: Button
+var _reset_save: Button
 var _audio_button: Button
 var _credits_button: Button
-var _confirm: Button
 var _close: Button
+var _ask: Control
+var _ask_panel: PanelContainer
+var _ask_title: Label
+var _ask_text: Label
+var _ask_wars: HBoxContainer
+var _ask_count: Label
+var _ask_yes: Button
+var _ask_action: Callable
 var _volumes: VBoxContainer
 var _effects: HBoxContainer
 var _panel: PanelContainer
@@ -69,7 +78,7 @@ func _ready() -> void:
 
 	_panel = PanelContainer.new()
 	_panel.name = "Panel"
-	_panel.custom_minimum_size = Vector2(280, 0)
+	_panel.custom_minimum_size = Vector2(316, 0)
 	_panel.set_anchors_and_offsets_preset(PRESET_CENTER)
 	_panel.grow_horizontal = GROW_DIRECTION_BOTH
 	_panel.grow_vertical = GROW_DIRECTION_BOTH
@@ -113,10 +122,12 @@ func _ready() -> void:
 
 	_audio_button = _button(box, "AudioButton", "AUDIO", func() -> void: _show(Mode.AUDIO))
 	_credits_button = _button(box, "CreditsButton", "CREDITS", func() -> void: _show(Mode.CREDITS))
-	_reset = _button(box, "Reset", "RESET RUN", func() -> void: _show(Mode.CONFIRM))
-	_confirm = _button(box, "Confirm", "YES, RESET", Save.reset_run)
+	_reset = _button(box, "Reset", "RESET", func() -> void: _show(Mode.RESET))
+	_reset_run = _button(box, "ResetRun", "RESET RUN", func() -> void: _ask_for("RESET RUN", "THIS WAR STARTS OVER.", true, Save.reset_run))
+	_reset_save = _button(box, "ResetSave", "RESET SAVE", func() -> void: _ask_for("RESET SAVE", "ALL PROGRESS IS LOST.", false, Save.reset_save))
 	_close = _button(box, "Close", "CLOSE", close)
 	_close.set_meta(&"silent", true)
+	_build_ask()
 
 
 func _process(_delta: float) -> void:
@@ -144,19 +155,81 @@ func close() -> void:
 
 func _show(mode: Mode) -> void:
 	_mode = mode
+	_ask.visible = false
 	if _licenses:
 		_licenses.visible = false
-	_title.text = {Mode.SETTINGS: "SETTINGS", Mode.AUDIO: "AUDIO", Mode.CONFIRM: "RESET RUN?\nALL PROGRESS IS LOST", Mode.CREDITS: "CREDITS"}[mode]
+	_title.text = {Mode.SETTINGS: "SETTINGS", Mode.AUDIO: "AUDIO", Mode.RESET: "RESET", Mode.CREDITS: "CREDITS"}[mode]
 	_volumes.visible = mode == Mode.AUDIO
 	_effects.visible = mode == Mode.SETTINGS
 	_audio_button.visible = mode == Mode.SETTINGS
 	_credits_button.visible = mode == Mode.SETTINGS
 	_reset.visible = mode == Mode.SETTINGS
+	_reset_run.visible = mode == Mode.RESET
+	_reset_save.visible = mode == Mode.RESET
 	_credits_scroll.visible = mode == Mode.CREDITS
 	_licenses_button.visible = mode == Mode.CREDITS
-	_confirm.visible = mode == Mode.CONFIRM
-	_close.text = {Mode.SETTINGS: "CLOSE", Mode.AUDIO: "BACK", Mode.CONFIRM: "CANCEL", Mode.CREDITS: "BACK"}[mode]
+	_close.text = "CLOSE" if mode == Mode.SETTINGS else "BACK"
 	_fit_credits()
+
+
+func _build_ask() -> void:
+	_ask = Control.new()
+	_ask.name = "Ask"
+	_ask.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_ask.visible = false
+	add_child(_ask)
+	var dim := ColorRect.new()
+	dim.color = Color(Pal.INK, 0.75)
+	dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_ask.add_child(dim)
+	_ask_panel = PanelContainer.new()
+	_ask_panel.name = "Panel"
+	_ask_panel.custom_minimum_size = Vector2(264, 0)
+	_ask_panel.set_anchors_and_offsets_preset(PRESET_CENTER)
+	_ask_panel.grow_horizontal = GROW_DIRECTION_BOTH
+	_ask_panel.grow_vertical = GROW_DIRECTION_BOTH
+	_ask.add_child(_ask_panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	_ask_panel.add_child(box)
+	_ask_title = Label.new()
+	_ask_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ask_title.add_theme_color_override("font_color", Pal.ORANGE)
+	box.add_child(_ask_title)
+	_ask_text = Label.new()
+	_ask_text.name = "Text"
+	_ask_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ask_text.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	box.add_child(_ask_text)
+	_ask_wars = HBoxContainer.new()
+	_ask_wars.name = "Wars"
+	_ask_wars.alignment = BoxContainer.ALIGNMENT_CENTER
+	_ask_wars.add_theme_constant_override("separation", 6)
+	box.add_child(_ask_wars)
+	var icon := TextureRect.new()
+	icon.texture = preload("res://art/ui/nuclear.png")
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	_ask_wars.add_child(icon)
+	_ask_count = Label.new()
+	_ask_count.name = "Count"
+	_ask_wars.add_child(_ask_count)
+	_ask_yes = _button(box, "Confirm", "", func() -> void: _ask_action.call())
+	_button(box, "Cancel", "CANCEL", func() -> void: _ask.visible = false)
+
+
+func _ask_for(what: String, text: String, wars_kept: bool, action: Callable) -> void:
+	_ask_title.text = what + "?"
+	_ask_text.text = text
+	_ask_wars.visible = GameState.prestige > 0
+	_ask_count.text = "%d %s" % [GameState.prestige, "KEPT" if wars_kept else "LOST"]
+	_ask_count.add_theme_color_override("font_color", Color.WHITE if wars_kept else Pal.RED)
+	_ask_yes.text = "YES, " + what
+	_ask_action = action
+	_ask.visible = true
+	_ask_panel.reset_size()
+	_ask_panel.pivot_offset = _ask_panel.size / 2.0
+	_ask_panel.scale = Vector2(0.8, 0.8)
+	_ask_panel.create_tween().tween_property(_ask_panel, "scale", Vector2.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _fit_credits() -> void:
@@ -302,7 +375,7 @@ func _effects_row(box: Control) -> void:
 	_effects.add_theme_constant_override("separation", 4)
 	box.add_child(_effects)
 	var name_label := Label.new()
-	name_label.text = "EFFECTS"
+	name_label.text = "VISUAL EFFECTS"
 	name_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	_effects.add_child(name_label)
 	for step: int in [-1, 1]:

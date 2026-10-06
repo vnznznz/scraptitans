@@ -141,7 +141,7 @@ One word per thing, in every label, row, info text and guide line:
 
 ## Wars won (prestige)
 
-- **START AGAIN** after the nuke adds 1 to **wars won**, kept for good. RESET RUN in the settings restarts the current war: it keeps the count and adds nothing.
+- **START AGAIN** after the nuke adds 1 to **wars won**, kept for good. In the settings, RESET RUN restarts the current war (it keeps the count and adds nothing) and RESET SAVE starts from nothing, wars won included; both ask first.
 - **Every war is bigger than the last.** Per war won, ×2: every cost in scrap and credits (stations, parts, fits, crews, upgrades, lines), every fee, payout and bounty, mech damage, enemy HP and scrap per kill. A run keeps its shape; the numbers grow.
 - **The pile grows faster:** ×2.2 per war won for pile taps and the pile crew. Scrap gets easier war by war (short on scrap for 10 % of the first run, 7 % after one war won, 1 % after five, never after ten), so runs shorten from ~39 to ~29 min.
 - Why pay and enemies scale with the costs: tiers, lines and crews cost credits, and credits come from mechs, not from the pile. With only the pile ahead of rising costs the bot needs 46 min after one war won, 80 after three and doesn't finish in 90 after five.

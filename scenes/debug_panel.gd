@@ -54,9 +54,7 @@ func _ready() -> void:
 	var wars := HBoxContainer.new()
 	box.add_child(wars)
 	_button(wars, "+1 WAR WON", Save.start_again)
-	_button(wars, "0 WARS WON", func() -> void:
-		GameState.prestige = 0
-		Save.reset_run())
+	_button(wars, "0 WARS WON", Save.reset_save)
 
 
 func _process(_delta: float) -> void:

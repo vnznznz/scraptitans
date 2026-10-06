@@ -73,6 +73,11 @@ func start_again() -> void:
 	reset_run()
 
 
+func reset_save() -> void:
+	GameState.prestige = 0
+	reset_run()
+
+
 func reset_run() -> void:
 	Sound.stop_music()
 	GameState.new_game()

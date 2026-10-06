@@ -432,14 +432,16 @@ Build: prestige. Every nuke counts as a war won; the next war is bigger and the 
 - [x] DBG: +1 war won, 0 wars won
 - [x] Pile: size and style by wars won, 11 looks (0–10); its size no longer follows the scrap stock
 - [x] `--scenario prestige` (windowed `--shots`): scaling, save, HUD, run card, disc, menu rows at 10 wars won, pile looks
+- [x] Settings: RESET opens a submenu with RESET RUN (wars won kept) and RESET SAVE (everything, wars won too); each asks in a popup before it does anything
+- [x] Settings: the effects row reads VISUAL EFFECTS
 
 Test (browser + phone):
 - Finish a run, START AGAIN: a nuclear disc flies from the button to the top bar, a count of 1 appears next to the credits, the new game starts with only the pile and that count
 - The second run: prices, pay and enemy HP doubled, a pile tap gives 2.2 scrap; the run feels a little easier on scrap, not shorter by half
 - The pile looks bigger and less rusty after each war won; nothing else looks different
 - Top bar with large numbers (DBG ×100, a few wars won): rates, the count and the mute button never touch
-- RESET RUN: the war restarts, the count stays
+- Settings → RESET → RESET RUN → YES: the war restarts, the count stays; RESET SAVE → YES: the count is gone too; CANCEL on either popup changes nothing
 
 ## Not in the prototype
 
-A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), a full wipe of the wars won (DBG only), more lines or tiers for later wars, offline progress, desktop layout.
+A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), more lines or tiers for later wars, offline progress, desktop layout.
