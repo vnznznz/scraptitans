@@ -134,6 +134,7 @@ func _start_again() -> void:
 	hud.win()
 	Sound.play(&"buy_tier")
 	await get_tree().create_timer(WIN_HOLD).timeout
+	await CrazyGames.request_ad("midgame")
 	Save.start_again()
 
 

@@ -2,6 +2,7 @@ extends Node
 
 const PATH := "user://save.json"
 const SETTINGS_PATH := "user://settings.json"
+const KEY := "save"
 const VERSION := 2
 const INTERVAL := 5.0
 
@@ -13,6 +14,7 @@ func _ready() -> void:
 	if not load_game():
 		GameState.new_game()
 	GameState.purchased.connect(request_save)
+	CrazyGames.store_changed.connect(_on_store_changed)
 
 
 func _process(delta: float) -> void:
@@ -35,17 +37,22 @@ func save_game() -> void:
 	_requested = false
 	var d := GameState.to_dict()
 	d.version = VERSION
+	var text := JSON.stringify(d, "", false, true)
+	CrazyGames.data_set(KEY, text)
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
 	if f == null:
 		push_warning("Save failed: %s" % error_string(FileAccess.get_open_error()))
 		return
-	f.store_string(JSON.stringify(d, "", false, true))
+	f.store_string(text)
 
 
 func load_game() -> bool:
-	if not FileAccess.file_exists(PATH):
+	var text := CrazyGames.data_get(KEY)
+	if text.is_empty() and FileAccess.file_exists(PATH):
+		text = FileAccess.get_file_as_string(PATH)
+	if text.is_empty():
 		return false
-	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(PATH))
+	var d: Variant = JSON.parse_string(text)
 	if not d is Dictionary:
 		return false
 	var version := int(d.get("version", 0))
@@ -73,6 +80,15 @@ func import_v1(d: Dictionary) -> void:
 		if mech.parts.has("plating"):
 			mech.parts["plate"] = mech.parts["plating"]
 			mech.parts.erase("plating")
+
+
+func _on_store_changed() -> void:
+	if not CrazyGames.data:
+		return
+	if CrazyGames.data_get(KEY).is_empty():
+		save_game()
+	elif load_game():
+		get_tree().reload_current_scene.call_deferred()
 
 
 func load_settings() -> Dictionary:

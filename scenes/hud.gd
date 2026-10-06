@@ -79,9 +79,10 @@ func _process(delta: float) -> void:
 	_mechs.text = Fmt.num(GameState.field.size())
 	_mechs_rate.text = "%d/MIN" % GameState.mechs_per_min
 	_show_wars()
-	var icon := SOUND_OFF if Sound.muted else SOUND_ON
+	var icon := SOUND_OFF if Sound.muted or CrazyGames.site_muted else SOUND_ON
 	if _mute.icon != icon:
 		_mute.icon = icon
+	_mute.disabled = CrazyGames.site_muted
 
 
 func _show_wars() -> void:

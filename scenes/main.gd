@@ -49,6 +49,7 @@ var _app_name: String = ProjectSettings.get_setting("application/config/name")
 var _assemblies := -1
 var _assembly_log: Array[Vector2] = []
 var _starved := false
+var _tapped := false
 
 
 func _ready() -> void:
@@ -109,12 +110,20 @@ func _ready() -> void:
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.set_meta(&"silent", true)
 	_upgrades.pressed.connect(_toggle_menu)
+	GameState.nuke_launched.connect(func(_m: MechState) -> void: CrazyGames.happytime())
 	_reveal(INF)
+
+
+func _input(event: InputEvent) -> void:
+	if (event is InputEventMouseButton or event is InputEventScreenTouch) and event.is_pressed():
+		_tapped = true
 
 
 func _process(delta: float) -> void:
 	_reveal(delta)
 	_update_sound()
+	CrazyGames.loading_stop()
+	CrazyGames.gameplay(_tapped and not (_menu.visible or _settings.visible or GameState.run_over or CrazyGames.ad_open))
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	var affordable := GameState.affordable_upgrades()
 	_badge.visible = not _menu.visible and affordable > 0

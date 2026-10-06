@@ -73,6 +73,7 @@ func _ready() -> void:
 	for id: String in _beds:
 		_beds[id].player.play()
 	GameState.nuke_launched.connect(func(_m: MechState) -> void: stop_music())
+	CrazyGames.changed.connect(_apply)
 
 
 func _exit_tree() -> void:
@@ -277,7 +278,7 @@ func _apply() -> void:
 	for key: String in BUSES:
 		var i := AudioServer.get_bus_index(BUSES[key])
 		var step := int(steps[key])
-		AudioServer.set_bus_mute(i, step == 0 or (key == "master" and (muted or _hidden or _ad)))
+		AudioServer.set_bus_mute(i, step == 0 or (key == "master" and (muted or _hidden or _ad or CrazyGames.site_muted)))
 		var db := linear_to_db(pow(float(step) / float(_cfg.steps), 2.0)) if step > 0 else SILENT_DB
 		AudioServer.set_bus_volume_db(i, db + float(_cfg.trim_db[key]) + (_duck if key == "ambience" else 0.0))
 

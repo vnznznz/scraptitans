@@ -22,6 +22,7 @@ config/icon="res://art/ui/icon.png"
 [autoload]
 
 Data="*res://autoload/data.gd"
+CrazyGames="*res://autoload/crazy_games.gd"
 GameState="*res://autoload/game_state.gd"
 Save="*res://autoload/save.gd"
 Instrument="*res://autoload/instrument.gd"
