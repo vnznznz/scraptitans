@@ -25,7 +25,7 @@ ffmpeg -y -loglevel error -loop 1 -framerate 60 -t 0.7 -i "$out/covers/portrait.
 
 ffmpeg -y -loglevel error -loop 1 -framerate 60 -t 0.7 -i "$out/covers/landscape.png" \
 	$(clip pile 12 1.7) $(clip build 4 4.8) $(clip build 292 1.2) $(clip mid 24 3.2) $(clip late 10 2.2) $(clip nuke 0 4.1) \
-	-filter_complex "[0]setsar=1[a];[1]$(band 140)[b];[2]$(band 337)[c];[3]$(band 0)[d];[4]$(band 0)[e];[5]$(band 234)[f];[6]$(band 0)[g];[a][b][c][d][e][f][g]concat=n=7" \
+	-filter_complex "[0]setsar=1[a];[1]$(band 140)[b];[2]$(band 328)[c];[3]$(band 0)[d];[4]$(band 0)[e];[5]$(band 234)[f];[6]$(band 0)[g];[a][b][c][d][e][f][g]concat=n=7" \
 	"${encode[@]}" "$out/videos/landscape.mp4"
 
 for shot in factory:build_0200 first_mech:build_0345 battle:mid_0110 army:late_0060 nuke:nuke_0200; do
