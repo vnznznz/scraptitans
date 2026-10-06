@@ -31,3 +31,8 @@ static func rate(x: float) -> String:
 	if x < 10.0:
 		return "%s%.1f/S" % [sign, floor(x * 10.0) / 10.0]
 	return "%s%s/S" % [sign, short(x)]
+
+
+static func clock(seconds: float) -> String:
+	var s := ceili(seconds)
+	return "%d:%02d" % [s / 60, s % 60]

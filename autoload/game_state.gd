@@ -34,6 +34,8 @@ var stalled_once := false
 var seen := {}
 var field_taps := 0
 var prestige := 0
+var scrap_boost_t := 0.0
+var ad_cooldown_t := 0.0
 var credits_rate := 0.0
 var scrap_rate := 0.0
 var scrap_gain_rate := 0.0
@@ -96,6 +98,8 @@ func new_game() -> void:
 	wave_hp = wave_max_hp()
 	yard_workers = 0
 	yard_t = 0.0
+	scrap_boost_t = 0.0
+	ad_cooldown_t = 0.0
 	_reset_rates()
 
 
@@ -321,8 +325,44 @@ func affordable_upgrades() -> int:
 	return n
 
 
-func buy_upgrade(id: String) -> bool:
-	var cost := upgrade_cost(id)
+func scrap_boost() -> float:
+	return Data.econ("ad_scrap_mult") if scrap_boost_t > 0.0 else 1.0
+
+
+func ad_offers() -> Array[String]:
+	var ids: Array[String] = []
+	if ad_cooldown_t > 0.0:
+		return ids
+	var rows := []
+	for i in Data.upgrade_list.size():
+		var r: Dictionary = Data.upgrade_list[i]
+		var id: String = r.id
+		if r.get("kind", "") != "final" and upgrade_visible(id) and not upgrade_maxed(id) and credits < upgrade_cost(id):
+			rows.append([upgrade_cost(id), i, id])
+	rows.sort()
+	for row: Array in rows.slice(0, int(Data.econ("ad_offers"))):
+		ids.append(row[2])
+	return ids
+
+
+func reward_scrap() -> bool:
+	if ad_cooldown_t > 0.0 or scrap_boost_t > 0.0:
+		return false
+	scrap_boost_t = Data.econ("ad_scrap_time")
+	ad_cooldown_t = Data.econ("ad_cooldown")
+	purchased.emit()
+	return true
+
+
+func reward_upgrade(id: String) -> bool:
+	if not id in ad_offers() or not buy_upgrade(id, true):
+		return false
+	ad_cooldown_t = Data.econ("ad_cooldown")
+	return true
+
+
+func buy_upgrade(id: String, free := false) -> bool:
+	var cost := 0.0 if free else upgrade_cost(id)
 	if upgrade_maxed(id) or upgrade_locked(id) or credits < cost:
 		return false
 	credits -= cost
@@ -412,6 +452,8 @@ func to_dict() -> Dictionary:
 		"seen": seen.keys(),
 		"field_taps": field_taps,
 		"prestige": prestige,
+		"scrap_boost_t": scrap_boost_t,
+		"ad_cooldown_t": ad_cooldown_t,
 	}
 
 
@@ -444,11 +486,15 @@ func from_dict(d: Dictionary) -> void:
 	for key: String in d.get("seen", REVEALS if mechs_built > 0 else []):
 		seen[key] = true
 	field_taps = int(d.get("field_taps", 0))
+	scrap_boost_t = float(d.get("scrap_boost_t", 0.0))
+	ad_cooldown_t = float(d.get("ad_cooldown_t", 0.0))
 	_reset_rates()
 
 
 func _step(dt: float) -> void:
 	run_time += dt
+	scrap_boost_t = maxf(0.0, scrap_boost_t - dt)
+	ad_cooldown_t = maxf(0.0, ad_cooldown_t - dt)
 	for line in lines:
 		_step_workers(line, dt)
 		_step_line(line, dt)
@@ -655,6 +701,7 @@ func _gain_credits(amount: float) -> void:
 
 
 func _gain_scrap(amount: float) -> void:
+	amount *= scrap_boost()
 	scrap += amount
 	_scrap_bucket += amount
 	_scrap_gain_bucket += amount

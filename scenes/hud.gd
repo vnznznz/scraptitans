@@ -14,6 +14,7 @@ const LEFT := 6.0
 const RATE_Y := 26.0
 const RATE_COLOR := Color(1, 1, 1, 0.7)
 const STARVED := Pal.RED
+const BOOSTED := Pal.GREEN
 
 var _icons: Array[TextureRect] = []
 var _credits: Label
@@ -74,8 +75,12 @@ func _process(delta: float) -> void:
 	_credits.text = Fmt.num(GameState.credits)
 	_credits_rate.text = Fmt.rate(GameState.credits_rate)
 	_scrap.text = Fmt.num(GameState.scrap)
-	_scrap_rate.text = Fmt.rate(GameState.scrap_rate)
-	_scrap_rate.modulate = STARVED if GameState.starved() else RATE_COLOR
+	if GameState.scrap_boost_t > 0.0:
+		_scrap_rate.text = "X%d %s" % [GameState.scrap_boost(), Fmt.clock(GameState.scrap_boost_t)]
+		_scrap_rate.modulate = BOOSTED
+	else:
+		_scrap_rate.text = Fmt.rate(GameState.scrap_rate)
+		_scrap_rate.modulate = STARVED if GameState.starved() else RATE_COLOR
 	_mechs.text = Fmt.num(GameState.field.size())
 	_mechs_rate.text = "%d/MIN" % GameState.mechs_per_min
 	_show_wars()

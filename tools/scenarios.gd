@@ -1534,7 +1534,7 @@ func ui() -> void:
 	await t.click(upgrades)
 	var bar_top: float = main.get_node("%Bar").get_global_rect().position.y
 	t.check(menu.visible and menu.get_global_rect().end.y == bar_top, "menu reaches down to the bottom bar")
-	var list: ScrollContainer = menu.get_child(1).get_child(0)
+	var list: ScrollContainer = menu.find_child("List", true, false)
 	t.check(list.get_global_rect().end.y <= bar_top - UpgradeMenu.MARGIN, "rows end above the bar")
 	var wide_rows := func() -> Array:
 		var wide := []
@@ -3059,6 +3059,205 @@ func _video_mech(rng: RandomNumberGenerator, low: int, high: int, plated: bool) 
 		m.parts["plate"] = rng.randi_range(low, high)
 	GameState.call("_deploy", m)
 
+func sdk() -> void:
+	CrazyGames.use_fake()
+	CrazyGames.fake_ad_time = 0.2
+	await _fresh(false)
+	var main := t.get_tree().current_scene as Main
+	var menu: UpgradeMenu = t.node("UpgradeMenu")
+	var upgrades: Button = t.node("Upgrades")
+	var pile: Control = (t.node("Scrapyard") as Scrapyard).pile()
+	await t.frames(2)
+	t.check(CrazyGames.calls == ["loadingStop"], "loading stop on the first frame, no gameplay before a tap (%s)" % [CrazyGames.calls])
+	await t.click(pile)
+	await t.frames(2)
+	t.check(CrazyGames.calls[-1] == "gameplayStart", "gameplay starts with the first tap")
+	_reveal_all()
+	GameState.credits = 0.0
+	await t.frames(2)
+	await t.click(upgrades)
+	await t.frames(2)
+	t.check(CrazyGames.calls[-1] == "gameplayStop", "gameplay stops while the menu is open")
+
+	var watch: Button = menu.find_child("Watch", true, false)
+	var ad_row: Control = menu.find_child("Row_ad_scrap", true, false)
+	var ad_buttons := func() -> Array:
+		return Data.upgrade_list.filter(func(r: Dictionary) -> bool:
+			return (menu.row(r.id).find_child("Ad", true, false) as Button).is_visible_in_tree()).map(func(r: Dictionary) -> String: return r.id)
+	var cheapest := Data.upgrade_list.filter(func(r: Dictionary) -> bool:
+		return r.get("kind", "") != "final" and GameState.upgrade_visible(r.id)).map(func(r: Dictionary) -> String: return r.id)
+	var costed := cheapest.map(func(id: String) -> Array: return [GameState.upgrade_cost(id), cheapest.find(id), id])
+	costed.sort()
+	cheapest = costed.map(func(c: Array) -> String: return c[2])
+	var shown: Array = ad_buttons.call()
+	shown.sort()
+	var want: Array = cheapest.slice(0, 3)
+	want.sort()
+	t.check(ad_row.is_visible_in_tree() and not watch.disabled, "scrap offer row at the top, ready")
+	t.check(shown == want, "video icons on the three cheapest rows that can't be afforded (%s)" % [shown])
+	for id: String in want:
+		var row := menu.row(id)
+		var buy: Button = row.find_child("Buy", true, false)
+		var ad: Button = row.find_child("Ad", true, false)
+		t.check(row.size.x == 348.0 and ad.get_global_rect().end.x + 4.0 == buy.get_global_rect().position.x and buy.get_global_rect().end.x - ad.get_global_rect().position.x == 104.0,
+				"%s: video button and price share the buy button's place (%d wide row)" % [id, row.size.x])
+	GameState.prestige = 3
+	await t.frames(2)
+	for id: String in GameState.ad_offers():
+		var buy: Button = menu.row(id).find_child("Buy", true, false)
+		var price: Control = buy.get_node("Price")
+		t.check(price.get_combined_minimum_size().x <= buy.size.x - 4.0, "%s: price %s fits the narrower button (%d of %d)" % [id, Price.text(buy), price.get_combined_minimum_size().x, buy.size.x])
+	GameState.prestige = 0
+	await t.frames(2)
+	await t.shot("sdk_menu")
+	GameState.credits = GameState.upgrade_cost(cheapest[0])
+	await t.frames(2)
+	shown = ad_buttons.call()
+	t.check(shown.size() == 3 and not cheapest[0] in shown and cheapest[3] in shown, "an affordable row has no icon, the next one takes it (%s)" % [shown])
+	GameState.credits = 0.0
+
+	var scrap_per_tap := GameState.tap_scrap()
+	t.tap(watch.get_global_rect().get_center())
+	t.check(CrazyGames.ad_open and CrazyGames._blocker.visible and not t.get_tree().paused, "ad requested: input blocked, game still running")
+	await t.frames(3)
+	t.check(t.get_tree().paused and AudioServer.is_bus_mute(0), "ad playing: game paused and muted")
+	t.check(GameState.scrap_boost_t == 0.0, "no reward while the ad plays")
+	await t.wait(0.4)
+	t.check(not t.get_tree().paused and not AudioServer.is_bus_mute(0) and not CrazyGames.ad_open and not CrazyGames._blocker.visible, "ad finished: game and sound back")
+	t.check(GameState.scrap_boost_t > 290.0 and GameState.ad_cooldown_t > 170.0, "reward on finish: scrap boost for 5 min, cooldown 3 min")
+	await t.frames(2)
+	t.check((ad_buttons.call() as Array).is_empty() and watch.disabled, "cooldown: no video icons, the scrap offer is off")
+	t.check((ad_row.find_child("Effect", true, false) as Label).text.ends_with("LEFT"), "the scrap row shows the time left")
+	var before := GameState.scrap
+	GameState.tap_pile()
+	t.check(is_equal_approx(GameState.scrap - before, scrap_per_tap * 2.0), "boosted: a pile tap gives twice the scrap")
+	t.check((t.node("Hud").get_child(0).get_parent() as Hud)._scrap_rate.text.begins_with("X2 "), "HUD shows the boost timer at the scrap rate")
+	await t.shot("sdk_boost")
+	var saved := GameState.to_dict()
+	GameState.from_dict(saved)
+	t.check(GameState.scrap_boost_t > 290.0 and GameState.ad_cooldown_t > 170.0, "boost and cooldown are saved")
+
+	for result: String in ["unfilled", "timeout"]:
+		GameState.scrap_boost_t = 0.0
+		GameState.ad_cooldown_t = 0.0
+		await t.frames(2)
+		CrazyGames.fake_ads = [result]
+		t.tap(watch.get_global_rect().get_center())
+		await t.frames(3)
+		if result == "timeout":
+			t.check(CrazyGames.ad_open and not t.get_tree().paused, "no answer yet: still waiting, not paused")
+			CrazyGames._ad_t = CrazyGames.AD_TIMEOUT
+			await t.frames(2)
+		t.check(not CrazyGames.ad_open and not t.get_tree().paused and not AudioServer.is_bus_mute(0) and not CrazyGames._blocker.visible, "%s: game goes on" % result)
+		t.check(GameState.scrap_boost_t == 0.0 and GameState.ad_cooldown_t == 0.0 and CrazyGames.video_ads, "%s: no reward, no cooldown, offers stay" % result)
+
+	var pick: String = want[2]
+	var level := GameState.level(pick)
+	t.tap((menu.row(pick).find_child("Ad", true, false) as Control).get_global_rect().get_center())
+	await t.wait(0.5)
+	t.check(GameState.level(pick) == level + 1 and GameState.credits == 0.0 and GameState.ad_cooldown_t > 170.0, "free upgrade: one level of that row, no credits spent, cooldown")
+	t.check(not GameState.reward_upgrade(want[0]), "no second reward during the cooldown")
+	GameState.ad_cooldown_t = 0.0
+	t.check(not GameState.ad_offers().any(func(id: String) -> bool: return Data.upgrade_row(id).get("kind", "") == "final"), "the missile is never offered")
+
+	await t.frames(2)
+	CrazyGames.fake_ads = ["adsDisabledBasicLaunch"]
+	t.tap(watch.get_global_rect().get_center())
+	await t.frames(4)
+	t.check(not CrazyGames.video_ads and not ad_row.visible and (ad_buttons.call() as Array).is_empty(), "ads disabled (Basic Launch): all ad UI gone")
+	CrazyGames.use_fake()
+	CrazyGames.set_adblock(true)
+	await t.frames(2)
+	t.check(ad_row.visible and watch.disabled and (ad_row.find_child("Effect", true, false) as Label).text == "BLOCKED BY AD BLOCKER" and (ad_buttons.call() as Array).is_empty(),
+			"ad blocker: offer disabled with a notice, no video icons")
+	t.check(ad_row.size.x == 348.0, "the notice fits the row (%d)" % ad_row.size.x)
+	await t.shot("sdk_adblock")
+	CrazyGames.use_none()
+	await t.frames(2)
+	t.check(not ad_row.visible and (ad_buttons.call() as Array).is_empty(), "no SDK (own site build): no ad UI")
+
+	CrazyGames.use_fake()
+	var mute: Button = t.node("Hud").get_node("MuteButton")
+	CrazyGames.set_site_muted(true)
+	await t.frames(2)
+	t.check(AudioServer.is_bus_mute(0) and mute.disabled and not Sound.muted, "site mute: sound off, HUD button disabled, own setting untouched")
+	CrazyGames.set_site_muted(false)
+	await t.frames(2)
+	t.check(not AudioServer.is_bus_mute(0) and not mute.disabled, "site unmute: sound back")
+
+	await t.click(upgrades)
+	await t.frames(2)
+	t.check(CrazyGames.calls[-1] == "gameplayStart", "gameplay resumes when the menu closes")
+	await t.click(upgrades)
+	await t.frames(2)
+	var slot := menu.banner_slot()
+	var first_row := menu.row(cheapest[0])
+	var row_y := first_row.get_global_rect().position.y
+	var window := t.get_window()
+	var scale := Main.window_scale(window.size)
+	var banner := Vector2(468, 60) if 468.0 / scale <= 348.0 else Vector2(320, 50)
+	t.check(slot.visible and slot.size == Vector2(348, ceilf(banner.y / scale) + 8.0) and slot.get_global_rect().position.y < ad_row.get_global_rect().position.y,
+			"banner slot at the top of the menu (%s)" % slot.get_global_rect())
+	t.check(not CrazyGames.fake_banner.has_area(), "no banner request right after opening")
+	await t.wait(1.1)
+	var bars_x := (window.size.x - Main.BASE.x * scale) / 2.0
+	var on_slot := Rect2(Vector2(bars_x, 0) + slot.get_global_rect().position * scale, slot.get_global_rect().size * scale)
+	t.check(CrazyGames.fake_banner.size == banner and on_slot.grow(1.0).encloses(CrazyGames.fake_banner), "banner requested after 1 s, inside the slot (%s in %s)" % [CrazyGames.fake_banner, on_slot])
+	t.check(first_row.get_global_rect().position.y == row_y, "rows don't move when the banner arrives")
+	t.check(CrazyGames.fake_banner.end.y / scale + 8.0 <= ad_row.get_global_rect().position.y, "8 px between the banner and the first button")
+	await t.shot("sdk_banner")
+	await t.click(upgrades)
+	await t.frames(2)
+	t.check(not CrazyGames.fake_banner.has_area(), "banner cleared on CLOSE")
+	await t.click(upgrades)
+	await t.frames(2)
+	t.check(not slot.visible, "reopened within 30 s: no slot")
+	await t.click(upgrades)
+
+	GameState.scrap = 123.0
+	Save.save_game()
+	var module_save: String = CrazyGames.fake_store.get(Save.KEY, "")
+	t.check(not module_save.is_empty() and FileAccess.get_file_as_string(Save.PATH) == module_save, "save goes to the data module and the local file")
+	GameState.scrap = 999.0
+	t.check(Save.load_game() and GameState.scrap == 123.0, "load reads the data module")
+	var other: Dictionary = JSON.parse_string(module_save)
+	other.scrap = 77.0
+	CrazyGames.fake_store[Save.KEY] = JSON.stringify(other)
+	CrazyGames.store_changed.emit()
+	await t.frames(4)
+	t.check(GameState.scrap == 77.0, "sign-in: the run is reloaded from the module")
+	CrazyGames.fake_store = {}
+	CrazyGames.store_changed.emit()
+	t.check(not (CrazyGames.fake_store.get(Save.KEY, "") as String).is_empty(), "empty module: the local save is taken over")
+	GameState.scrap = 5.0
+	Save.reset_save()
+	await t.frames(4)
+	t.check((JSON.parse_string(CrazyGames.fake_store[Save.KEY]) as Dictionary).scrap == 0.0, "RESET SAVE clears the module's run too")
+
+	var mid := CrazyGames.calls.filter(func(c: String) -> bool: return c == "ad midgame").size()
+	t.check(mid == 0, "no midgame ad during play")
+	GameState.run_over = true
+	t.get_tree().reload_current_scene()
+	await t.frames(10)
+	await t.wait(0.5)
+	main = t.get_tree().current_scene as Main
+	var wars := GameState.prestige
+	await t.click(main.get_node("%Nuke").find_child("StartAgain", true, false))
+	await t.wait(3.0)
+	t.check(CrazyGames.calls.has("ad midgame") and GameState.prestige == wars + 1 and not GameState.run_over and not t.get_tree().paused, "START AGAIN: midgame ad, then the next war")
+	CrazyGames.fake_ads = ["unfilled"]
+	GameState.run_over = true
+	t.get_tree().reload_current_scene()
+	await t.frames(10)
+	await t.wait(0.5)
+	main = t.get_tree().current_scene as Main
+	await t.click(main.get_node("%Nuke").find_child("StartAgain", true, false))
+	await t.wait(2.5)
+	t.check(GameState.prestige == wars + 2 and not GameState.run_over, "START AGAIN with no ad to show: straight on")
+	CrazyGames.use_none()
+	GameState.prestige = 0
+
+
 func _reveal_all() -> void:
 	GameState.mechs_built = maxi(GameState.mechs_built, 1)
 	for key: String in GameState.REVEALS:
@@ -3125,3 +3324,4 @@ func _fill_bar(line: LineView, i: int) -> void:
 	var tap: Control = line.segment_view(i).get_node("Tap")
 	for k in 8:
 		await t.click(tap)
+

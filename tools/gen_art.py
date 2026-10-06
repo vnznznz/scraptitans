@@ -1892,6 +1892,8 @@ def ui():
     rect(d, 7, 7, 8, 11, WHITE)
     save(img, "ui/info.png")
 
+    video_icon()
+
     img, d = new(16, 16)
     for k in range(8):
         a = k * math.tau / 8
@@ -1992,6 +1994,16 @@ def word(text, color):
     d.fontmode = "1"
     d.text((0, -4), text, font=font, fill=color)
     return img.crop(img.getbbox())
+
+
+def video_icon():
+    img, d = new(16, 16)
+    d.rectangle([1, 3, 14, 12], fill=SLATE_D, outline=INK)
+    rect(d, 2, 4, 13, 4, STEEL)
+    rect(d, 6, 5, 6, 10, WHITE)
+    rect(d, 7, 6, 7, 9, WHITE)
+    rect(d, 8, 7, 8, 8, WHITE)
+    save(img, "ui/video.png")
 
 
 def title():
