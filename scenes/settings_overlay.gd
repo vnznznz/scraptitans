@@ -6,8 +6,9 @@ enum Mode { SETTINGS, AUDIO, RESET, CREDITS }
 const VOLUMES := [["master", "MASTER"], ["ui", "UI"], ["battle", "BATTLE"], ["factory", "FACTORY"], ["ambience", "AMBIENCE"], ["music", "MUSIC"]]
 const LICENSE_CHUNK := 1200
 const EDGE_MARGIN := 8
+const OWN_SITE := "DISTCO.DE"
 const CREDITS := [
-	["GAME DESIGN", ["VINZENZ SINAPIUS", "DISTCO.DE"]],
+	["GAME DESIGN", ["VINZENZ SINAPIUS", OWN_SITE]],
 	["SOUNDS AND MUSIC", ["SUBSPACEAUDIO", "MUSIC: JUHANI JUNKALA", "SUBSPACEAUDIO.ITCH.IO", "CC BY 4.0, MIXED TO MONO", "FADED, TRIMMED, FILTERED"]],
 	["FONT", ["SILKSCREEN", "JASON KOTTKE, OFL"]],
 	["ENGINE", ["GODOT ENGINE, MIT", "GODOTENGINE.ORG/LICENSE"]],
@@ -116,7 +117,10 @@ func _ready() -> void:
 	_credits.add_theme_constant_override("separation", 6)
 	_credits_scroll.add_child(_credits)
 	for section: Array in CREDITS:
-		_credits_section(section[0], section[1])
+		var lines: Array = section[1]
+		if OS.has_feature("crazygames"):
+			lines = lines.filter(func(line: String) -> bool: return line != OWN_SITE)
+		_credits_section(section[0], lines)
 	_licenses_button = _button(box, "LicensesButton", "OPEN SOURCE LICENSES", _open_licenses)
 	resized.connect(_fit_credits)
 
