@@ -48,7 +48,7 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 - Mechs walk in from the left and fire at the enemy wave on the right. Enemies fire back. Better-equipped mechs stand in the front row, so upgrades show.
 - No HP bars on mechs. Mech damage shows as smoke (3 intensities), then sparks, then explosion and debris. It follows remaining lifetime, not enemy fire.
 - No combat sim beyond the wave: lifetime, payout and damage come from the stats; visuals play along.
-- **Tapping the battlefield** (anywhere) hits the wave: a small share of its HP and the same share of its bounty as credits. The nearest enemy flashes.
+- **Tapping the battlefield** (anywhere) hits the wave: a small share of its HP and the same share of its bounty as credits. The nearest enemy flashes. A cannon on top of the gate fires a shell at it for every tap; the cannon and its shells get bigger with the Harder hits upgrade.
 - Later waves hit harder: mechs age faster the higher the wave, so they die sooner.
 
 ## Enemy waves

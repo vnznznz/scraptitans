@@ -2489,6 +2489,32 @@ func field() -> void:
 		await t.wait(1.5)
 		await t.shot("field_front_%d" % (wave + 1))
 
+	GameState.wave = 3
+	GameState.wave_hp = GameState.wave_max_hp()
+	field.call("_show_wave", false)
+	GameState.field.clear()
+	_spawn_mechs(2)
+	await t.wait(1.0)
+	var cannon: GateCannon = field.find_child("Cannon", true, false)
+	var gun: Sprite2D = cannon.get_node("Gun")
+	var field_tap: Control = field.find_child("FieldTap", true, false)
+	var top := int(Data.upgrade_row("tap_damage").max_level)
+	t.check(gun.global_position.y + GateCannon.CELL.y == field.get_global_rect().end.y - Gate.WALL.get_height() and gun.global_position.x >= 0.0, "cannon stands on the gate (%s)" % gun.global_position)
+	for step: Array in [[0, 0], [1, 1], [top / 2, 2], [top, 3]]:
+		GameState.levels["tap_damage"] = step[0]
+		GameState.wave_hp = GameState.wave_max_hp()
+		await t.frames(2)
+		t.check(gun.frame == step[1], "tap upgrade level %d: cannon look %d" % step)
+		t.tap(field_tap.get_global_rect().get_center() + Vector2(60, 20))
+		await t.frames(2)
+		var shell: Sprite2D = cannon.get_node_or_null("Shell")
+		t.check(shell != null and shell.texture == MechView.SHOTS[step[1]], "a tap fires the cannon's shell for that look")
+		await t.wait(0.06)
+		await t.shot("field_cannon_%d" % step[1])
+		await t.wait(0.5)
+		t.check(cannon.get_node_or_null("Shell") == null and gun.position == GateCannon.AT, "the shell lands, the gun is back from its recoil")
+	GameState.levels.erase("tap_damage")
+
 	if settings_backup:
 		FileAccess.open(Save.SETTINGS_PATH, FileAccess.WRITE).store_string(settings_backup)
 	else:

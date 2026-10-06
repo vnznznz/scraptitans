@@ -964,6 +964,28 @@ def gate():
     hazard(d, 0, h - 4, w - 1, h - 2)
     rect(d, 0, h - 1, w - 1, h - 1, INK)
     save(img, "battlefield/gate_door.png")
+    gate_cannon()
+
+
+def gate_cannon():
+    looks = [(R_RUST, R_BROWN, 9, None), (R_IRON, R_DARK, 12, STEEL_L), (R_STEEL, R_IRON, 14, CYAN), (R_GOLD, R_STEEL, 16, CYAN)]
+    cw, ch = 26, 14
+    img, d = new(cw * len(looks), ch)
+    for i, (barrel, mount, length, band) in enumerate(looks):
+        x = i * cw
+        sbox(d, x + 2, 8, x + 12, 13, mount)
+        hazard(d, x + 3, 12, x + 11, 12)
+        thick = 1 if i < 2 else 2
+        sbox(d, x + 8, 5 - thick, x + 8 + length, 6 + thick, barrel)
+        sbox(d, x + 5, 3 - thick, x + 10, 8 + thick, mount)
+        if band:
+            rect(d, x + 8 + length - 3, 5 - thick + 1, x + 8 + length - 2, 6 + thick - 1, band)
+        if i == 2:
+            rect(d, x + 11, 5, x + 8 + length - 4, 6, INK)
+        if i == 3:
+            rect(d, x + 12, 5, x + 8 + length - 4, 6, CYAN)
+        rect(d, x + 8 + length, 5 - thick + 1, x + 8 + length, 6 + thick - 1, INK)
+    save(img, "battlefield/gate_cannon.png")
 
 
 def battlefield():

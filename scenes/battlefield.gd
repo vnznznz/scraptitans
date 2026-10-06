@@ -54,6 +54,7 @@ var _world: Node2D
 var _mechs: Node2D
 var _crowd: Crowd
 var _gate: Gate
+var _cannon: GateCannon
 var _enemy_layer: Node2D
 var _enemies: Array[Sprite2D] = []
 var _enemy_count := 0
@@ -139,6 +140,9 @@ func _ready() -> void:
 	_gate.left.connect(_walk_out)
 	_gate.arrived.connect(func(m: MechState) -> void: _crowd.release(m.id))
 	_world.add_child(_gate)
+	_cannon = GateCannon.new()
+	_cannon.name = "Cannon"
+	_world.add_child(_cannon)
 
 	_tap = TapArea.new()
 	_tap.name = "FieldTap"
@@ -444,11 +448,18 @@ func _on_tap(at: Vector2) -> void:
 		if e.visible and (target == null or _enemy_center(e).distance_to(at) < _enemy_center(target).distance_to(at)):
 			target = e
 	if target:
+		var spot := _enemy_center(target) + Vector2(randf_range(-4, 4), randf_range(-4, 4))
+		_cannon.fire(spot, _on_cannon_hit.bind(target, spot))
+
+
+func _on_cannon_hit(look: int, target: Sprite2D, spot: Vector2) -> void:
+	if is_instance_valid(target) and target.visible:
 		target.modulate = Color(3, 3, 3)
 		target.create_tween().tween_property(target, "modulate", Color.WHITE, 0.12)
-		var spot := _enemy_center(target) + Vector2(randf_range(-4, 4), randf_range(-4, 4))
-		Fx.hit(_mechs, spot)
-		Fx.puff(_mechs, spot, 0.4, Pal.YELLOW)
+	Fx.hit(_mechs, spot)
+	Fx.puff(_mechs, spot, 0.4 + 0.2 * look, Pal.YELLOW)
+	if look == GateCannon.LOOKS - 1:
+		Fx.explosion(_mechs, spot, false, 0.3)
 
 
 static func is_boss_wave(wave: int) -> bool:
@@ -568,7 +579,7 @@ func scorch() -> void:
 	_hp_label.visible = false
 	_dps_label.visible = false
 	_strip.visible = false
-	for layer: CanvasItem in _layers + [_gate]:
+	for layer: CanvasItem in _layers + [_gate, _cannon]:
 		layer.modulate = Color(1.2, 0.7, 0.5)
 	_smoke.modulate = Color(0.4, 0.2, 0.2)
 
