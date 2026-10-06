@@ -29,7 +29,7 @@
 		"assemble_frame": {"bus": "factory", "files": ["sfx_piledriver"], "volume_db": -15, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "area": "factory"},
 		"assemble_core": {"bus": "factory", "files": ["sfx_machine_activates3"], "volume_db": -7, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "area": "factory"},
 		"assemble_arms": {"bus": "factory", "files": ["sfx_wpn_reload"], "volume_db": -10, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "area": "factory"},
-		"assemble_plating": {"bus": "factory", "files": ["sfx_machine_big_97"], "volume_db": -11, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "area": "factory"},
+		"assemble_plate": {"bus": "factory", "files": ["sfx_machine_big_97"], "volume_db": -11, "pitch": 0.05, "cooldown": 0.3, "voices": 2, "area": "factory"},
 		"mech_exit": {"bus": "factory", "files": ["sfx_platform_launched"], "volume_db": -8, "pitch": 0.05, "cooldown": 0.5, "voices": 1, "area": "factory"},
 		"stall": {"bus": "factory", "files": ["sfx_machine_shutdown"], "volume_db": -14, "cooldown": 20},
 		"pause": {"bus": "ui", "files": ["sfx_pause2_in"], "volume_db": -14},

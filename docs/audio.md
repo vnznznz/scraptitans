@@ -58,7 +58,7 @@ Factory
 - `pile_tap`: short_contact_sound_33, 97, 100, 126; noisy 0.13–0.18 s crunches, cut below 200 Hz (17–21 % of their energy was a thump)
 - `yard_hit`: same set, −10 dB below the tap, pitch 0.85
 - `station_tap`: sounds_impact8, impact4, impact14; light metallic ticks (≤ 13 % energy below 250 Hz), unlike the pile; impact5 dropped (32 %: a thump)
-- `assemble_frame`: piledriver; `assemble_core`: machine_activates3; `assemble_arms`: wpn_reload; `assemble_plating`: machine_big_97
+- `assemble_frame`: piledriver; `assemble_core`: machine_activates3; `assemble_arms`: wpn_reload; `assemble_plate`: machine_big_97
 - `mech_exit`: platform_launched
 - `stall`: machine_shutdown
 - `pause` / `resume`: pause2_in / pause2_out

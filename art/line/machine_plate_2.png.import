@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cjtrp16xu2re0"
-path="res://.godot/imported/plating_4.png-32f0493b4f0ce3583e369a8263667991.ctex"
+uid="uid://dbxr2c20wf873"
+path="res://.godot/imported/machine_plate_2.png-d4a85ba7b11a2bbab9ef5cb1a5268898.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/mech/plating_4.png"
-dest_files=["res://.godot/imported/plating_4.png-32f0493b4f0ce3583e369a8263667991.ctex"]
+source_file="res://art/line/machine_plate_2.png"
+dest_files=["res://.godot/imported/machine_plate_2.png-d4a85ba7b11a2bbab9ef5cb1a5268898.ctex"]
 
 [params]
 

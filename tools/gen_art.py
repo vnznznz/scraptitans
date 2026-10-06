@@ -355,7 +355,7 @@ def draw_arms(d, a, shoulder, t):
     return tip + 1, y0 + mh // 2
 
 
-def draw_plating(d, p, box, t):
+def draw_plate(d, p, box, t):
     x0, y0, x1, y1 = box
     big = t == "nuke"
     s = 3 if big else [0, 0, 1, 1, 2, 2][t]
@@ -435,7 +435,7 @@ def mech():
         rig["top"].append(rig_point(CELL, (x0 + x1) // 2, y0 - 12 - t))
         rig["muzzle"].append([None] * 6)
 
-    for kind in ("core", "arms", "plating"):
+    for kind in ("core", "arms", "plate"):
         for tier in range(6):
             sheet = Image.new("RGBA", (w * 6, h), CLEAR)
             for t in range(6):
@@ -448,7 +448,7 @@ def mech():
                     m = draw_arms(d, tier, (x1 - 1, y0 + 3), t)
                     rig["muzzle"][t][tier] = rig_point(CELL, *m)
                 else:
-                    draw_plating(d, tier, box, t)
+                    draw_plate(d, tier, box, t)
                 sheet.paste(img, (t * w, 0))
             save(sheet, f"mech/{kind}_{tier + 1}.png")
 
@@ -1355,7 +1355,7 @@ def roller(d, cx, cy, r, f, hub=GREEN):
     disc(d, cx, cy, 1, hub, outline=None)
 
 
-def machine_plating(d, f, t):
+def machine_plate(d, f, t):
     w, h = MACHINE
     ramp = PLATE_RAMPS[t]
     back_wall(d, 10, 69)
@@ -1385,7 +1385,7 @@ def machine_plating(d, f, t):
 
 def line():
     w, h = MACHINE
-    for kind, draw in [("frame", machine_frame), ("core", machine_core), ("arms", machine_arms), ("plating", machine_plating)]:
+    for kind, draw in [("frame", machine_frame), ("core", machine_core), ("arms", machine_arms), ("plate", machine_plate)]:
         for f in range(3):
             sheet, _ = new(w * TIERS, h)
             for t in range(TIERS):

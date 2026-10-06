@@ -2,7 +2,7 @@ extends Node
 
 const PATH := "user://save.json"
 const SETTINGS_PATH := "user://settings.json"
-const VERSION := 1
+const VERSION := 2
 const INTERVAL := 5.0
 
 var _t := 0.0
@@ -46,10 +46,33 @@ func load_game() -> bool:
 	if not FileAccess.file_exists(PATH):
 		return false
 	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(PATH))
-	if not d is Dictionary or int(d.get("version", 0)) != VERSION:
+	if not d is Dictionary:
+		return false
+	var version := int(d.get("version", 0))
+	if version == 1:
+		import_v1(d)
+	elif version != VERSION:
 		return false
 	GameState.from_dict(d)
 	return true
+
+
+func import_v1(d: Dictionary) -> void:
+	var levels: Dictionary = d.get("levels", {})
+	if levels.has("tier_plating"):
+		levels["tier_plate"] = levels["tier_plating"]
+		levels.erase("tier_plating")
+	var mechs: Array = d.get("field", []).duplicate()
+	for line: Dictionary in d.get("lines", []):
+		for segment: Dictionary in line.segments:
+			if segment.type_id == "plating":
+				segment.type_id = "plate"
+			if segment.mech is Dictionary:
+				mechs.append(segment.mech)
+	for mech: Dictionary in mechs:
+		if mech.parts.has("plating"):
+			mech.parts["plate"] = mech.parts["plating"]
+			mech.parts.erase("plating")
 
 
 func load_settings() -> Dictionary:

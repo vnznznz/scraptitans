@@ -442,21 +442,24 @@ func m5() -> void:
 	await t.shot("m5_bolted")
 
 	GameState.credits = 1000.0
-	GameState.buy_upgrade("tier_plating")
+	GameState.buy_upgrade("tier_plate")
 	await t.frames(2)
-	t.check(segs.size() == 4 and line.segment_view(3) != null, "plating unlock adds a 4th pad")
+	t.check(segs.size() == 4 and line.segment_view(3) != null, "plate unlock adds a 4th pad")
 	t.check(_centered(line, 4), "4 segments re-centered (x %d)" % line.segment_view(0).position.x)
 	t.check(pause_rect.end.x <= line.segment_view(0).position.x and line.segment_view(3).position.x + SegmentView.WIDTH <= 360.0, "4 columns fit beside the pause strip")
 	t.check(SegmentView.WIDTH + 2.0 < LineView.SEG_STEP, "shared button rows (82 px) leave a gap at step %d" % LineView.SEG_STEP)
 	await t.click(_build_button(line, 3))
-	t.check(segs[3].built, "plating built on line 1")
+	t.check(segs[3].built, "plate built on line 1")
 	GameState.field.clear()
 	for k in 4:
 		for i in 4:
 			await _fill_bar(line, i)
 		GameState.advance(3.0)
 	m = GameState.field[-1]
-	t.check(m.parts.has("plating") and is_equal_approx(m.lifetime, 36.0), "plated mechs live 36 s (%s)" % m.lifetime)
+	t.check(m.parts.has("plate") and is_equal_approx(m.lifetime, 36.0), "plated mechs live 36 s (%s)" % m.lifetime)
+	var old_save: Dictionary = JSON.parse_string(JSON.stringify(GameState.to_dict()).replace("plate", "plating"))
+	Save.import_v1(old_save)
+	t.check(JSON.stringify(old_save) == JSON.stringify(JSON.parse_string(JSON.stringify(GameState.to_dict()))), "a version 1 save with plating loads as plate")
 	for i in 4:
 		await _fill_bar(line, i)
 	var deployed := GameState.field.size()
@@ -465,10 +468,10 @@ func m5() -> void:
 		await t.frames(1)
 		if GameState.field.size() > deployed:
 			break
-	var leaving := line._mechs.get_children().filter(func(v: Node) -> bool: return v is MechView and v._shown.has("plating"))
-	t.check(GameState.field.size() > deployed and not leaving.is_empty(), "mech leaves the belt with its plating shown")
+	var leaving := line._mechs.get_children().filter(func(v: Node) -> bool: return v is MechView and v._shown.has("plate"))
+	t.check(GameState.field.size() > deployed and not leaving.is_empty(), "mech leaves the belt with its plate shown")
 	await t.frames(30)
-	await t.shot("m5_plating")
+	await t.shot("m5_plate")
 
 	for l in GameState.lines:
 		l.paused = true
@@ -565,10 +568,10 @@ func m7() -> void:
 	await t.frames(1)
 	var final_effect: Label = menu.row("final_arms").find_child("Effect", true, false)
 	t.check(GameState.upgrade_locked("final_arms") and _buy(menu, "final_arms").disabled and final_effect.text == "NEEDS ALL PARTS", "Arms maxed alone: Atomic Missile still locked (%s)" % final_effect.text)
-	for id: String in ["tier_frame", "tier_core", "tier_plating"]:
+	for id: String in ["tier_frame", "tier_core", "tier_plate"]:
 		while not GameState.upgrade_maxed(id):
 			GameState.buy_upgrade(id)
-			if id != "tier_plating":
+			if id != "tier_plate":
 				t.check(GameState.upgrade_locked("final_arms"), "missile locked while %s isn't maxed" % id)
 	await t.frames(2)
 	t.check(not GameState.upgrade_locked("final_arms") and not _buy(menu, "final_arms").disabled, "every part unlocked: missile can be bought")
@@ -579,7 +582,7 @@ func m7() -> void:
 	t.check(GameState.unlocked_tier("arms") == 5 and menu.find_child("Confirm", true, false) == null, "Atomic Missile unlocked at once, no confirm")
 	await t.click(main.get_node("%Upgrades"))
 	var segs := GameState.lines[0].segments
-	t.check(segs.size() == 4, "plating pad added")
+	t.check(segs.size() == 4, "plate pad added")
 	await t.click(line.segment_view(2).get_node("Apply"))
 	t.check(segs[2].tier == 4 and not GameState.can_apply_tier(0, 2), "line not maxed: Arms fit stops at the Railgun")
 	await t.click(_build_button(line, 3))
@@ -1042,7 +1045,7 @@ func m9() -> void:
 
 	_reveal_all()
 	GameState.credits = 1e9
-	GameState.buy_upgrade("tier_plating")
+	GameState.buy_upgrade("tier_plate")
 	for i in 10:
 		GameState.buy_upgrade("tap_damage")
 	GameState.credits = 50.0
@@ -1053,7 +1056,7 @@ func m9() -> void:
 	t.check(effect.call("tier_frame") == "LIFE 44 » 57 S", "frame tier row: %s" % effect.call("tier_frame"))
 	t.check(effect.call("tier_core") == "PAY 1 » 2/S", "core tier row: %s" % effect.call("tier_core"))
 	t.check(effect.call("tier_arms") == "DMG 1 » 2", "arms tier row: %s" % effect.call("tier_arms"))
-	t.check(effect.call("tier_plating") == "LIFE +10 » +13 S", "plating tier row: %s" % effect.call("tier_plating"))
+	t.check(effect.call("tier_plate") == "LIFE +10 » +13 S", "plate tier row: %s" % effect.call("tier_plate"))
 	t.check(effect.call("crew") == "WORKERS 3 » 4" and menu.row("crew").find_child("Pips", true, false).visible, "plain row: %s with level pips" % effect.call("crew"))
 	var labelled := ["tap", "raises", "deploy_fee", "interval"].map(func(id: String) -> String: return effect.call(id))
 	t.check(labelled == ["CREW 10% » 11%", "UP TO X1 » X1.5", "FEE X1 » X1.5", "EVERY 2S » 1.9S"], "labelled effect lines %s" % [labelled])
@@ -1130,7 +1133,7 @@ func m9() -> void:
 	GameState.stalled_once = true
 	GameState.credits = 1e9
 	GameState.buy_upgrade("lines")
-	GameState.buy_upgrade("tier_plating")
+	GameState.buy_upgrade("tier_plate")
 	GameState.credits = 5000.0
 	await t.frames(30)
 	await t.shot("m9_two_lines")
@@ -1713,7 +1716,7 @@ func pane() -> void:
 	GameState.credits = 1e9
 	for i in 4:
 		GameState.buy_upgrade("lines")
-	GameState.buy_upgrade("tier_plating")
+	GameState.buy_upgrade("tier_plate")
 	GameState.credits = 0.0
 	await t.frames(3)
 	var line: LineView = main.line_view(0)
@@ -1841,7 +1844,7 @@ func art() -> void:
 	GameState.stalled_once = true
 	GameState.credits = 1e9
 	GameState.scrap = 1e9
-	GameState.buy_upgrade("tier_plating")
+	GameState.buy_upgrade("tier_plate")
 	for i in 2:
 		GameState.buy_upgrade("lines")
 	await t.frames(2)
@@ -1871,7 +1874,7 @@ func art() -> void:
 		GameState.next_mech_id += 1
 		m.parts = {"frame": rng.randi_range(0, 5), "core": rng.randi_range(0, 5), "arms": rng.randi_range(0, 4)}
 		if rng.randf() < 0.6:
-			m.parts["plating"] = rng.randi_range(0, 5)
+			m.parts["plate"] = rng.randi_range(0, 5)
 		GameState.call("_deploy", m)
 	GameState.time_scale = 1.0
 	await t.wait(8.0)
@@ -1892,7 +1895,7 @@ func art() -> void:
 	var n := MechState.new()
 	n.id = GameState.next_mech_id
 	GameState.next_mech_id += 1
-	n.parts = {"frame": 5, "core": 5, "arms": 5, "plating": 5}
+	n.parts = {"frame": 5, "core": 5, "arms": 5, "plate": 5}
 	GameState.call("_deploy", n)
 	for k: Array in [[1.0, "nuke_walk"], [3.2, "nuke_ready"], [0.9, "nuke_launch"], [1.2, "nuke_flash"], [0.9, "nuke_cloud"], [1.4, "nuke_cloud2"], [1.2, "nuke_sweep"], [1.4, "nuke_sweep2"]]:
 		await t.wait(k[0])
@@ -1911,7 +1914,7 @@ func stations() -> void:
 	_reveal_all()
 	GameState.credits = 1e12
 	GameState.scrap = 1e9
-	GameState.buy_upgrade("tier_plating")
+	GameState.buy_upgrade("tier_plate")
 	for i in 2:
 		GameState.buy_upgrade("lines")
 	await t.frames(2)
@@ -2278,7 +2281,7 @@ func field() -> void:
 	await t.frames(2)
 	t.check(field.mech_count() == 24, "HIGH: 3 rows drawn (%d)" % field.mech_count())
 	var reach := 0
-	for type_id: String in ["frame", "core", "arms", "plating"]:
+	for type_id: String in ["frame", "core", "arms", "plate"]:
 		for tier in range(1, 7):
 			var sheet := (load("res://art/mech/%s_%d.png" % [type_id, tier]) as Texture2D).get_image()
 			for cell in sheet.get_width() / 40:
@@ -2491,7 +2494,7 @@ func _perf_fill(rng: RandomNumberGenerator) -> void:
 		GameState.next_mech_id += 1
 		m.parts = {"frame": rng.randi_range(0, 4), "core": rng.randi_range(0, 4), "arms": rng.randi_range(0, 4)}
 		if rng.randf() < 0.6:
-			m.parts["plating"] = rng.randi_range(0, 4)
+			m.parts["plate"] = rng.randi_range(0, 4)
 		GameState.call("_deploy", m)
 		m.wear = m.lifetime * rng.randf_range(0.0, 0.95)
 
@@ -3003,7 +3006,7 @@ func video() -> void:
 	GameState.field_taps = IntroGuide.FIELD_TAPS
 	GameState.credits = 1e12
 	GameState.scrap = 1e12
-	for id: String in ["tier_frame", "tier_core", "tier_arms", "tier_plating"]:
+	for id: String in ["tier_frame", "tier_core", "tier_arms", "tier_plate"]:
 		for k in 4:
 			GameState.buy_upgrade(id)
 	for id: String in ["lines", "lines", "crew", "crew", "interval", "yard_crew", "yard_crew", "raises", "raises", "salvage"]:
@@ -3035,7 +3038,7 @@ func video() -> void:
 	var nuclear := MechState.new()
 	nuclear.id = GameState.next_mech_id
 	GameState.next_mech_id += 1
-	nuclear.parts = {"frame": 5, "core": 5, "arms": 5, "plating": 5}
+	nuclear.parts = {"frame": 5, "core": 5, "arms": 5, "plate": 5}
 	GameState.call("_deploy", nuclear)
 	await t.frames(2)
 	while field.mech_view(nuclear.id).walking:
@@ -3053,7 +3056,7 @@ func _video_mech(rng: RandomNumberGenerator, low: int, high: int, plated: bool) 
 	for type_id: String in ["frame", "core", "arms"]:
 		m.parts[type_id] = rng.randi_range(low, high)
 	if plated and rng.randf() < 0.6:
-		m.parts["plating"] = rng.randi_range(low, high)
+		m.parts["plate"] = rng.randi_range(low, high)
 	GameState.call("_deploy", m)
 
 func _reveal_all() -> void:

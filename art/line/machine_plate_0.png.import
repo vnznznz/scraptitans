@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ccgt12x8swi0c"
-path="res://.godot/imported/machine_plating_0.png-d55e28470b4643e5825e4c4f6f36de98.ctex"
+path="res://.godot/imported/machine_plate_0.png-0123e989f0f8cf1eabb77c394481c2f0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/line/machine_plating_0.png"
-dest_files=["res://.godot/imported/machine_plating_0.png-d55e28470b4643e5825e4c4f6f36de98.ctex"]
+source_file="res://art/line/machine_plate_0.png"
+dest_files=["res://.godot/imported/machine_plate_0.png-0123e989f0f8cf1eabb77c394481c2f0.ctex"]
 
 [params]
 

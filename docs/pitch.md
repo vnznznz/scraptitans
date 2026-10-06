@@ -21,13 +21,13 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 
 ## Assembly line
 
-- Stations in belt order: **Frame** (legs + torso) → **Core** (head) → **Arms** (weapons). Later types: **Plating**, **Reactor**, **Thrusters**, **Shields**. N station types, data-driven.
+- Stations in belt order: **Frame** (legs + torso) → **Core** (head) → **Arms** (weapons). Later types: **Plate**, **Reactor**, **Thrusters**, **Shields**. N station types, data-driven.
 - A line produces mechs once Frame + Core + Arms are built.
 - Each station owns one stat:
   - **Frame** → lifetime.
   - **Core** → credit payout.
   - **Arms** → damage per second against the enemy wave, so bounty rate.
-  - **Plating** → lifetime.
+  - **Plate** → lifetime.
 - **Work bar:** the only throughput gate. Fills from player taps (tap the station) and from the line's crew. It fills **even when no mech is present**, so work is banked. When full and a mech is waiting: deduct scrap, play the assembly animation (~0.5 s), attach the part, send the mech down the belt. Frame spawns the mech. The bar grows with the station's tier.
 - A station holds one mech. If the next station is busy, the mech waits on the belt and blocks upstream.
 - **Stalls must be visible:** bar full but no scrap (station flashes the scrap icon and waits), or downstream blocked.
@@ -117,11 +117,11 @@ One word per thing, in every label, row, info text and guide line:
 - A tier name **is the name of the part it produces**. A new game starts with a Frame that produces **Scrap Frames**.
 - Upgrading swaps the part sprite for every mech built afterwards and raises the station's per-mech scrap cost.
 
-| Tier | Frame | Core | Arms | Plating |
+| Tier | Frame | Core | Arms | Plate |
 |---|---|---|---|---|
 | 1 | Scrap Frame | Junk Brain | Pipe Gun | Tin Sheets |
 | 2 | Bolted Frame | Relay Box | Bolt Cannon | Boiler Plate |
-| 3 | Steel Walker | Tube Core | Autocannon | Steel Plating |
+| 3 | Steel Walker | Tube Core | Autocannon | Steel Plates |
 | 4 | Composite Strider | Silicon Mind | Rocket Pod | Ceramic Armor |
 | 5 | Titan Chassis | Quantum Core | Railgun | Reactive Armor |
 | 6 | Atomic Colossus | Doom Core | **Atomic Missile** | Lead Armor |
@@ -158,7 +158,7 @@ One word per thing, in every label, row, info text and guide line:
 │ ▓▓▓▓▓▓▓░░░ 1.2K/3K 45 DPS │  │  wave healthbar, tap = hit the wave
 │  mechs →  smoke ✸  ← enemy│  │
 │┌ LINE CREW 5/9 [+w 67]    │▐ │  one scroll pane, pixel scroll bar
-││ FRAME [⬆ 2K] ARMS PLATING│▐ │  crew bar + pause strip form an L
+││ FRAME [⬆ 2K] ARMS PLATE│▐ │  crew bar + pause strip form an L
 ││[▓▓▓]=[▓▓░]=[░░░]=[+ ]→   │  │  work bar = machine top,
 │⏸ [ww ]  [w  ]  [ww ]      │  │  crew inside, belt, mech exits →
 │┌ LINE CREW 3/9 ...        │  │  next line flush below
@@ -194,7 +194,7 @@ One word per thing, in every label, row, info text and guide line:
 
 ## Art list (side view)
 
-- Mech parts per tier (see table): frame, core, arms, plating. Layered sprites so combinations vary for free.
+- Mech parts per tier (see table): frame, core, arms, plate. Layered sprites so combinations vary for free.
 - Nuclear Mech, missile launch, flash, mushroom cloud, shockwave, flattened-factory debris.
 - Mech walk cycle (4 frames), firing, muzzle flash, smoke ×3, explosion, debris.
 - Enemies: 3 types (Scrap Drone, Crawler Tank, Junk Brute) with a death pop; wave explosion and particles.

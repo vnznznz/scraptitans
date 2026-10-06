@@ -435,8 +435,8 @@ Test (browser + phone):
 
 Build: what CrazyGames asks for Full Launch ([crazygames.md](../release/crazygames.md)): their SDK for ads, save and mute, in a build of its own. The game plays the same when the SDK or the ads are missing. Was M14. The m19 build (no SDK) is in Basic Launch review, so its players' saves have to survive this update.
 
-- [ ] Rename Plating → Plate everywhere: station name, ids (`plate`, `tier_plate`), art and sound file names, generator, scenarios, docs, the pitch's words; part Steel Plating → Steel Plates; the header fits beside a fit button (was `10.0KLATING`)
-- [ ] Save import: `Save.VERSION` 2; a version 1 save loads with `plating` → `plate` in station types, mech parts and upgrade levels
+- [x] Rename Plating → Plate everywhere: station name, ids (`plate`, `tier_plate`), art and sound file names, generator, scenarios, docs, the pitch's words; part Steel Plating → Steel Plates; the header fits beside a fit button (was `10.0KLATING`)
+- [x] Save import: `Save.VERSION` 2; a version 1 save loads with `plating` → `plate` in station types, mech parts and upgrade levels
 - [ ] Build variants: export preset "CrazyGames" (feature tag `crazygames`, SDK script in its `html/head_include`) beside "Web" (own site: no SDK, no ad UI); `tools/export_web.sh <mode> <preset>`; CrazyGames build without the `DISTCO.DE` credits line (their terms 10.2b: no promotion of own sites)
 - [ ] `CrazyGames` autoload over `window.CrazyGames.SDK` (HTML5 SDK v3) via `JavaScriptBridge`; their Godot addon is gone from the asset library; `init` awaited at boot with a timeout; backends: SDK (environment `crazygames` or `local`), none (no tag, script blocked, environment `disabled`, init failed), fake (scenarios: scripted ad results, mute setting, data store)
 - [ ] Errors: every SDK call ends in a result, never an exception; code + message logged; nothing leaves the game paused, muted or input-blocked (ad request without `adStarted` / `adError` in 10 s counts as failed)
