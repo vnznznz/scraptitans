@@ -312,24 +312,9 @@ Test (browser + phone):
 - Reload mid-run: everything already seen is there at once, no animation
 - START AGAIN after the nuke: back to the pile alone
 
-## M14 · CrazyGames SDK
-
-Build: CrazyGames SDK integration, needed for Full Launch ([crazygames.md](../release/crazygames.md)). After M18.
-
-- [ ] `html/head_include` loads the CrazyGames SDK; `CrazyGames` autoload wraps it via `JavaScriptBridge`, no-op off web
-- [ ] `loadingStart` / `loadingStop`; `gameplayStart` on first tap and when menus close, `gameplayStop` while the menu or end card is open
-- [ ] Midgame ad (`requestAd("midgame")`) before Start again; game paused and `Sound.ad_mute` from `adStarted` to `adFinished` / `adError`
-- [ ] Rewarded (`requestAd("rewarded")`): 2× payout for 5 min (HUD timer, saved), fill all work bars
-- [ ] `game.settings.muteAudio` mutes like the HUD mute
-- [ ] Save through the Data module (1 MB limit); Progress Save toggle in the submission
-
-Test:
-- SDK calls fire in order (log them); rewards only on `adFinished`.
-- Game still runs with the SDK blocked (ad blocker).
-
 ## M15 · Battlefield progression
 
-Build: the battlefield shows what each line contributes and keeps changing until the nuke; an EFFECTS setting keeps it light on phones. Done before M14.
+Build: the battlefield shows what each line contributes and keeps changing until the nuke; an EFFECTS setting keeps it light on phones. Done before M20.
 
 - [x] Mechs remember their line; a gate per line on the left edge: door opens on a deploy, drawn mechs walk out of it, lamp shows producing / paused / out of scrap / incomplete
 - [x] DPS strip under the wave bar: damage share per line in the gate colours, taps white
@@ -353,7 +338,7 @@ Test (browser + phone):
 
 ## M16 · Words
 
-Build: every name and description is easy to read and uses the same words for the same things. Done before M14.
+Build: every name and description is easy to read and uses the same words for the same things. Done before M20.
 
 - [x] One word per thing in all player text (Words table in the pitch): pile (not yard), station (not pad), line crew, field, fee
 - [x] Upgrade rows: names say what gets better (Scrap magnet, Crew per station, Bigger shovels, Harder hits, …); every effect line labelled (`WORKERS 2 » 3`, `EVERY 2S » 1.9S`, `UP TO X1 » X1.5`); plain info text
@@ -368,7 +353,7 @@ Test:
 
 ## M17 · Graphics consistency
 
-Build: one look for every price, frame edge and overlay; stations and the pile show what was bought for them. Done before M14.
+Build: one look for every price, frame edge and overlay; stations and the pile show what was bought for them. Done before M20.
 
 - [x] Prices: every purchase button reads what · currency icon · price (coin on hire, nut on fit, UNLOCK LINE's coin at its price); white price on the lit face; one hire glyph
 - [x] Crew bars: line tag 16×20 and centered, tag digit / crew text / hire price on the same rows; hire and fit share the rail's and the pause strip's edge; L frame corner closed
@@ -399,7 +384,7 @@ Test (browser + phone):
 
 ## M18 · CrazyGames basic launch
 
-Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../release/crazygames.md)): readable in their desktop frames, covers, shell and branding fixes. SDK and ads stay in M14. Done before M14.
+Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../release/crazygames.md)): readable in their desktop frames, covers, shell and branding fixes. SDK and ads stay in M20. Done before M20.
 
 - [x] Desktop: never scaled below 1×. In a frame shorter than 640 px the column gets shorter instead (base height = frame height, 462–640, still pillarboxed); from 640 up as now
 - [x] Short column (462): CREDITS fits (its text scrolls; title and BACK were cut off); settings, audio, menu and run card stay inside
@@ -409,7 +394,7 @@ Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../
 - [x] Safe areas: HUD and UPGRADES bar move inside `env(safe-area-inset-*)`, read through `JavaScriptBridge`
 - [x] `--scenario desktop` (windowed `--shots`): at every CrazyGames frame size scale ≥ 1 and UPGRADES on the bottom edge; at 462 every overlay inside the viewport; insets move the HUD and the bar
 - [x] Preview videos 1920×1080 and 1080×1620 from recorded play, screenshots and cover layers → `release/marketing/`, deployed next to the game (`tools/make_videos.sh`, `tools/deploy_web.sh`); cover titles out of the top left label area
-- [x] Docs: `tech.md` (display, shell, splash), pitch (desktop line), `CLAUDE.md` (CrazyGames, release doc), M14 becomes the CrazyGames SDK milestone; tick `release/crazygames.md`
+- [x] Docs: `tech.md` (display, shell, splash), pitch (desktop line), `CLAUDE.md` (CrazyGames, release doc), M14 (now M20) becomes the CrazyGames SDK milestone; tick `release/crazygames.md`
 
 Test (browser + phone):
 - Desktop browser resized to about 907×510 and 821×462: all text sharp and readable, column centered; the pile is reachable by scrolling or its pin; CREDITS and AUDIO fit
@@ -445,6 +430,42 @@ Test (browser + phone):
 - The pile looks bigger and less rusty after each war won; nothing else looks different
 - Top bar with large numbers (DBG ×100, a few wars won): rates, the count and the mute button never touch
 - Settings → RESET → RESET RUN → YES: the war restarts, the count stays; RESET SAVE → YES: the count is gone too; CANCEL on either popup changes nothing
+
+## M20 · CrazyGames SDK
+
+Build: what CrazyGames asks for Full Launch ([crazygames.md](../release/crazygames.md)): their SDK for ads, save and mute, in a build of its own. The game plays the same when the SDK or the ads are missing. Was M14. The m19 build (no SDK) is in Basic Launch review, so its players' saves have to survive this update.
+
+- [ ] Rename Plating → Plate everywhere: station name, ids (`plate`, `tier_plate`), art and sound file names, generator, scenarios, docs, the pitch's words; part Steel Plating → Steel Plates; the header fits beside a fit button (was `10.0KLATING`)
+- [ ] Save import: `Save.VERSION` 2; a version 1 save loads with `plating` → `plate` in station types, mech parts and upgrade levels
+- [ ] Build variants: export preset "CrazyGames" (feature tag `crazygames`, SDK script in its `html/head_include`) beside "Web" (own site: no SDK, no ad UI); `tools/export_web.sh <mode> <preset>`; CrazyGames build without the `DISTCO.DE` credits line (their terms 10.2b: no promotion of own sites)
+- [ ] `CrazyGames` autoload over `window.CrazyGames.SDK` (HTML5 SDK v3) via `JavaScriptBridge`; their Godot addon is gone from the asset library; `init` awaited at boot with a timeout; backends: SDK (environment `crazygames` or `local`), none (no tag, script blocked, environment `disabled`, init failed), fake (scenarios: scripted ad results, mute setting, data store)
+- [ ] Errors: every SDK call ends in a result, never an exception; code + message logged; nothing leaves the game paused, muted or input-blocked (ad request without `adStarted` / `adError` in 10 s counts as failed)
+- [ ] Availability, read at boot and kept current: video ads (off in Basic Launch `adsDisabledBasicLaunch`, with an ad blocker), banners (also off in their mobile app), data module (off without the Progress Save toggle). Ad UI hidden while off (a reward button without effect is forbidden); ad blocker: reward buttons disabled, `BLOCKED BY AD BLOCKER`
+- [ ] Game events: `loadingStart` in the shell, `loadingStop` at the first frame; `gameplayStart` on the first tap and when the last overlay closes; `gameplayStop` while the UPGRADES menu, settings, run card or an ad is open, not on focus loss; `happytime` at the nuke
+- [ ] Ad break: input blocked from the request (dim + spinner); sim frozen and `Sound.ad_mute` from `adStarted` to `adFinished` / `adError`
+- [ ] Midgame ad on START AGAIN, before the next war starts (the only break in a run; never on a navigation button); any error → carry on at once
+- [ ] Reward: SCRAP ×2 for 5 min of game time (pile taps, pile crew, salvage, enemy scrap): a fixed row at the top of the UPGRADES menu with a video-icon button; HUD timer at the scrap rate; saved
+- [ ] Reward: free upgrade. The three cheapest rows the player can't afford get a video-icon button beside the price (the price stays readable, the icon is not on the green face), at most three icons in the menu; the ad buys the next level of that row, one level per ad; never on locked rows or the Atomic Missile
+- [ ] Rewards: after a reward a cooldown in game time for both (3 min to start, set by tuning): no video icons on the rows until it is over, the scrap row shows the time left (boost, then cooldown); reward only on `adFinished` with a disc burst; nothing on `adError`, no cooldown either; never two ads for one reward
+- [ ] Banner in the UPGRADES menu only (their rules: none during play, none over game content): a slot at the top of the menu, the screen area of the covered battlefield; DOM container over the canvas from the slot's rect in CSS px, responsive request (320×50 fits the 360 column at 1×); slot set when the menu opens (banners on and ≥ 30 s since the last request), request once the menu has been open 1 s, cleared on close and before a video ad; the layout never moves while the menu is open (failed request = empty slot); 8 px clear of CLOSE and buy buttons; CLOSE is never held back
+- [ ] Mute: `game.settings.muteAudio` and its change listener mute like the HUD button and win over it (button shown muted, disabled while the site mutes)
+- [ ] Save: Data module (key `save`, ≈ 15 KB of 1 MB) when on, `user://` otherwise and on data errors; empty module on first run → take over the `user://` save (Basic Launch players); sign-in / sign-out → reload the run from the module; RESET SAVE clears both; settings (audio, effects) stay per device in `user://settings.json`
+- [ ] Guide, easier to see: label at full opacity all the time (the pulse took it down to 50 %), the pulse moves to the arrow; plate with a yellow frame; the target itself lit while the guide points at it (the hover highlight of the pile, station or button)
+- [ ] Guide, clear of the thumb: label and arrow above the target (the hand comes up from the bottom edge and covers what is below the finger): `BUILD THE … STATION` and `TAP STATIONS TO BUILD A MECH` move from below to above, off the station names; thumb zone = from the last touch down to the bottom edge, wider toward the nearer side edge: a label that would land in it goes to the far side of its target; mouse: above, no zone; `BUY IT` stays left of its button
+- [ ] `--scenario intro`: every guide line at full opacity, on screen, off its target and off station names; after a tap on each target the next label is outside the thumb zone
+- [ ] Balance: tune profile `ads` (bot takes the scrap boost and the dearest of the three offered upgrades whenever the cooldown is over): no run under 25 min, also at `wars5`; sets the cooldown
+- [ ] `--scenario sdk` with the fake backend: ad break pauses, mutes and resumes on finish, error and timeout; rewards only on finish, one level per ad; video icons on the three cheapest unaffordable rows only, none on locked rows or the missile, none during the cooldown, hidden / disabled by availability; midgame only on START AGAIN; gameplay events in order; banner slot rect, request delay, clear on close; site mute; save round trip, version 1 import, take-over, sign-in reload, reset; "Web" build path = no ad UI
+- [ ] `tools/make_videos.sh` again (Plate header, new guide in the first clips) → new videos and screenshots for the Full Launch upload
+- [ ] Build `0.2.0-m20`; docs: `tech.md`, pitch (ads, words), `crazygames.md` (Full Launch list, Progress Save toggle, QA steps)
+
+Test (browser):
+- `tools/serve_web.sh` at `https://localhost:8443` (SDK `local` environment, demo ads; the LAN address is `disabled` = no ad UI): the scrap boost and a free upgrade level arrive after the demo ad and not when it fails; at most three video icons, on the cheapest rows you can't afford, gone for the cooldown after an ad; sound and factory stop during an ad and come back; START AGAIN shows an ad, then the next war
+- Ad blocker on: the game loads and plays; reward buttons disabled with the notice; START AGAIN goes straight on
+- CrazyGames QA tool: gameplay / loading events in their log; site mute button mutes; banner only inside the open UPGRADES menu, gone on CLOSE, rows don't jump when it arrives, never under a finger on CLOSE or a buy button; phone and 907×510 desktop frame
+- A save from the m19 build: loads, the Plate station and its mechs are there
+- New game on a phone, one thumb: every guide line is readable while the thumb rests where it last tapped; nothing to read is under the hand; the lit target is obvious at arm's length
+- Progress Save: play, reload → run is back; signed in on a second device → same run; RESET SAVE → gone on both
+- Own site build: no SDK request in the network tab, no ad UI, credits with `DISTCO.DE`
 
 ## Not in the prototype
 

@@ -228,7 +228,7 @@
 - Flags: `threads=no production=yes lto=full optimize=size_extra deprecated=no disable_advanced_gui=yes modules_enabled_by_default=no` + gdscript, freetype, text_server_fb
 - Textures: `lossless_compression/force_png` (default stores WebP, which would need the webp module); an editor opened before the setting keeps importing WebP until restarted → textures fail to load on web (scripts preloading them fail to compile). `export_web.sh` fails on WebP in the pack; fix: delete the WebP `.ctex` + `.md5` in `.godot/imported`, reimport
 - No svg module: default theme icons blank (game theme covers all used)
-- `javascript_eval` on (default): `JavaScriptBridge` for tab visibility, the safe area and the CrazyGames SDK (M14)
+- `javascript_eval` on (default): `JavaScriptBridge` for tab visibility, the safe area and the CrazyGames SDK (M20)
 - Disabled classes are still created lazily from C++ (`initialize_class`); only script/name access and unreferenced code go
 - Game starts using a new engine class/format → re-detect profile, rebuild templates, smoke
 

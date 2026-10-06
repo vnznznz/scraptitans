@@ -8,12 +8,13 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
 - No exclusivity: "Publishing your game on other platforms doesn't affect your eligibility for revenue share on CrazyGames." (FAQ)
 - No rule on AI-generated art in the requirements or quality guidelines; their FAQ lists creating art with AI tools. No ban, not a written permission: QA judges quality and originality
 - No developer application: upload → QA → launch
-- Portrait games welcome; Godot 3.x / 4.x SDK addon
+- Portrait games welcome; HTML5 SDK v3, usable from Godot through `JavaScriptBridge`
 - Ad revenue share, percentage not public; paid monthly from €100
 
 ## Launch stages
 
 - Basic Launch: soft launch to a small share of players; SDK optional, ads off, no revenue. Wider rollout depends on play count, playtime, retention
+  - Submitted for review on 2026-10-06 with the m19 build (no SDK, save in `user://`)
 - Full Launch: second QA pass; SDK required, ads on
 
 ## Blockers for Basic Launch
@@ -104,7 +105,7 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
 
 ## Full Launch
 
-- [ ] CrazyGames SDK ([M14](../docs/plan.md)): Godot addon `crazysdk` (modules ad / banner / game); untested against 4.7 and the trimmed web templates
+- [ ] CrazyGames SDK ([M20](../docs/plan.md)): own wrapper over the HTML5 SDK v3 through `JavaScriptBridge` (their Godot addon is no longer in the asset library)
 - [ ] Gameplay start / stop events (required), loading start / stop (optional)
 - [ ] Ads only through the SDK; the game must work with an ad blocker; `Sound.ad_mute` exists; `game.settings.muteAudio` has to mute the game
 - [ ] Save through the Data module: 1 MB limit (save ≈ 15 KB), localStorage for guests; Progress Save toggle in the submission flow, else the module is disabled
@@ -150,7 +151,6 @@ All non-exclusive, can run alongside. Terms from third-party guides and news, no
 - [Game covers](https://docs.crazygames.com/requirements/game-covers/)
 - [FAQ](https://docs.crazygames.com/faq/) (exclusivity, AI tools, portrait, payout)
 - [Data module](https://docs.crazygames.com/sdk/data/)
-- [Godot SDK addon](https://store.godotengine.org/asset/crazygames/crazysdk/)
 - [Playgama: CrazyGames policy on AI generated games](https://playgama.com/blog/?p=15221)
 - [Cinevva: best places to publish a web game in 2026](https://app.cinevva.com/guides/publish-web-game)
 - [GamingOnLinux: itch.io AI disclosure](https://gamingonlinux.com/2024/11/itchio-store-now-requires-ai-generated-content-disclosures-for-assets)
