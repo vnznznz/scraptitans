@@ -983,6 +983,8 @@ const PROFILES := {
 	"wars1": {"prestige": 1},
 	"wars5": {"prestige": 5},
 	"wars10": {"prestige": 10},
+	"ads": {"ads": true},
+	"ads5": {"ads": true, "prestige": 5},
 }
 const TAPS_PER_S := 3.0
 const STEP := 0.25
@@ -1171,7 +1173,7 @@ func tune() -> void:
 			r.first_maxed / 60.0, r.tap_scrap * 100.0, r.tap_work * 100.0, r.lines, Fmt.num(r.peak_dps), r.wave])
 	for key: String in runs:
 		var r: Dictionary = runs[key]
-		var shortest := 1500.0 if PROFILES[key].has("prestige") else 1800.0
+		var shortest := 1500.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1800.0
 		t.check(r.over and r.time >= shortest and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
 	if not runs.has("baseline"):
 		GameState.new_game()
@@ -1359,6 +1361,12 @@ func _bot_tap(p: Dictionary, r: Dictionary) -> void:
 
 func _bot_manage(p: Dictionary, r: Dictionary) -> void:
 	var now := GameState.run_time
+	if p.get("ads", false) and GameState.revealed() and GameState.ad_cooldown_t <= 0.0:
+		var offers := GameState.ad_offers()
+		if GameState.reward_scrap():
+			r.events.append([now, "ad scrap boost"])
+		elif not offers.is_empty() and GameState.reward_upgrade(offers[-1]):
+			r.events.append([now, "ad upgrade %s" % offers[-1]])
 	for li in GameState.lines.size():
 		for i in GameState.lines[li].segments.size():
 			if not GameState.lines[li].segments[i].built and GameState.build_segment(li, i):
