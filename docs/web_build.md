@@ -37,14 +37,14 @@ Not needed: 3D, physics (2D and 3D), navigation, XR, audio codec modules, video,
 - [x] `project.godot`: `force_png` on + reimport; drop the leftover Jolt setting
 - [x] Web preset: `vram_texture_compression/for_desktop=false`; `custom_template/debug|release` → `build/templates/web_{debug,release}.zip`
 - [x] Build profile `tools/web.gdbuild` (committed): editor → Project → Tools → Engine Compilation Configuration Editor → Detect from Project (done headless via a throwaway plugin in a scratch copy that presses its buttons), minus `Script` and `ScrollBar`, then by hand: text server fallback on, advanced off, FreeType on, MSDF off, WOFF2/brotli off, Graphite off. Expect 3D, physics, navigation, XR off from detection
-- [x] `tools/build_templates.sh`: scons in `~/work/source/godot`, `template_debug` (DBG panel) and `template_release`, zips from `bin/` → `build/templates/`. Flags:
+- [x] `tools/build_templates.py`: scons in `~/work/source/godot`, `template_debug` (DBG panel) and `template_release`, zips from `bin/` → `build/templates/`. Flags:
   ```
   platform=web threads=no production=yes lto=full optimize=size_extra deprecated=no
   disable_advanced_gui=yes build_profile=<project>/tools/web.gdbuild
   modules_enabled_by_default=no module_gdscript_enabled=yes
   module_freetype_enabled=yes module_text_server_fb_enabled=yes
   ```
-- [x] Smoke check without a browser: `tools/build_templates.sh smoke` builds a Linux `template_debug` with the same profile and flags (in a `fedora:43` podman container: no host C++ compiler; `x11=no wayland=no vulkan=no accesskit=no`); "Linux smoke" export preset including `tools/` → `.pck`; `tools/smoke_templates.sh` puts it next to the binary (templates refuse `--main-pack`) and runs m0–m8 + intro headless: all pass, no engine errors. Catches stripped classes the game still needs (not rendering)
+- [x] Smoke check without a browser: `tools/build_templates.py smoke` builds a Linux `template_debug` with the same profile and flags (in a `fedora:43` podman container: no host C++ compiler; `x11=no wayland=no vulkan=no accesskit=no`); "Linux smoke" export preset including `tools/` → `.pck`; `tools/smoke_templates.py` puts it next to the binary (templates refuse `--main-pack`) and runs m0–m8 + intro headless: all pass, no engine errors. Catches stripped classes the game still needs (not rendering)
 - [x] Measure `index.wasm` raw and brotli vs the official template (table above)
 - [x] `docs/tech.md`: flags, profile, template paths, rule "new engine class used → regenerate profile, rebuild templates"
 - [ ] User: browser + iOS Safari test of the release build

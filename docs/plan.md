@@ -19,7 +19,7 @@ Build: layout skeleton; tapping the pile raises scrap, and it survives a reload.
 - [x] Display: 360×640, stretch `canvas_items`, aspect `keep_width`, texture filter Nearest, pixel font. `keep_width` instead of the pitch's keep: desktop still gets a pillarboxed column, taller phones get a longer scroll pane.
 - [x] `Main`: HUD, battlefield (fixed, ~25%), ScrollContainer → VBox (line 1 placeholder, scrapyard), fixed UPGRADES button; starts scrolled to the bottom
 - [x] Autoloads: `GameState` (resources, fixed-step tick), `Save` (JSON in `user://`, `version` field)
-- [x] Web export preset (thread support off, the default), `tools/export_web.sh` → `build/web/`
+- [x] Web export preset (thread support off, the default), `tools/export_web.py` → `build/web/`
 - [x] Caddy with a self-signed cert (`tls internal`) serves `build/web/` on localhost and the LAN IP, with `Cache-Control: no-cache`; browsers accept the cert warning
 - [x] Instrumentation: `godot --headless -- --scenario <name>` drives the game (taps, fast-forward), prints state and exits non-zero on failure; windowed runs can save viewport screenshots
 - [x] Start `docs/tech.md`
@@ -393,7 +393,7 @@ Build: the game meets CrazyGames' Basic Launch requirements ([crazygames.md](../
 - [x] Web shell: `user-select: none` on `body` via `html/head_include`
 - [x] Safe areas: HUD and UPGRADES bar move inside `env(safe-area-inset-*)`, read through `JavaScriptBridge`
 - [x] `--scenario desktop` (windowed `--shots`): at every CrazyGames frame size scale ≥ 1 and UPGRADES on the bottom edge; at 462 every overlay inside the viewport; insets move the HUD and the bar
-- [x] Preview videos 1920×1080 and 1080×1620 from recorded play, screenshots and cover layers → `release/marketing/`, deployed next to the game (`tools/make_videos.sh`, `tools/deploy_web.sh`); cover titles out of the top left label area
+- [x] Preview videos 1920×1080 and 1080×1620 from recorded play, screenshots and cover layers → `release/marketing/`, deployed next to the game (`tools/make_videos.py`, `tools/deploy_web.py`); cover titles out of the top left label area
 - [x] Docs: `tech.md` (display, shell, splash), pitch (desktop line), `CLAUDE.md` (CrazyGames, release doc), M14 (now M20) becomes the CrazyGames SDK milestone; tick `release/crazygames.md`
 
 Test (browser + phone):
@@ -437,7 +437,7 @@ Build: what CrazyGames asks for Full Launch ([crazygames.md](../release/crazygam
 
 - [x] Rename Plating → Plate everywhere: station name, ids (`plate`, `tier_plate`), art and sound file names, generator, scenarios, docs, the pitch's words; part Steel Plating → Steel Plates; the header fits beside a fit button (was `10.0KLATING`)
 - [x] Save import: `Save.VERSION` 2; a version 1 save loads with `plating` → `plate` in station types, mech parts and upgrade levels
-- [x] Build variants: export preset "CrazyGames" (feature tag `crazygames`, SDK script in its `html/head_include`) beside "Web" (own site: no SDK, no ad UI); ads only in preset "CrazyGamesAds" (adds feature tag `ads`), since the Basic Launch upload rejects builds with ads; `tools/export_web.sh <mode> <preset>`; CrazyGames build without the `DISTCO.DE` credits line (their terms 10.2b: no promotion of own sites)
+- [x] Build variants: export preset "CrazyGames" (feature tag `crazygames`, SDK script in its `html/head_include`) beside "Web" (own site: no SDK, no ad UI); ads only in preset "CrazyGamesAds" (adds feature tag `ads`), since the Basic Launch upload rejects builds with ads; `tools/export_web.py <mode> <preset>`; CrazyGames build without the `DISTCO.DE` credits line (their terms 10.2b: no promotion of own sites)
 - [x] `CrazyGames` autoload over `window.CrazyGames.SDK` (HTML5 SDK v3) via `JavaScriptBridge`; their Godot addon is gone from the asset library; `init` awaited at boot with a timeout; backends: SDK (environment `crazygames` or `local`), none (no tag, script blocked, environment `disabled`, init failed), fake (scenarios: scripted ad results, mute setting, data store)
 - [x] Errors: every SDK call ends in a result, never an exception; code + message logged; nothing leaves the game paused, muted or input-blocked (ad request without `adStarted` / `adError` in 10 s counts as failed)
 - [x] Availability, read at boot and kept current: video ads (off in Basic Launch `adsDisabledBasicLaunch`, with an ad blocker), banners (also off in their mobile app), data module (off without the Progress Save toggle). Ad UI hidden while off (a reward button without effect is forbidden); ad blocker: reward buttons disabled, `BLOCKED BY AD BLOCKER`
@@ -455,11 +455,11 @@ Build: what CrazyGames asks for Full Launch ([crazygames.md](../release/crazygam
 - [x] `--scenario intro`: every guide line at full opacity, on screen, off its target and off station names; after a tap on each target the next label is outside the thumb zone
 - [x] Balance: tune profile `ads` (bot takes the scrap boost and the dearest of the three offered upgrades whenever the cooldown is over): no run under 25 min, also at `wars5`; sets the cooldown
 - [x] `--scenario sdk` with the fake backend: ad break pauses, mutes and resumes on finish, error and timeout; rewards only on finish, one level per ad; video icons on the three cheapest unaffordable rows only, none on locked rows or the missile, none during the cooldown, hidden / disabled by availability; midgame only on START AGAIN; gameplay events in order; banner slot rect, request delay, clear on close; site mute; save round trip, version 1 import, take-over, sign-in reload, reset; "Web" build path = no ad UI
-- [x] `tools/make_videos.sh` again (Plate header, new guide in the first clips) → new videos and screenshots for the Full Launch upload
+- [x] `tools/make_videos.py` again (Plate header, new guide in the first clips) → new videos and screenshots for the Full Launch upload
 - [x] Build `0.2.0-m20`; docs: `tech.md`, pitch (ads, words), `crazygames.md` (Full Launch list, Progress Save toggle, QA steps)
 
 Test (browser):
-- `tools/serve_web.sh` with `WEB_ROOT=build/crazygames_ads` at `https://localhost:8443` (SDK `local` environment, demo ads; the LAN address is `disabled` = no ad UI): the scrap boost and a free upgrade level arrive after the demo ad and not when it fails; at most three video icons, on the cheapest rows you can't afford, gone for the cooldown after an ad; sound and factory stop during an ad and come back; START AGAIN shows an ad, then the next war
+- `tools/serve_web.py` with `WEB_ROOT=build/crazygames_ads` at `https://localhost:8443` (SDK `local` environment, demo ads; the LAN address is `disabled` = no ad UI): the scrap boost and a free upgrade level arrive after the demo ad and not when it fails; at most three video icons, on the cheapest rows you can't afford, gone for the cooldown after an ad; sound and factory stop during an ad and come back; START AGAIN shows an ad, then the next war
 - Ad blocker on: the game loads and plays; reward buttons disabled with the notice; START AGAIN goes straight on
 - CrazyGames QA tool: gameplay / loading events in their log; site mute button mutes; banner only inside the open UPGRADES menu, gone on CLOSE, rows don't jump when it arrives, never under a finger on CLOSE or a buy button; phone and 907×510 desktop frame
 - A save from the m19 build: loads, the Plate station and its mechs are there

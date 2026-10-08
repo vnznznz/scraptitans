@@ -42,7 +42,7 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
   - Rules: title on each, same look across the three; no borders, no other text, no icons or store logos; not a plain screenshot; not blurry or pixelated
   - Upload form: no title or important element in the top left (labels cover it; marked about 40 % × 20 % on landscape, 40 % × 10 % on portrait) → titles moved below it
   - Pixel art at ×8: crisp, but their "pixelated" rule is a judgement call → look at them before submitting
-- [x] Preview videos (the form requires both): `release/marketing/videos/landscape.mp4` 1920×1080, 17.9 s, 11 MB and `portrait.mp4` 1080×1620, 18.6 s, 12 MB, from `tools/make_videos.sh`
+- [x] Preview videos (the form requires both): `release/marketing/videos/landscape.mp4` 1920×1080, 17.9 s, 11 MB and `portrait.mp4` 1080×1620, 18.6 s, 12 MB, from `tools/make_videos.py`
   - Rules: 15–20 s (longer is cut), ≤ 50 MB, MP4 / MOV, 1080p landscape 16:9 and portrait 2:3, opens on the cover; no sound, cursor, black bars, black screen or logo transition, promo text, app icons; no fast-forwarding (they speed it up a little themselves)
   - Recorded play at 1× speed with cuts between stages: pile → first line and mech → a wave destroyed → three lines against a boss → nuke. Portrait = the whole screen; landscape = zoomed bands of it (the game itself is pillarboxed there) → their call whether that counts as representative
   - The in-game guide lines (TAP THE SCRAP PILE…) are in the first clips: game text, not promo text
@@ -50,7 +50,7 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
 ## Submission form
 
 - Category: Clicker. Tags (max 5): Idle, Incremental, Robot, Pixel, Management
-- Marketing creatives URL: `https://distco.de/games/scraptitans/marketing/` (`release/marketing/`, uploaded by `tools/deploy_web.sh`): covers, videos, screenshots, cover layers
+- Marketing creatives URL: `https://distco.de/games/scraptitans/marketing/` (`release/marketing/`, uploaded by `tools/deploy_web.py`): covers, videos, screenshots, cover layers
 - Description (no HTML; headings and lists through the editor):
 
   ```
@@ -88,7 +88,7 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
 - [x] Boot splash and icon: title plate on the page colour, game icon (were Godot's defaults)
 - [x] Safe areas: games run fullscreen in the CrazyGames app; the HUD and the UPGRADES bar move inside `env(safe-area-inset-*)`. Layout checked with a set inset; the real insets only show in their app → check on a notched phone after upload
 - [x] iOS and low-memory Android run at device pixel ratio 1: 390 wide = 1.08×, legible in a desktop shot; the browser's upscale may blur it → checked on an iPhone (if soft: `image-rendering: pixelated` on the canvas, same head include)
-- [x] Upload a release build: `tools/export_web.sh release` (the default `debug` has the DBG panel)
+- [x] Upload a release build: `tools/export_web.py release` (the default `debug` has the DBG panel)
 - [x] Submission form: orientation portrait (the site asks players to rotate)
 - [x] Browser checks (user): Chrome, Edge, Safari / iOS, a 4 GB Chromebook if one is at hand. Games that don't run smoothly there are disabled on Chromium OS, likewise on Safari
 - [ ] Android browsers: not checked yet (incl. low-memory Android at device pixel ratio 1)
@@ -108,8 +108,8 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
 
 ## Full Launch
 
-- [x] CrazyGames SDK ([M20](../docs/plan.md)): own wrapper over the HTML5 SDK v3 through `JavaScriptBridge` (their Godot addon is no longer in the asset library); upload `build/crazygames/` from `tools/export_web.sh release CrazyGames` (no ads, Basic Launch: their upload check rejects a build that requests ads) or `build/crazygames_ads/` from `release CrazyGamesAds` (Full Launch), not `build/web/`
-- [ ] First run against the real SDK (nothing of it has run in a browser yet): `tools/serve_web.sh` with `WEB_ROOT=build/crazygames_ads` on localhost (demo ads), then their QA tool; the M20 test list in the plan
+- [x] CrazyGames SDK ([M20](../docs/plan.md)): own wrapper over the HTML5 SDK v3 through `JavaScriptBridge` (their Godot addon is no longer in the asset library); upload `build/crazygames/` from `tools/export_web.py release CrazyGames` (no ads, Basic Launch: their upload check rejects a build that requests ads) or `build/crazygames_ads/` from `release CrazyGamesAds` (Full Launch), not `build/web/`
+- [ ] First run against the real SDK (nothing of it has run in a browser yet): `tools/serve_web.py` with `WEB_ROOT=build/crazygames_ads` on localhost (demo ads), then their QA tool; the M20 test list in the plan
 - [ ] Unknown until then: whether `sdk.data.getItem` / `game.settings` / `user.addAuthListener` behave as their docs say; an ads build in Basic Launch only learns of it from the first ad error, so one reward button press there does nothing before the ad UI hides
 - [x] Gameplay start / stop events (required), loading start / stop (optional)
 - [x] Ads only through the SDK; the game must work with an ad blocker; `Sound.ad_mute` exists; `game.settings.muteAudio` has to mute the game

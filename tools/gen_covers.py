@@ -1,4 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pillow"]
+# ///
+"""Generate the CrazyGames covers and cover layers in release/marketing/ from the sprites
+in art/ (run gen_art.py first).
+
+Usage:
+    uv run tools/gen_covers.py
+"""
+
 import os
 
 from PIL import Image

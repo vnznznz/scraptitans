@@ -1,4 +1,14 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pillow"]
+# ///
+"""Generate every sprite in art/ from code. Import in Godot afterwards.
+
+Usage:
+    uv run tools/gen_art.py
+"""
+
 import json
 import math
 import os
