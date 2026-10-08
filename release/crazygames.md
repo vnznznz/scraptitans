@@ -116,6 +116,22 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
 - [x] Save through the Data module: 1 MB limit (save ≈ 15 KB), localStorage for guests; Progress Save toggle in the submission flow, else the module is disabled
 - IndexedDB (`user://`) in their iframe: persistence across game updates and on Safari not verified
 
+## Leaderboards
+
+Read from their docs on 2026-10-08. Wanted: total mechs built and wars won. Not possible as asked, nothing built.
+
+- Invited games only; the docs don't say how to get invited or at which launch stage → ask support / Discord
+- One leaderboard per game
+- Weekly seasons, Monday to Monday, reset at 9:00 UTC; no all-time board. Trophies for the top 3 and the top 1 / 5 / 10 %
+- Rendered by CrazyGames (sidebar drawer, game page widget, profile awards; global, country, friends); no call to read scores → no in-game board
+- Extra visibility: sidebar page, homepage carousels, widgets
+- Portal config: guide text (≤ 50 characters), metric label (`POINTS`, `XP`, `KDA`, `MINUTES`), sorting, min / max score, cooldown in seconds, incremental flag
+- Client submission: score AES-GCM encrypted with the portal's key (12 byte IV + ciphertext, base64), then `CrazyGames.SDK.user.submitScore({ encryptedScore, score })`. The key ships in the build → only min / max and the cooldown limit cheating
+- Testing: only in the portal's preview tool; the response always reports success, a rejected score doesn't show
+- Unknown: whether the incremental flag takes a running total or a delta, and what the weekly reset does to a lifetime total; whether guests can submit (`submitScore` is in the `user` module)
+- Pick: mechs built (moves constantly, suits a weekly race), guide "Build as many mechs as you can". Wars won is a point per 30–60 min, mostly ties → stays the HUD counter
+- Needs: `GameState.mechs_built` resets every war → a saved lifetime counter (seeded from `mechs_built` in old saves) and one per week; `submit_score` in `autoload/crazy_games.gd`; submitted on a timer above the cooldown and on a war won
+
 ## Engagement risks
 
 Not requirements; they decide whether Basic Launch leads to a wider rollout. All deliberate prototype cuts.
@@ -140,11 +156,20 @@ godot --path . --display-driver x11 -- --scenario desktop --shots <dir>
 
 ## Other platforms
 
-All non-exclusive, can run alongside. Terms from third-party guides and news, not the platforms' own agreements.
+All non-exclusive, can run alongside. Terms from third-party guides, news and search snippets (2026-10-08), not the platforms' own agreements → read those before committing.
 
-- itch.io: no gate; AI allowed with mandatory disclosure (AI Generated tag + Graphics / Code sub-tags, untagged pages dropped from browse); no ad revenue
-- GameDistribution: dashboard review; 33 % of net revenue; no AI policy found
-- Playgama: one SDK (Bridge) for many portals; courts AI-built games (search snippet only)
+Order:
+
+1. itch.io, now: no gate, SDK or review, `build/web/` as is; AI allowed with mandatory disclosure (AI Generated tag + Graphics / Code sub-tags, untagged pages dropped from browse); no ad revenue, but a page of our own and written feedback. A jam game "Scrap Titans" exists there → distinct URL and cover
+2. Playgama, after a week or two of CrazyGames numbers: one SDK (Bridge, Godot plugin in the asset library) for their portal, Yandex Games, GameDistribution, VK, Telegram and more; courts AI-built games; share reported as 70–80 % (sources disagree). A second backend behind the calls of `autoload/crazy_games.gd`, or their plugin
+   - Why wait: every ad portal ranks on the same retention numbers (see Engagement risks) → weak numbers mean fixing the game first, not more SDKs
+
+Ranked lower:
+
+- Yandex Games directly: large mobile audience; requirements allow pre-generated AI assets; own SDK, 3–5 working days of moderation; localisation rules and payout to non-Russian developers not checked. Reachable through Playgama
+- GameDistribution directly: open submissions, dashboard review; 33 % of net revenue, paid monthly from €50; no AI policy found. Reachable through Playgama
+- GamePix, GameMonetize: about 45 %, own SDK each, smaller reach
+- Y8: paid through an own AdSense account or by manual invoice
 - Newgrounds: AI art banned in the Art Portal, game rules not confirmed → avoid
 
 ## Sources
@@ -156,7 +181,12 @@ All non-exclusive, can run alongside. Terms from third-party guides and news, no
 - [Game covers](https://docs.crazygames.com/requirements/game-covers/)
 - [FAQ](https://docs.crazygames.com/faq/) (exclusivity, AI tools, portrait, payout)
 - [Data module](https://docs.crazygames.com/sdk/data/)
+- [Leaderboards](https://docs.crazygames.com/sdk/leaderboards/), [Leaderboards SDK](https://docs.crazygames.com/sdk/leaderboards-client/), [Leaderboard API](https://docs.crazygames.com/sdk/leaderboard-api/)
 - [Playgama: CrazyGames policy on AI generated games](https://playgama.com/blog/?p=15221)
+- [Playgama: the same HTML5 game on several portals](https://playgama.com/blog/?p=14160)
+- [Playgama Bridge in the Godot asset library](https://godotengine.org/asset-library/asset/edit/13681)
+- [Yandex Games requirements](https://yandex.com/dev/games/doc/en/concepts/requirements)
+- [Cinevva: web game monetization](https://app.cinevva.com/guides/web-game-monetization)
 - [Cinevva: best places to publish a web game in 2026](https://app.cinevva.com/guides/publish-web-game)
 - [GamingOnLinux: itch.io AI disclosure](https://gamingonlinux.com/2024/11/itchio-store-now-requires-ai-generated-content-disclosures-for-assets)
 - [Scrap Titans on itch.io](https://aabattery65021.itch.io/scrap-titans)
