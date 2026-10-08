@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m20` ([M20](../docs/plan.md)), checked in desktop Godot only (no browser, no device); the SDK side only against a fake backend.
+Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-08 at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m20` ([M20](../docs/plan.md)); the live build is the no-ads one (`build/crazygames/`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
 
 ## Why CrazyGames
 
@@ -15,6 +15,8 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
 
 - Basic Launch: soft launch to a small share of players; SDK optional, ads off, no revenue. Wider rollout depends on play count, playtime, retention
   - Submitted for review on 2026-10-06 with the m19 build (no SDK, save in `user://`)
+  - Live since 2026-10-08 with the m20 no-ads build (preset "CrazyGames"): https://www.crazygames.com/game/scrap-titans ← current stage
+  - Real players from here on: every update has to load their saves
 - Full Launch: second QA pass; SDK required, ads on
 
 ## Blockers for Basic Launch
@@ -85,10 +87,11 @@ Checklist for publishing on crazygames.com. Requirements read from their docs on
 - [x] `user-select: none` on `body` (+ `-webkit-`, `-moz-`, `-ms-`): asked for against selection / magnifier on touch; via `html/head_include`
 - [x] Boot splash and icon: title plate on the page colour, game icon (were Godot's defaults)
 - [x] Safe areas: games run fullscreen in the CrazyGames app; the HUD and the UPGRADES bar move inside `env(safe-area-inset-*)`. Layout checked with a set inset; the real insets only show in their app → check on a notched phone after upload
-- [ ] iOS and low-memory Android run at device pixel ratio 1: 390 wide = 1.08×, legible in a desktop shot; the browser's upscale may blur it → check on an iPhone (if soft: `image-rendering: pixelated` on the canvas, same head include)
-- [ ] Upload a release build: `tools/export_web.sh release` (the default `debug` has the DBG panel)
-- [ ] Submission form: orientation portrait (the site asks players to rotate)
-- [ ] Browser checks (user): Chrome, Edge, Safari / iOS, a 4 GB Chromebook if one is at hand. Games that don't run smoothly there are disabled on Chromium OS, likewise on Safari
+- [x] iOS and low-memory Android run at device pixel ratio 1: 390 wide = 1.08×, legible in a desktop shot; the browser's upscale may blur it → checked on an iPhone (if soft: `image-rendering: pixelated` on the canvas, same head include)
+- [x] Upload a release build: `tools/export_web.sh release` (the default `debug` has the DBG panel)
+- [x] Submission form: orientation portrait (the site asks players to rotate)
+- [x] Browser checks (user): Chrome, Edge, Safari / iOS, a 4 GB Chromebook if one is at hand. Games that don't run smoothly there are disabled on Chromium OS, likewise on Safari
+- [ ] Android browsers: not checked yet (incl. low-memory Android at device pixel ratio 1)
 
 ## Already fine
 

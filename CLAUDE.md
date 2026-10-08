@@ -9,6 +9,8 @@ Idle/clicker prototype for CrazyGames: web, portrait mobile, pixel art. Godot 4.
 - `docs/audio.md`: sound design, rules against annoyance, sound assignment
 - `release/crazygames.md`: CrazyGames requirements and release checklist
 
+Live on https://www.crazygames.com/game/scrap-titans, in Basic Launch (no ads yet).
+
 ## Rules
 
 - Prototype: keep it minimal. Simplest thing that works; no speculative abstractions or extra tooling.
