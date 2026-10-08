@@ -14,6 +14,7 @@ const TICK := 1.0 / 30.0
 const MAX_FRAME_DELTA := 0.25
 const RATE_WINDOW := 5
 const MECH_WINDOW := 60
+const AWAY_WINDOW := 60
 const REVEALS := ["factory", "crew", "yard_crew", "upgrades", "unlock"]
 
 var scrap := 0.0
@@ -36,6 +37,9 @@ var field_taps := 0
 var prestige := 0
 var scrap_boost_t := 0.0
 var ad_cooldown_t := 0.0
+var away_t := 0.0
+var away_scrap := 0.0
+var away_credits := 0.0
 var credits_rate := 0.0
 var scrap_rate := 0.0
 var scrap_gain_rate := 0.0
@@ -46,6 +50,7 @@ var yard_chunks := 0
 
 var _stats := {}
 var _acc := 0.0
+var _frame_at := 0.0
 var _rate_t := 0.0
 var _credits_bucket := 0.0
 var _scrap_bucket := 0.0
@@ -62,6 +67,10 @@ var _wave_listed := -1
 
 
 func _process(delta: float) -> void:
+	var now := Time.get_unix_time_from_system()
+	if _frame_at > 0.0 and now - _frame_at >= Data.econ("away_min"):
+		away(now - _frame_at)
+	_frame_at = now
 	if run_over:
 		return
 	_update_seen()
@@ -69,6 +78,11 @@ func _process(delta: float) -> void:
 	while _acc >= TICK:
 		_acc -= TICK
 		_step(TICK)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_UNPAUSED:
+		_frame_at = 0.0
 
 
 func advance(seconds: float) -> void:
@@ -100,6 +114,7 @@ func new_game() -> void:
 	yard_t = 0.0
 	scrap_boost_t = 0.0
 	ad_cooldown_t = 0.0
+	_clear_away()
 	_reset_rates()
 
 
@@ -361,6 +376,41 @@ func reward_upgrade(id: String) -> bool:
 	return true
 
 
+func away_rates() -> Array[float]:
+	return [_average(_credits_history), _average(_scrap_history), _average(_scrap_gain_history)]
+
+
+func away(seconds: float) -> void:
+	var rates := away_rates()
+	add_away(seconds, rates[0], rates[1], rates[2])
+
+
+func add_away(seconds: float, credits_per_s: float, scrap_per_s: float, scrap_gain_per_s: float) -> void:
+	var counted := minf(seconds, Data.econ("away_max") - away_t)
+	if seconds < Data.econ("away_min") or counted <= 0.0 or run_over or not revealed():
+		return
+	var share := Data.econ("away_share")
+	var scrap_floor := maxf(scrap_gain_per_s * Data.econ("away_scrap_floor"), tap_scrap() * Data.econ("away_taps"))
+	away_t += counted
+	away_scrap += maxf(scrap_per_s, scrap_floor) * counted * share
+	away_credits += maxf(credits_per_s, 0.0) * counted * share
+	purchased.emit()
+
+
+func claim_away(mult := 1.0) -> void:
+	scrap += away_scrap * mult
+	credits += away_credits * mult
+	credits_earned += away_credits * mult
+	_clear_away()
+	purchased.emit()
+
+
+func _clear_away() -> void:
+	away_t = 0.0
+	away_scrap = 0.0
+	away_credits = 0.0
+
+
 func buy_upgrade(id: String, free := false) -> bool:
 	var cost := 0.0 if free else upgrade_cost(id)
 	if upgrade_maxed(id) or upgrade_locked(id) or credits < cost:
@@ -454,6 +504,9 @@ func to_dict() -> Dictionary:
 		"prestige": prestige,
 		"scrap_boost_t": scrap_boost_t,
 		"ad_cooldown_t": ad_cooldown_t,
+		"away_t": away_t,
+		"away_scrap": away_scrap,
+		"away_credits": away_credits,
 	}
 
 
@@ -488,6 +541,9 @@ func from_dict(d: Dictionary) -> void:
 	field_taps = int(d.get("field_taps", 0))
 	scrap_boost_t = float(d.get("scrap_boost_t", 0.0))
 	ad_cooldown_t = float(d.get("ad_cooldown_t", 0.0))
+	away_t = float(d.get("away_t", 0.0))
+	away_scrap = float(d.get("away_scrap", 0.0))
+	away_credits = float(d.get("away_credits", 0.0))
 	_reset_rates()
 
 
@@ -727,14 +783,15 @@ func _step_rates(dt: float) -> void:
 	_scrap_bucket = 0.0
 	_scrap_gain_bucket = 0.0
 	_tap_bucket = 0.0
-	if _credits_history.size() > RATE_WINDOW:
+	if _tap_history.size() > RATE_WINDOW:
+		_tap_history.pop_front()
+	if _credits_history.size() > AWAY_WINDOW:
 		_credits_history.pop_front()
 		_scrap_history.pop_front()
 		_scrap_gain_history.pop_front()
-		_tap_history.pop_front()
-	credits_rate = _average(_credits_history)
-	scrap_rate = _average(_scrap_history)
-	scrap_gain_rate = _average(_scrap_gain_history)
+	credits_rate = _average(_credits_history.slice(-RATE_WINDOW))
+	scrap_rate = _average(_scrap_history.slice(-RATE_WINDOW))
+	scrap_gain_rate = _average(_scrap_gain_history.slice(-RATE_WINDOW))
 	tap_dps = _average(_tap_history)
 
 
@@ -742,7 +799,7 @@ func _average(values: Array[float]) -> float:
 	var total := 0.0
 	for v in values:
 		total += v
-	return total / values.size()
+	return total / maxi(values.size(), 1)
 
 
 func _reset_rates() -> void:

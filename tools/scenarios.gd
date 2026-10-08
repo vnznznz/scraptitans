@@ -63,8 +63,7 @@ func m1() -> void:
 	var pile: Control = main.find_child("Pile", true, false)
 
 	t.check(segs.size() == 3 and not segs.any(func(s: SegmentState) -> bool: return s.built), "line 1 has 3 empty pads")
-	await t.click(_build_button(line, 0))
-	t.check(not segs[0].built, "can't build without scrap")
+	t.check(not GameState.build_segment(0, 0) and not segs[0].built, "can't build without scrap")
 
 	for i in 45:
 		await t.click(pile)
@@ -3312,6 +3311,149 @@ func sdk() -> void:
 	t.check(GameState.prestige == wars + 2 and not GameState.run_over, "START AGAIN with no ad to show: straight on")
 	CrazyGames.use_none()
 	GameState.prestige = 0
+
+
+func away() -> void:
+	CrazyGames.use_fake()
+	CrazyGames.fake_ad_time = 0.2
+	await _fresh()
+	var card: AwayCard = t.node("Away")
+	var panel: Control = card.get_node("Card")
+	var collect: Button = card.find_child("Collect", true, false)
+	var ad: Button = card.find_child("Ad", true, false)
+	var min_t := Data.econ("away_min")
+	var max_t := Data.econ("away_max")
+	var share := Data.econ("away_share")
+	var mult := Data.econ("away_ad_mult")
+
+	GameState.add_away(600.0, 10.0, 5.0, 8.0)
+	t.check(GameState.away_t == 0.0, "nothing before the first mech")
+	_reveal_all()
+	GameState.add_away(min_t - 1.0, 10.0, 5.0, 8.0)
+	t.check(GameState.away_t == 0.0, "nothing under %d s away" % min_t)
+	GameState.add_away(600.0, 10.0, 5.0, 8.0)
+	t.check(GameState.away_t == 600.0 and is_equal_approx(GameState.away_credits, 6000.0 * share) and is_equal_approx(GameState.away_scrap, 3000.0 * share),
+			"10 min away: %d %% of the credits and net scrap of that time (%.0f credits, %.0f scrap)" % [share * 100.0, GameState.away_credits, GameState.away_scrap])
+	GameState._clear_away()
+	GameState.add_away(600.0, 10.0, -20.0, 8.0)
+	t.check(is_equal_approx(GameState.away_scrap, 8.0 * Data.econ("away_scrap_floor") * 600.0 * share), "factory eating more scrap than comes in: a share of the gross scrap instead (%.0f)" % GameState.away_scrap)
+	GameState._clear_away()
+	GameState.add_away(600.0, 0.0, -5.0, 0.0)
+	t.check(GameState.away_scrap > 0.0 and is_equal_approx(GameState.away_scrap, GameState.tap_scrap() * Data.econ("away_taps") * 600.0 * share) and GameState.away_credits == 0.0,
+			"no scrap income at all: still scrap worth some pile taps (%.0f)" % GameState.away_scrap)
+	GameState._clear_away()
+	GameState.add_away(max_t * 30.0, 10.0, 5.0, 8.0)
+	var capped := GameState.away_credits
+	GameState.add_away(600.0, 10.0, 5.0, 8.0)
+	t.check(GameState.away_t == max_t and is_equal_approx(capped, 10.0 * max_t * share) and GameState.away_credits == capped, "capped at %d min, also over several absences" % (max_t / 60.0))
+	GameState._clear_away()
+	GameState.add_away(600.0, 10.0, 5.0, 8.0)
+	GameState.add_away(300.0, 10.0, 5.0, 8.0)
+	t.check(GameState.away_t == 900.0 and is_equal_approx(GameState.away_credits, 9000.0 * share), "a second absence adds to an uncollected one")
+
+	Save.save_game()
+	GameState._clear_away()
+	Save.load_game()
+	t.check(GameState.away_t == 900.0 and is_equal_approx(GameState.away_credits, 9000.0 * share), "an uncollected reward is saved, a reload right away adds nothing")
+	GameState._clear_away()
+	GameState._credits_history.assign([4.0])
+	GameState._scrap_history.assign([2.0])
+	GameState._scrap_gain_history.assign([3.0])
+	Save.save_game()
+	var saved: Dictionary = JSON.parse_string(CrazyGames.fake_store[Save.KEY])
+	t.check(saved.away_rates == [4.0, 2.0, 3.0], "the save carries the output rates (%s)" % [saved.away_rates])
+	saved.saved_at -= 1200.0
+	CrazyGames.fake_store[Save.KEY] = JSON.stringify(saved)
+	Save.load_game()
+	t.check(absf(GameState.away_t - 1200.0) < 2.0 and absf(GameState.away_credits - 4800.0 * share) < 10.0 and absf(GameState.away_scrap - 2400.0 * share) < 10.0,
+			"a save from 20 min ago: 20 min at the saved rates (%.0f s, %.0f credits, %.0f scrap)" % [GameState.away_t, GameState.away_credits, GameState.away_scrap])
+	GameState._clear_away()
+	saved.erase("saved_at")
+	saved.erase("away_rates")
+	CrazyGames.fake_store[Save.KEY] = JSON.stringify(saved)
+	Save.load_game()
+	t.check(GameState.away_t == 0.0, "a save without a time (older build) loads with no reward")
+	GameState.run_over = true
+	GameState.add_away(600.0, 10.0, 5.0, 8.0)
+	t.check(GameState.away_t == 0.0, "nothing after the war is over")
+	GameState.run_over = false
+
+	GameState._credits_history.assign([4.0, 6.0])
+	GameState._scrap_history.assign([1.0, 3.0])
+	GameState._scrap_gain_history.assign([2.0, 4.0])
+	GameState._frame_at -= 600.0
+	await t.frames(2)
+	t.check(absf(GameState.away_t - 600.0) < 2.0 and absf(GameState.away_credits - 3000.0 * share) < 10.0 and absf(GameState.away_scrap - 1200.0 * share) < 10.0,
+			"10 min without a frame (hidden tab): 10 min at the rates of the last minute (%.0f s, %.0f credits, %.0f scrap)" % [GameState.away_t, GameState.away_credits, GameState.away_scrap])
+	GameState._clear_away()
+	t.get_tree().paused = true
+	GameState._frame_at -= 600.0
+	await t.frames(2)
+	t.get_tree().paused = false
+	await t.frames(2)
+	t.check(GameState.away_t == 0.0, "an ad break is not time away")
+	GameState._credits_history.clear()
+	GameState._scrap_history.clear()
+	GameState._scrap_gain_history.clear()
+
+	var menu: UpgradeMenu = t.node("UpgradeMenu")
+	await t.click(t.node("Upgrades"))
+	await t.frames(2)
+	t.check(menu.visible and not card.visible, "no card without time away")
+	GameState.add_away(2700.0, 40.0, 5.0, 8.0)
+	await t.frames(2)
+	await t.wait(0.3)
+	var screen := (t.get_tree().current_scene as Control).get_global_rect()
+	var time: Label = card.find_child("Time", true, false)
+	t.check(card.visible and not menu.visible, "card opens after time away and closes the menu")
+	t.check(not CrazyGames._gameplay, "no gameplay while the card is open")
+	t.check(panel.size.x == 288.0 and screen.encloses(panel.get_global_rect()) and absf(panel.get_global_rect().get_center().y - screen.get_center().y) <= 1.0,
+			"card 288 wide, in the middle of the screen (%s)" % panel.get_global_rect())
+	t.check(time.text == "THE CREWS WORKED 45 MIN", "time away on the card (%s)" % time.text)
+	t.check(card._values[Flyers.Kind.SCRAP].text == "+" + Fmt.num(GameState.away_scrap) and card._values[Flyers.Kind.CREDITS].text == "+" + Fmt.num(GameState.away_credits),
+			"scrap and credits on the card (%s, %s)" % [card._values[Flyers.Kind.SCRAP].text, card._values[Flyers.Kind.CREDITS].text])
+	t.check(ad.is_visible_in_tree() and ad.text == "X%d" % mult and collect.get_global_rect().end.x + 4.0 == ad.get_global_rect().position.x, "video ads on: COLLECT and the video button side by side")
+	await t.shot("away_card_ad")
+	t.check(AwayCard.span(59.0) == "1 MIN" and AwayCard.span(3540.0) == "59 MIN" and AwayCard.span(3600.0) == "1 H" and AwayCard.span(7500.0) == "2 H 5 MIN", "time reads in minutes, then hours")
+
+	var scrap := GameState.scrap
+	var credits := GameState.credits
+	var away_scrap := GameState.away_scrap
+	var away_credits := GameState.away_credits
+	CrazyGames.fake_ads = ["unfilled"]
+	t.tap(ad.get_global_rect().get_center())
+	await t.wait(0.3)
+	t.check(card.visible and GameState.scrap == scrap and GameState.away_scrap == away_scrap and not CrazyGames.ad_open, "no ad to show: nothing paid, the card stays")
+	t.tap(ad.get_global_rect().get_center())
+	await t.frames(3)
+	t.check(t.get_tree().paused and GameState.scrap == scrap, "ad playing: paused, nothing paid yet")
+	await t.wait(0.4)
+	await t.frames(2)
+	t.check(is_equal_approx(GameState.scrap, scrap + away_scrap * mult) and is_equal_approx(GameState.credits, credits + away_credits * mult),
+			"ad finished: scrap and credits X%d (%.0f, %.0f)" % [mult, GameState.scrap - scrap, GameState.credits - credits])
+	t.check(not card.visible and GameState.away_t == 0.0 and (t.node("Flyers") as Flyers).in_flight() > 0, "card closed, discs fly to the HUD")
+	t.check(CrazyGames.calls[-1] == "gameplayStart", "gameplay goes on")
+
+	CrazyGames.video_ads = false
+	GameState.add_away(max_t, 0.0, -5.0, 0.0)
+	await t.frames(2)
+	await t.wait(0.3)
+	t.check(card.visible and not ad.is_visible_in_tree() and collect.size.x == time.size.x, "no video ads (Basic Launch, own site, ad blocker): COLLECT alone, full width (%d)" % collect.size.x)
+	t.check(time.text == "THE CREWS WORKED 1 H (MAX)" and not card._rows[Flyers.Kind.CREDITS].visible and card._rows[Flyers.Kind.SCRAP].visible, "the cap is named, no credits row without credits (%s)" % time.text)
+	t.check(absf(panel.get_global_rect().get_center().y - screen.get_center().y) <= 1.0 and panel.size.y < 150.0, "a shorter card is still centered (%s)" % panel.get_global_rect())
+	await t.shot("away_card")
+	t.get_tree().reload_current_scene()
+	await t.frames(4)
+	card = t.node("Away")
+	t.check(card.visible, "a reload shows the uncollected card again")
+	scrap = GameState.scrap
+	away_scrap = GameState.away_scrap
+	await t.click(card.find_child("Collect", true, false))
+	t.check(is_equal_approx(GameState.scrap, scrap + away_scrap) and not card.visible and GameState.away_t == 0.0, "COLLECT pays once and closes")
+	GameState.add_away(600.0, 10.0, 5.0, 8.0)
+	GameState.new_game()
+	t.check(GameState.away_t == 0.0, "a new war starts without a reward")
+	CrazyGames.use_none()
 
 
 func _reveal_all() -> void:

@@ -77,7 +77,8 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 - **Salvage:** starts at 0% of the mech's scrap cost. Upgrades raise it, hard cap 40%.
 - **Cost curve for credit purchases:** `cost = base * 1.4^level`; lines ×8 per line.
 - **Tier upgrades cost a fixed scrap amount** per tier (rising per tier, not per line). Cheap enough to feel good, expensive enough that pausing a line matters.
-- Run length target: 30–60 min active play. No offline progress.
+- Run length target: 30–60 min active play.
+- **While you were away:** the game stands still while its tab is hidden, the device sleeps or the game is closed. Coming back after a minute or more, a card pays for that time (at most 1 h) a quarter of what the factory made per second before: credits, and scrap after what the lines use. A factory that uses more scrap than it gets still pays a quarter of its scrap income, and never less than a pile tap every 2 s, so there is always scrap to collect. Nothing before the first mech.
 
 ## Upgrade menu (credits)
 
@@ -188,9 +189,9 @@ One word per thing, in every label, row, info text and guide line:
 - **Data:** station types, tiers, upgrades and mech parts as `Resource` files. New station types are data only.
 - **Scene structure:** `Main` (HUD, `ScrollContainer` → `VBox` → `Battlefield` + `AssemblyLine` × N + `Scrapyard`, scroll bar with pins, fixed `UpgradeButton`, `UpgradeMenu` overlay). `AssemblyLine` owns `Segment` nodes, the belt and mechs in transit. `Battlefield` owns active mechs, the enemy wave and its healthbar, and effects. A top-level `Flyers` layer draws income discs.
 - **Simulation:** one tick in a central autoload (`GameState`), separate from visuals. Workers fire on timers, not per frame.
-- **Save:** JSON in `user://` (IndexedDB on web). Save on change and on hide. No offline progress.
+- **Save:** JSON in `user://` (IndexedDB on web). Save on change and on hide, with its time and the output rates for the away card.
 - **CrazyGames:** CrazyGames SDK via `JavaScriptBridge`, in a build of its own. Gameplay start/stop, midgame ad on START AGAIN, save through their data module, their mute setting.
-- **Ads, all optional:** in the UPGRADES menu a rewarded video doubles all scrap for 5 min, or buys the next level of one of the three cheapest upgrades the player can't afford (never the Atomic Missile); one 3 min cooldown for both. A banner only inside the open UPGRADES menu, never over the live game. No ad UI at all where ads aren't available.
+- **Ads, all optional:** in the UPGRADES menu a rewarded video doubles all scrap for 5 min, or buys the next level of one of the three cheapest upgrades the player can't afford (never the Atomic Missile); one 3 min cooldown for both. On the away card a rewarded video doubles the payout. A banner only inside the open UPGRADES menu, never over the live game. No ad UI at all where ads aren't available.
 - **Input:** mouse and touch, one-thumb reachable. Touch targets ≥ 44 px at display scale.
 
 ## Art list (side view)

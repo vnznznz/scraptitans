@@ -120,7 +120,7 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
 
 Not requirements; they decide whether Basic Launch leads to a wider rollout. All deliberate prototype cuts.
 
-- Hidden tab: no frames → the sim stands still (delta clamped to 0.25 s, no offline progress); idle players on desktop tab away
+- Hidden tab: no frames → the sim stands still (delta clamped to 0.25 s); idle players on desktop tab away → since M21 the away card pays a quarter of the factory's output for that time (≤ 1 h; in the repo, not in the live build yet)
 - One 30–60 min run; START AGAIN keeps the wars won (bigger numbers, a bigger pile, M19), but no new content → little to come back for
 - Desktop: a third to under half of the iframe, reads as a phone port
 - Name: an itch.io jam game "Scrap Titans" exists; none found on CrazyGames (web search only)

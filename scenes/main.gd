@@ -26,6 +26,7 @@ const ASSEMBLY_WINDOW := 4.0
 @onready var _layout: Control = $Layout
 @onready var _lines: VBoxContainer = %Lines
 @onready var _settings: SettingsOverlay = %Settings
+@onready var _away: AwayCard = %Away
 @onready var _menu: UpgradeMenu = %UpgradeMenu
 @onready var _upgrades: Button = %Upgrades
 @onready var _battlefield: Battlefield = %Battlefield
@@ -105,7 +106,7 @@ func _ready() -> void:
 	guide.z_index = OVERLAY_Z
 	_flyers.z_index = FLYERS_Z
 	_menu.z_index = TEXT_Z
-	for overlay: Control in [%Debug, %Settings, %Nuke]:
+	for overlay: Control in [%Debug, %Settings, %Away, %Nuke]:
 		overlay.z_index = OVERLAY_Z + 1
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.set_meta(&"silent", true)
@@ -123,7 +124,7 @@ func _process(delta: float) -> void:
 	_reveal(delta)
 	_update_sound()
 	CrazyGames.loading_stop()
-	CrazyGames.gameplay(_tapped and not (_menu.visible or _settings.visible or GameState.run_over or CrazyGames.ad_open))
+	CrazyGames.gameplay(_tapped and not (_menu.visible or _settings.visible or _away.visible or GameState.run_over or CrazyGames.ad_open))
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	var affordable := GameState.affordable_upgrades()
 	_badge.visible = not _menu.visible and affordable > 0
@@ -170,6 +171,8 @@ func set_safe_area(top: float, bottom: float) -> void:
 	_menu.offset_bottom = -bottom - BAR_H
 	_settings.offset_top = top
 	_settings.offset_bottom = -bottom
+	_away.offset_top = top
+	_away.offset_bottom = -bottom
 
 
 func _reveal(delta: float) -> void:

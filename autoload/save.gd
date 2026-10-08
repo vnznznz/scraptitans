@@ -37,6 +37,8 @@ func save_game() -> void:
 	_requested = false
 	var d := GameState.to_dict()
 	d.version = VERSION
+	d.saved_at = Time.get_unix_time_from_system()
+	d.away_rates = GameState.away_rates()
 	var text := JSON.stringify(d, "", false, true)
 	CrazyGames.data_set(KEY, text)
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
@@ -61,6 +63,9 @@ func load_game() -> bool:
 	elif version != VERSION:
 		return false
 	GameState.from_dict(d)
+	var rates: Array = d.get("away_rates", [])
+	if d.has("saved_at") and rates.size() == 3:
+		GameState.add_away(Time.get_unix_time_from_system() - float(d.saved_at), rates[0], rates[1], rates[2])
 	return true
 
 

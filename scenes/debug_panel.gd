@@ -55,6 +55,10 @@ func _ready() -> void:
 	box.add_child(wars)
 	_button(wars, "+1 WAR WON", Save.start_again)
 	_button(wars, "0 WARS WON", Save.reset_save)
+	var away := HBoxContainer.new()
+	box.add_child(away)
+	_button(away, "10 MIN AWAY", GameState.away.bind(600.0))
+	_button(away, "2 H AWAY", GameState.away.bind(7200.0))
 
 
 func _process(_delta: float) -> void:

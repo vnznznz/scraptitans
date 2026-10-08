@@ -467,6 +467,26 @@ Test (browser):
 - Progress Save: play, reload → run is back; signed in on a second device → same run; RESET SAVE → gone on both
 - Own site build: no SDK request in the network tab, no ad UI, credits with `DISTCO.DE`
 
+## M21 · While you were away
+
+Build: coming back to the game pays for the time away, so tabbing away or closing it isn't lost time ([crazygames.md](../release/crazygames.md), engagement risks).
+
+- [x] Time away: real time without a frame (hidden tab, sleeping device) or between the last save and the next load; from 1 min, capped at 1 h; an ad break doesn't count
+- [x] Payout: 25 % of the factory's credits and net scrap per second (average of the last minute) for that time; net scrap ≤ 0 → a quarter of the gross scrap income, at least a pile tap every 2 s; nothing before the first mech or after the nuke; the sim itself stands still as before
+- [x] Card `WHILE YOU WERE AWAY`: time, scrap, credits, COLLECT with a disc burst to the HUD; uncollected payouts are saved and add up to the cap
+- [x] Ad: video button `X2` beside COLLECT, only in builds with video ads (`ads` tag, no ad blocker); doubles only after a finished ad
+- [x] DBG: 10 MIN AWAY / 2 H AWAY
+- [x] `--scenario away`; build `0.2.0-m21`; docs: pitch, `tech.md`
+
+Test (browser):
+- Play past the first mech, switch to another tab for 2 min, come back: the card shows about 2 min with scrap and credits; COLLECT sends discs to the top bar and both counters jump by the amounts
+- Under a minute away: no card
+- Close the tab, open the game 5 min later: the card is there; reload without collecting: still there
+- All lines running with the scrap rate red or negative, then away: the card still pays scrap
+- DBG → 2 H AWAY: `1 H (MAX)`
+- `build/crazygames_ads`: `X2` beside COLLECT; after the demo ad both amounts arrive doubled; a failed ad leaves the card as it was; the ad itself never produces a second card
+- `build/crazygames` and `build/web`: COLLECT alone
+
 ## Not in the prototype
 
-A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), more lines or tiers for later wars, offline progress, desktop layout.
+A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), more lines or tiers for later wars, a sim that runs on while away (the away card pays a share instead), desktop layout.
