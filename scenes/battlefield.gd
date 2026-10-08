@@ -449,11 +449,12 @@ func _on_tap(at: Vector2) -> void:
 			target = e
 	if target:
 		var spot := _enemy_center(target) + Vector2(randf_range(-4, 4), randf_range(-4, 4))
-		_cannon.fire(spot, _on_cannon_hit.bind(target, spot))
+		_cannon.fire(spot, _on_cannon_hit.bind(target.get_instance_id(), spot))
 
 
-func _on_cannon_hit(look: int, target: Sprite2D, spot: Vector2) -> void:
-	if is_instance_valid(target) and target.visible:
+func _on_cannon_hit(look: int, target_id: int, spot: Vector2) -> void:
+	var target := instance_from_id(target_id) as Sprite2D
+	if target and target.visible:
 		target.modulate = Color(3, 3, 3)
 		target.create_tween().tween_property(target, "modulate", Color.WHITE, 0.12)
 	Fx.hit(_mechs, spot)
