@@ -2651,6 +2651,14 @@ func intro() -> void:
 	GameState.field.clear()
 	await t.frames(1)
 	t.check(not guide.visible, "no field hint while the field is empty")
+	GameState.prestige = IntroGuide.VETERAN_WARS - 1
+	GameState.new_game()
+	await t.frames(1)
+	t.check(guide.text() == "TAP THE SCRAP PILE", "%d war won: the guide is still there" % (IntroGuide.VETERAN_WARS - 1))
+	GameState.prestige = IntroGuide.VETERAN_WARS
+	await t.frames(1)
+	t.check(not guide.visible, "%d wars won: no guide" % IntroGuide.VETERAN_WARS)
+	GameState.prestige = 0
 
 
 func audio() -> void:

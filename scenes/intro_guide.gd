@@ -9,6 +9,7 @@ const ARROW := Vector2(8, 10)
 const MARGIN := 6.0
 const PLATE_PAD := 4
 const FIELD_TAPS := 3
+const VETERAN_WARS := 2
 const AREA_DIP := 20.0
 const BUTTON_DIP := 2.0
 const THUMB_HALF := 44.0
@@ -145,7 +146,7 @@ func _draw() -> void:
 
 
 func _step() -> Array:
-	if GameState.run_over or pile == null or line == null:
+	if GameState.run_over or GameState.prestige >= VETERAN_WARS or pile == null or line == null:
 		return []
 	if GameState.revealed():
 		return _hint()
