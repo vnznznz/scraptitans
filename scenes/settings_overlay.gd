@@ -94,7 +94,7 @@ func _ready() -> void:
 	box.add_child(_title)
 
 	var version := Label.new()
-	version.text = "BUILD " + str(ProjectSettings.get_setting("application/config/version"))
+	version.text = build_version()
 	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	version.modulate = Color(1, 1, 1, 0.5)
 	box.add_child(version)
@@ -404,3 +404,10 @@ func _button(box: Control, node_name: String, label: String, action: Callable) -
 	b.pressed.connect(action)
 	box.add_child(b)
 	return b
+
+
+static func build_version() -> String:
+	var text := str(ProjectSettings.get_setting("application/config/version"))
+	if FileAccess.file_exists("res://build.txt"):
+		text += "+" + FileAccess.get_file_as_string("res://build.txt").strip_edges()
+	return text
