@@ -69,6 +69,7 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 - No floating numbers. Every gain launches small **discs**: gold for credits, grey for scrap. Three color tiers per resource mark bigger payouts.
 - A disc bursts up from its source (mech, pile, wave), then flies into the matching HUD counter, which pulses on arrival. Bursting up first keeps it clear of the thumb on the pile.
 - Counts: pile tap 1 scrap; mech deployed 3 credits; each second alive 1 credit; salvage 2 scrap; wave bounty a big burst.
+- **Pile taps throw scrap bits** from the tapped spot: a few small ones at the start of a war, more, bigger and faster as a tap gives more scrap, with sparks near the end. Every war runs through the whole range again.
 - Cap on discs in flight. Big numbers in the HUD use short suffixes (1.2K, 3.4M).
 
 ## Economy defaults (tune later)

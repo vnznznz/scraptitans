@@ -241,6 +241,10 @@ func _on_tap(at: Vector2) -> void:
 	Sound.play(&"pile_tap")
 	Flyers.spawn(Flyers.Kind.SCRAP, _tap.global_position + at + Vector2(0, -28), amount, 1, true)
 	_squash(0.92, 2.0, 0.06)
+	var power := GameState.tap_power()
+	Fx.scrap_bits(_yard, _tap.position + at, power)
+	if power >= Fx.BITS_SPARKS:
+		Fx.sparks(_yard, _tap.position + at, 12)
 	if _magnet.visible:
 		if _magnet.has_meta("tween"):
 			(_magnet.get_meta("tween") as Tween).kill()

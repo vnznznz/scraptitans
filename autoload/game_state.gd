@@ -236,6 +236,18 @@ func tap_scrap() -> float:
 	return stat("scrap_per_tap") * pile_scale() + stat("tap_yard_share") * yard_rate()
 
 
+func max_stat(key: String) -> float:
+	var v := Data.base_stat(key)
+	for row: Dictionary in Data.rows_for_stat(key):
+		v += float(row.delta) * int(row.max_level)
+	return v
+
+
+func tap_power() -> float:
+	var top := max_stat("scrap_per_tap") + max_stat("tap_yard_share") * max_stat("yard_slots") * max_stat("yard_chunk") * max_stat("worker_chunk") / max_stat("worker_interval")
+	return clampf(log(tap_scrap() / pile_scale()) / log(top), 0.0, 1.0)
+
+
 func tap_pile() -> void:
 	_gain_scrap(tap_scrap())
 

@@ -3,6 +3,9 @@ class_name Fx
 const EXPLOSION := preload("res://art/fx/explosion.png")
 const EXPLOSION_BIG := preload("res://art/fx/explosion_big.png")
 const EXPLOSION_FRAMES := 6
+const BITS := Vector2(2, 12)
+const BITS_BIG := 0.6
+const BITS_SPARKS := 0.85
 
 
 static func explosion(parent: Node, pos: Vector2, big := false, time := 0.45) -> Sprite2D:
@@ -85,6 +88,16 @@ static func debris(parent: Node, pos: Vector2, amount: int, big := false) -> CPU
 	p.emitting = true
 	parent.add_child(p)
 	p.finished.connect(p.queue_free)
+	return p
+
+
+static func scrap_bits(parent: Node, pos: Vector2, power: float) -> CPUParticles2D:
+	var p := debris(parent, pos, roundi(lerpf(BITS.x, BITS.y, power)), power >= BITS_BIG)
+	p.name = "ScrapBits"
+	p.lifetime = lerpf(0.45, 0.8, power)
+	p.spread = lerpf(35.0, 70.0, power)
+	p.initial_velocity_min = lerpf(40.0, 90.0, power)
+	p.initial_velocity_max = lerpf(70.0, 170.0, power)
 	return p
 
 

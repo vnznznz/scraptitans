@@ -2063,6 +2063,37 @@ func stations() -> void:
 	await t.wait(0.3)
 	await t.shot("pile_upgrades_high")
 
+	var bits := func() -> CPUParticles2D:
+		await t.click(t.node("Scrapyard").pile())
+		var all: Array = t.node("Scrapyard").get_node("Yard").find_children("ScrapBits*", "CPUParticles2D", false, false)
+		return all.back()
+	var mid: CPUParticles2D = await bits.call()
+	var mid_power := GameState.tap_power()
+	t.check(mid_power > 0.3 and mid_power < 1.0 and mid.amount > int(Fx.BITS.x) and mid.amount < int(Fx.BITS.y), "pile tap mid-war: %d scrap bits (power %.2f)" % [mid.amount, mid_power])
+	await t.shot("pile_bits_mid")
+	for row: Dictionary in Data.upgrade_list:
+		if row.get("stat", "") in ["tap_yard_share", "yard_slots", "yard_chunk", "worker_interval"]:
+			GameState.levels[row.id] = int(row.max_level)
+	GameState._stats = {}
+	GameState.yard_workers = GameState.yard_slots()
+	var top: CPUParticles2D = await bits.call()
+	t.check(is_equal_approx(GameState.tap_power(), 1.0) and top.amount == int(Fx.BITS.y) and top.initial_velocity_max > mid.initial_velocity_max
+			and t.node("Scrapyard").get_node("Yard").find_children("*", "CPUParticles2D", false, false).size() > 2,
+			"everything on the pile maxed: full power, %d big bits, faster, with sparks" % top.amount)
+	await t.shot("pile_bits_top")
+	Effects.level = Effects.LOW
+	var low: CPUParticles2D = await bits.call()
+	t.check(low.amount == int(Fx.BITS.y) / 2, "VISUAL EFFECTS LOW: half the bits (%d)" % low.amount)
+	Effects.level = Effects.HIGH
+	GameState.prestige = 5
+	GameState.new_game()
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
+	var first: CPUParticles2D = await bits.call()
+	t.check(GameState.tap_scrap() > 50.0 and GameState.tap_power() == 0.0 and first.amount == int(Fx.BITS.x), "5 wars won, first tap: %s scrap but the smallest burst (%d bits)" % [Fmt.num(GameState.tap_scrap()), first.amount])
+	GameState.prestige = 0
+	GameState.new_game()
+
 
 func prestige() -> void:
 	await _fresh()
