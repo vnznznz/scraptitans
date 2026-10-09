@@ -99,7 +99,11 @@ func _show() -> void:
 	var secs := int(GameState.run_time)
 	_values[0].text = "%d:%02d" % [floori(secs / 60.0), secs % 60]
 	_values[1].text = Fmt.num(GameState.mechs_built)
-	_next.text = "THIS WAR STARTS OVER" if GameState.prestige == 0 else "THIS WAR STARTS OVER\nYOUR %d WARS WON STAY" % GameState.prestige
+	_next.text = "THIS WAR STARTS OVER"
+	if GameState.prestige == 1:
+		_next.text += "\nYOUR 1 WAR WON STAYS"
+	elif GameState.prestige > 1:
+		_next.text += "\nYOUR %d WARS WON STAY" % GameState.prestige
 	_card.visible = true
 	_card.pivot_offset = _card.size / 2.0
 	_card.scale = Vector2(0.6, 0.6)

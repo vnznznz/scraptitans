@@ -9,6 +9,7 @@ const ARROW := Vector2(8, 10)
 const MARGIN := 6.0
 const PLATE_PAD := 4
 const FIELD_TAPS := 3
+const FIELD_WAVES := 4
 const VETERAN_WARS := 2
 const AREA_DIP := 20.0
 const BUTTON_DIP := 2.0
@@ -217,6 +218,6 @@ func _hint() -> Array:
 			return ["BUY IT", buy, Place.BESIDE]
 	if GameState.gate_attacked() and not (menu and menu.visible):
 		return [DEFEND, line.segment_view(0), Place.ABOVE]
-	if GameState.field_taps < FIELD_TAPS and not GameState.field.is_empty() and battlefield and battlefield.size.y >= Battlefield.HEIGHT and not (menu and menu.visible):
+	if GameState.field_taps < FIELD_TAPS and GameState.wave < FIELD_WAVES and GameState.gate_damage <= 0.0 and not GameState.field.is_empty() and battlefield and battlefield.size.y >= Battlefield.HEIGHT and not (menu and menu.visible):
 		return ["TAP THE FIELD TO HIT THE WAVE", battlefield.hint_anchor(), Place.ABOVE]
 	return []

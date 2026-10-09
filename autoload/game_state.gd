@@ -79,7 +79,7 @@ func _process(delta: float) -> void:
 		return
 	_update_seen()
 	_acc += minf(delta, MAX_FRAME_DELTA) * time_scale
-	while _acc >= TICK:
+	while _acc >= TICK and not run_over:
 		_acc -= TICK
 		_step(TICK)
 

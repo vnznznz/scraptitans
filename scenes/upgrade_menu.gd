@@ -415,8 +415,10 @@ func _describe(r: Dictionary, title: Label, effect: Label, pips: Pips) -> void:
 
 func _maxed_name(r: Dictionary) -> String:
 	match r.get("kind", ""):
-		"tier", "final":
-			return str(Data.segment_type(r.type).tiers[GameState.unlocked_tier(r.type)].part).to_upper()
+		"tier":
+			return str(Data.tier(r.type, GameState.top_tier(r.type)).part).to_upper()
+		"final":
+			return str(Data.segment_type(r.type).tiers[-1].part).to_upper()
 	return str(r.name).to_upper()
 
 

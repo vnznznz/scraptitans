@@ -1142,6 +1142,12 @@ func m9() -> void:
 	await t.frames(30)
 	await t.shot("m9_two_lines")
 	await _sizes("m9_two_lines")
+	GameState.levels["tier_arms"] = int(Data.upgrade_row("tier_arms").max_level)
+	GameState.levels["final_arms"] = 1
+	await t.click(main.get_node("%Upgrades"))
+	await t.frames(2)
+	var footer: Label = main.get_node("%UpgradeMenu").find_child("Maxed", true, false).find_child("List", true, false)
+	t.check(footer.text.count("ATOMIC MISSILE") == 1 and footer.text.contains("RAILGUN"), "missile bought: MAXED lists the Railgun and the missile once (%s)" % footer.text)
 
 
 func _sizes(shot_name: String) -> void:
@@ -2786,6 +2792,15 @@ func intro() -> void:
 	var rail_x: float = (t.node("Rail") as Control).get_global_rect().position.x
 	t.check(label.get_global_rect().end.x <= rail_x - IntroGuide.MARGIN, "field hint stays off the scroll rail (%d of %d)" % [label.get_global_rect().end.x, rail_x])
 	await t.shot("intro_field")
+	GameState.gate_damage = 5.0
+	await t.frames(1)
+	t.check(guide.text() != "TAP THE FIELD TO HIT THE WAVE" or not guide.visible, "no field hint over the gate's bar while the gate is damaged")
+	GameState.gate_damage = 0.0
+	GameState.wave = IntroGuide.FIELD_WAVES
+	await t.frames(1)
+	t.check(not guide.visible, "no field hint from wave %d on" % (IntroGuide.FIELD_WAVES + 1))
+	GameState.wave = 0
+	await t.frames(1)
 	var field_tap: Control = field.find_child("FieldTap", true, false)
 	for i in IntroGuide.FIELD_TAPS:
 		await t.click(field_tap)
@@ -3729,6 +3744,23 @@ func gate() -> void:
 
 	GameState.away(600.0)
 	t.check(GameState.gate_damage == 0.0 and GameState.siege == 0.0, "time away does no damage")
+
+	GameState.prestige = 1
+	GameState.new_game()
+	GameState.siege = 1.0
+	GameState.gate_damage = time - 0.05
+	var falls := [0]
+	var on_fall := func() -> void: falls[0] += 1
+	GameState.gate_fell.connect(on_fall)
+	var scale := GameState.time_scale
+	GameState.time_scale = 1.0
+	GameState._process(0.25)
+	GameState.time_scale = scale
+	GameState.gate_fell.disconnect(on_fall)
+	t.check(GameState.lost and falls[0] == 1, "a long frame at the end: the gate still falls once (%d)" % falls[0])
+	await t.wait(GateLost.SHOW_DELAY + 0.6)
+	var kept: Label = t.get_tree().current_scene.get_node("GateLost").find_child("Next", true, false)
+	t.check(kept.text.ends_with("YOUR 1 WAR WON STAYS"), "one war won: singular on the card (%s)" % kept.text.replace("\n", " / "))
 	GameState.prestige = 0
 	GameState.new_game()
 
