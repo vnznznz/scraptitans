@@ -16,8 +16,14 @@ const THUMB_HALF := 44.0
 const THUMB_ABOVE := 12.0
 const LIT := Color(1.5, 1.5, 1.2)
 const FRAME_GROW := 2.0
-const MISSION := "DRONES MARCH ON THE GATE,\nBUILD A MECH ARMY TO DEFEND\nYOURSELF: TAP THE SCRAP PILE"
-const STATIONS := "TAP STATIONS TO BUILD A MECH\nIT WILL PUSH THE DRONES BACK"
+const STORY_COLOR := Pal.CREAM
+const STORY_EDGE := Pal.SLATE
+const STORY_GAP := 4.0
+const PILE := "TAP THE SCRAP PILE"
+const STATIONS := "TAP STATIONS TO BUILD A MECH"
+const DEFEND := "BUILD MECHS TO DEFEND IT"
+const MISSION := "DRONES MARCH ON THE GATE\nBUILD A MECH ARMY\nTO DEFEND YOURSELF"
+const STORIES := {STATIONS: "MECHS PUSH THE DRONES BACK", DEFEND: "THE GATE IS UNDER ATTACK"}
 
 var pile: Control
 var line: LineView
@@ -27,6 +33,7 @@ var menu: UpgradeMenu
 var rail: ScrollRail
 
 var _label: Label
+var _story: Label
 var _tip := Vector2.ZERO
 var _down := false
 var _arrow := false
@@ -42,7 +49,6 @@ func _ready() -> void:
 	_label = Label.new()
 	_label.name = "Text"
 	_label.add_theme_color_override("font_color", COLOR)
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var plate := StyleBoxFlat.new()
 	plate.bg_color = OUTLINE
 	plate.border_color = COLOR
@@ -53,10 +59,28 @@ func _ready() -> void:
 	plate.content_margin_bottom = 0
 	_label.add_theme_stylebox_override("normal", plate)
 	add_child(_label)
+	_story = Label.new()
+	_story.name = "Story"
+	_story.add_theme_color_override("font_color", STORY_COLOR)
+	_story.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var story_plate: StyleBoxFlat = plate.duplicate()
+	story_plate.border_color = STORY_EDGE
+	_story.add_theme_stylebox_override("normal", story_plate)
+	add_child(_story)
 
 
 func text() -> String:
 	return _label.text if visible else ""
+
+
+func story() -> String:
+	return _story.text if visible and _story.visible else ""
+
+
+func _story_for(action: String) -> String:
+	if action == PILE and not GameState.lines[0].segments[0].built:
+		return MISSION
+	return STORIES.get(action, "")
 
 
 func _input(event: InputEvent) -> void:
@@ -132,6 +156,13 @@ func _process(delta: float) -> void:
 		if clear >= MARGIN and clear <= right - MARGIN - _label.size.x:
 			x = clear
 	_label.position = Vector2(x, at.y).round()
+	_story.text = _story_for(step[0])
+	_story.visible = not _story.text.is_empty()
+	if _story.visible:
+		_story.reset_size()
+		var story_x := clampf(_label.position.x + (_label.size.x - _story.size.x) / 2.0, MARGIN, right - MARGIN - _story.size.x)
+		var story_y := _label.position.y + _label.size.y + STORY_GAP if place == Place.BELOW else _label.position.y - STORY_GAP - _story.size.y
+		_story.position = Vector2(story_x, story_y).round()
 	queue_redraw()
 
 
@@ -158,7 +189,7 @@ func _step() -> Array:
 		if segs[i].built:
 			continue
 		if GameState.scrap < GameState.build_cost(0, i):
-			return [MISSION if i == 0 else "TAP THE SCRAP PILE", pile, Place.ABOVE]
+			return [PILE, pile, Place.ABOVE]
 		return ["BUILD THE %s STATION" % str(Data.segment_type(segs[i].type_id).name).to_upper(), line.segment_view(i), Place.ABOVE, line.segment_view(i).get_node("Build")]
 	for i in segs.size():
 		if segs[i].stall == SegmentState.Stall.NO_SCRAP:
@@ -182,7 +213,7 @@ func _hint() -> Array:
 		if buy:
 			return ["BUY IT", buy, Place.BESIDE]
 	if GameState.gate_attacked() and not (menu and menu.visible):
-		return ["THE GATE IS UNDER ATTACK\nBUILD MECHS TO DEFEND IT", line.segment_view(0), Place.ABOVE]
+		return [DEFEND, line.segment_view(0), Place.ABOVE]
 	if GameState.field_taps < FIELD_TAPS and not GameState.field.is_empty() and battlefield and battlefield.size.y >= Battlefield.HEIGHT and not (menu and menu.visible):
 		return ["TAP THE FIELD TO HIT THE WAVE", battlefield.hint_anchor(), Place.ABOVE]
 	return []
