@@ -29,10 +29,10 @@ TALL = "scale=1080:1620:flags=neighbor,setsar=1"
 PORTRAIT = [("pile", 12, 2.3), ("build", 4, 5.4), ("mid", 24, 3.2), ("late", 10, 2.2), ("nuke", 0, 4.8)]
 # (stage, first frame, seconds, top of the 360×203 band shown)
 LANDSCAPE = [
-    ("pile", 12, 1.7, 140),
+    ("mid", 24, 3.2, 0),
+    ("pile", 12, 1.7, 337),
     ("build", 4, 4.8, 328),
     ("build", 292, 1.2, 0),
-    ("mid", 24, 3.2, 0),
     ("late", 10, 2.2, 234),
     ("nuke", 0, 4.1, 0),
 ]
