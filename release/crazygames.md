@@ -140,7 +140,7 @@ Not requirements; they decide whether Basic Launch leads to a wider rollout. All
 
 - Hidden tab: no frames → the sim stands still (delta clamped to 0.25 s); idle players on desktop tab away → since M21 the away card pays a quarter of the factory's output for that time (≤ 1 h; first live with the m22 upload)
 - First minute (their conversion: playing for at least a minute; 42 % on day one): M22: first mech after 17 s of steady taps instead of 28 s, the battlefield and an advancing wave on screen from the first frame, pile taps throw scrap bits
-- Losing: since M22 the gate falls after 5 min of attack with no mech on the field → the war starts over; a player who leaves the game open and untouched before the first crews loses the run (time away with the tab hidden does no damage)
+- Losing: since M22 the gate falls after 2.5 min of attack with no mech on the field → the war starts over; a player who leaves the game open and untouched before the first crews loses the run (time away with the tab hidden does no damage)
 - Phone screen: since M22 a wake lock keeps it on while the game is in front, if their frame allows it (unknown until the upload)
 - One 30–60 min run; START AGAIN keeps the wars won (bigger numbers, a bigger pile, M19), but no new content → little to come back for
 - Desktop: a third to under half of the iframe, reads as a phone port

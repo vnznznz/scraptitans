@@ -50,7 +50,7 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 - No combat sim beyond the wave: lifetime, payout and damage come from the stats; visuals play along.
 - **Tapping the battlefield** (anywhere) hits the wave: a small share of its HP and the same share of its bounty as credits. The nearest enemy flashes. A cannon on top of the gate fires a shell at it for every tap; the cannon and its shells get bigger with the Harder hits upgrade.
 - Later waves hit harder: mechs age faster the higher the wave, so they die sooner.
-- **The gate can fall.** Whenever no mech is on the field, the wave walks toward the gate (about 40 s) and attacks it. The gate has a health bar and stands 5 minutes of attack in total. Mechs walking out push the wave back, and the gate repairs slowly while they hold the field. Time away does no damage.
+- **The gate can fall.** Whenever no mech is on the field, the wave walks toward the gate (about 20 s) and attacks it. The gate has a health bar and stands 2.5 minutes of attack in total. Mechs walking out push the wave back, and the gate repairs slowly while they hold the field. Time away does no damage.
 - **Game over:** the gate falls → card `THE GATE HAS FALLEN`, TRY AGAIN starts this war over from the pile. Wars won stay.
 
 ## Enemy waves
