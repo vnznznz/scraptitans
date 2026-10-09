@@ -8,8 +8,10 @@ in art/ (run gen_art.py first).
 
 Usage:
     uv run tools/gen_covers.py
+    uv run tools/gen_covers.py --variants    landscape candidates + a sheet at thumbnail size in build/covers/
 """
 
+import argparse
 import os
 
 from PIL import Image
@@ -19,6 +21,8 @@ from gen_art import CELL, NUKE_CELL, PARALLAX, mech_cell, title, upscale
 ART = "art"
 OUT = "release/marketing"
 SCALE = 8
+VARIANTS = "build/covers"
+THUMB = (200, 113)
 FRONT = 330
 FIELD_H = 160
 GROUND_TOP = 106
@@ -46,10 +50,10 @@ def stand(img, s, x, feet):
     img.alpha_composite(s, (x, feet - s.height))
 
 
-def save(img, name):
-    path = os.path.join(OUT, name + ".png")
+def save(img, name, scale=SCALE, out=OUT):
+    path = os.path.join(out, name + ".png")
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    upscale(img, SCALE).save(path)
+    upscale(img, scale).save(path)
 
 
 def landscape():
@@ -63,6 +67,57 @@ def landscape():
     img.alpha_composite(sprite("fx/explosion_big.png", (40, 40), 2), (176, feet - 62))
     img.alpha_composite(upscale(title(), 2), (8, 30))
     save(img, "covers/landscape")
+
+
+def clash():
+    """Nuclear mech and boss face to face at ×10, filling the height; the title between their legs."""
+    w, h = 192, 108
+    feet = h - (FIELD_H - FEET)
+    img = field(w, h)
+    stand(img, mech_cell(5), -12, feet + 2)
+    stand(img, sprite("battlefield/enemy_brute_1.png"), 164, feet + 2)
+    stand(img, sprite("mech/nuclear.png", NUKE_CELL), 8, feet)
+    stand(img, sprite("battlefield/enemy_boss_1.png"), 112, feet)
+    for x, y in ((150, 30), (176, 12), (132, 8)):
+        img.alpha_composite(sprite("battlefield/enemy_drone_1.png"), (x, y))
+    img.alpha_composite(sprite("fx/explosion_big.png", (40, 40), 2), (84, feet - 70))
+    img.alpha_composite(sprite("fx/explosion_big.png", (40, 40), 3), (128, feet - 48))
+    img.alpha_composite(sprite("fx/explosion.png", (24, 24), 2), (104, feet - 34))
+    img.alpha_composite(upscale(title(), 2), (56, 58))
+    return img
+
+
+def army():
+    """A line of mechs of every tier against the whole wave at ×8."""
+    w, h = 240, 135
+    feet = h - (FIELD_H - FEET)
+    img = field(w, h)
+    for x, y in ((148, 22), (172, 34), (196, 16), (218, 30), (160, 48), (206, 50)):
+        img.alpha_composite(sprite("battlefield/enemy_drone_1.png"), (x, y))
+    stand(img, sprite("battlefield/enemy_boss_1.png"), 172, feet)
+    stand(img, sprite("battlefield/enemy_brute_1.png"), 140, feet + 4)
+    stand(img, sprite("battlefield/enemy_crawler_1.png"), 126, feet + 8)
+    for t, x, dy in ((2, -6, -2), (4, 18, -2), (6, 44, -2), (1, 6, 6), (3, 32, 6), (5, 58, 6)):
+        stand(img, mech_cell(t), x, feet + dy)
+    stand(img, sprite("mech/nuclear.png", NUKE_CELL), 70, feet + 2)
+    img.alpha_composite(sprite("fx/explosion_big.png", (40, 40), 2), (150, feet - 66))
+    img.alpha_composite(sprite("fx/explosion_big.png", (40, 40), 3), (188, feet - 44))
+    img.alpha_composite(sprite("fx/explosion.png", (24, 24), 2), (134, feet - 30))
+    img.alpha_composite(upscale(title(), 2), (110, 3))
+    return img
+
+
+def variants():
+    made = {"a_army": (army(), 8), "b_clash": (clash(), 10)}
+    now = Image.open(os.path.join(OUT, "covers/landscape.png")).convert("RGBA")
+    thumbs = [now.resize(THUMB, Image.LANCZOS)]
+    for name, (img, scale) in made.items():
+        save(img, "landscape_" + name, scale, VARIANTS)
+        thumbs.append(upscale(img, scale).resize(THUMB, Image.LANCZOS))
+    sheet = Image.new("RGBA", (THUMB[0] * 2 + 12, THUMB[1] * 2 + 12), (16, 16, 24, 255))
+    for i, thumb in enumerate(thumbs):
+        sheet.alpha_composite(thumb, (4 + (i % 2) * (THUMB[0] + 4), 4 + (i // 2) * (THUMB[1] + 4)))
+    sheet.save(os.path.join(VARIANTS, "sheet.png"))
 
 
 def portrait():
@@ -94,7 +149,12 @@ def layers():
 
 
 if __name__ == "__main__":
-    landscape()
-    portrait()
-    square()
-    layers()
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--variants", action="store_true", help="write landscape candidates to build/covers/ instead")
+    if parser.parse_args().variants:
+        variants()
+    else:
+        landscape()
+        portrait()
+        square()
+        layers()
