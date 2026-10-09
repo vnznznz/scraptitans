@@ -33,7 +33,7 @@
 	"worker_interval": 2.0,
 	"yard_chunk": 6,
 	"yard_slots": 2,
-	"yard_worker_base": 40,
+	"yard_worker_base": 25,
 	"yard_worker_growth": 1.35,
 	"lines": 1,
 	"prestige_scale": 2.0,

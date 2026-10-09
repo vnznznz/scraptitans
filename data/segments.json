@@ -4,7 +4,7 @@
 		"frame": {
 			"name": "Frame",
 			"desc": "Legs and body: sets how long a mech lives.",
-			"build_cost": 10,
+			"build_cost": 3,
 			"layer": 0,
 			"tiers": [
 				{"part": "Scrap Frame", "scrap_per_mech": 4, "lifetime": 20, "unlock_cost": 0, "apply_cost": 0, "bar_size": 6},
@@ -18,7 +18,7 @@
 		"core": {
 			"name": "Core",
 			"desc": "The brain: smarter mechs earn more credits per second and a bigger fee.",
-			"build_cost": 15,
+			"build_cost": 5,
 			"layer": 2,
 			"tiers": [
 				{"part": "Junk Brain", "scrap_per_mech": 3, "credits_per_sec": 1, "deploy_fee": 5, "unlock_cost": 0, "apply_cost": 0, "bar_size": 5},
@@ -32,7 +32,7 @@
 		"arms": {
 			"name": "Arms",
 			"desc": "The gun: sets the mech's damage to the wave.",
-			"build_cost": 20,
+			"build_cost": 7,
 			"layer": 3,
 			"tiers": [
 				{"part": "Pipe Gun", "scrap_per_mech": 3, "dps": 1, "unlock_cost": 0, "apply_cost": 0, "bar_size": 5},

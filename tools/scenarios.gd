@@ -65,11 +65,11 @@ func m1() -> void:
 	t.check(segs.size() == 3 and not segs.any(func(s: SegmentState) -> bool: return s.built), "line 1 has 3 empty pads")
 	t.check(not GameState.build_segment(0, 0) and not segs[0].built, "can't build without scrap")
 
-	for i in 45:
+	for i in 15:
 		await t.click(pile)
 	for i in 3:
 		await t.click(_build_button(line, i))
-	t.check(GameState.lines[0].is_complete() and is_zero_approx(GameState.scrap), "Frame, Core, Arms built for 45 scrap")
+	t.check(GameState.lines[0].is_complete() and is_zero_approx(GameState.scrap), "Frame, Core, Arms built for 15 scrap")
 
 	for i in 10:
 		await t.click(pile)
@@ -946,8 +946,8 @@ func m8() -> void:
 	flyers = main.get_node("%Flyers")
 	GameState.scrap = 100.0
 	await t.click(_build_button(line, 0))
-	t.check(flyers.get_child_count() == 2 and flyers.get_children().all(func(d: TextureRect) -> bool: return d.texture == Flyers.TEXTURES[1][2]),
-			"building for 10 scrap sends 2 scrap discs (no scrap income yet: top tier)")
+	t.check(flyers.get_child_count() == 1 and flyers.get_children().all(func(d: TextureRect) -> bool: return d.texture == Flyers.TEXTURES[1][1]),
+			"building for 3 scrap sends 1 scrap disc (no scrap income yet: 3 pile taps, middle tier)")
 	for i in 2:
 		await t.click(_build_button(line, i + 1))
 	await t.wait(0.8)
@@ -989,6 +989,7 @@ const TAPS_PER_S := 3.0
 const STEP := 0.25
 const PHASE_GAP := 30.0
 const SAVE_WINDOW := 30.0
+const START_WINDOW := 300.0
 
 
 func m9() -> void:
@@ -1170,6 +1171,10 @@ func tune() -> void:
 		print("  %-9s %5.1f   %4.0f%%    %4.1f%%  %3d  %4.0f  %4.0f  %5.0f  %5.1f  %4.0f%%  %3.0f%%  %5d  %5s  %4d" % [
 			key, r.time / 60.0, r.bounty * 100.0, r.starved * 100.0, r.phases, r.gap, r.first_fit, r.final_wait,
 			r.first_maxed / 60.0, r.tap_scrap * 100.0, r.tap_work * 100.0, r.lines, Fmt.num(r.peak_dps), r.wave])
+	print("  start      station  mech  wave   buy  quiet (s; quiet = longest stretch of the first 5 min with nothing new)")
+	for key: String in runs:
+		var r: Dictionary = runs[key]
+		print("  %-9s  %6.1f %5.1f %5.1f %5.1f  %5.1f" % [key, r.first_build, r.first_mech, r.first_wave, r.first_buy, r.quiet])
 	for key: String in runs:
 		var r: Dictionary = runs[key]
 		var shortest := 1500.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1800.0
@@ -1189,6 +1194,8 @@ func tune() -> void:
 	if runs.size() < PROFILES.size():
 		GameState.new_game()
 		return
+	t.check(base.first_mech <= 20.0 and runs.casual.first_mech <= 35.0, "first mech at %.0f s (slow tapper %.0f s)" % [base.first_mech, runs.casual.first_mech])
+	t.check(base.first_buy <= 45.0 and runs.casual.first_buy <= 60.0, "first buy at %.0f s (slow tapper %.0f s)" % [base.first_buy, runs.casual.first_buy])
 	t.check(absf(runs.field.time / base.time - 1.0) <= 0.2, "all-battlefield taps within 20%% of baseline (%.2f×)" % (runs.field.time / base.time))
 	t.check(runs.quit10.time >= base.time * 1.1, "stopping taps at 10 min costs %.0f%% more time" % ((runs.quit10.time / base.time - 1.0) * 100.0))
 	t.check(runs.no_arms.time > base.time, "fitting Arms beats not fitting them (%.1f vs %.1f min)" % [base.time / 60.0, runs.no_arms.time / 60.0])
@@ -1223,10 +1230,16 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"buys": [],
 		"events": [],
 		"maxed": {},
+		"mechs": [],
+		"waves": [],
 	}
-	var on_deploy := func(m: MechState) -> void: r.credits.fee += m.deploy_fee
+	var on_deploy := func(m: MechState) -> void:
+		r.credits.fee += m.deploy_fee
+		r.mechs.append(GameState.run_time)
 	var on_income := func(_m: MechState, c: float) -> void: r.credits.payout += c
-	var on_bounty := func(b: float) -> void: r.credits.bounty += b
+	var on_bounty := func(b: float) -> void:
+		r.credits.bounty += b
+		r.waves.append(GameState.run_time)
 	var on_died := func(_m: MechState, s: float) -> void: r.scrap.salvage += s
 	var on_kill := func(_i: int, s: float) -> void: r.scrap.kill += s
 	GameState.mech_deployed.connect(on_deploy)
@@ -1291,6 +1304,18 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 	for line in GameState.lines:
 		for s in line.segments:
 			worker_work += s.chunks * GameState.stat("worker_chunk")
+	var builds: Array = r.events.filter(func(e: Array) -> bool: return e[1].begins_with("build"))
+	var paid: Array = buys.filter(func(b: Array) -> bool: return b[1] != "apply")
+	var news: Array = [0.0, r.mechs[0] if r.mechs.size() else INF]
+	for list: Array in [builds, buys]:
+		news.append_array(list.map(func(e: Array) -> float: return e[0]))
+	news.append_array(r.waves)
+	news = news.filter(func(at: float) -> bool: return at <= START_WINDOW)
+	news.append(START_WINDOW)
+	news.sort()
+	var quiet := 0.0
+	for i in range(1, news.size()):
+		quiet = maxf(quiet, news[i] - news[i - 1])
 	var credits_total: float = r.credits.values().reduce(func(a: float, b: float) -> float: return a + b, 0.0)
 	var scrap_total: float = r.scrap.values().reduce(func(a: float, b: float) -> float: return a + b, 0.0)
 	return {
@@ -1302,6 +1327,11 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"gap": gap,
 		"empty_windows": empty_windows,
 		"first_fit": fits[0][0] if fits.size() else INF,
+		"first_build": builds[0][0] if builds.size() else INF,
+		"first_mech": r.mechs[0] if r.mechs.size() else INF,
+		"first_wave": r.waves[0] if r.waves.size() else INF,
+		"first_buy": paid[0][0] if paid.size() else INF,
+		"quiet": quiet,
 		"first_worker": hires[0][0] if hires.size() else INF,
 		"final_wait": final_wait,
 		"first_maxed": r.maxed.values().min() if r.maxed.size() else INF,
@@ -1334,7 +1364,12 @@ func _bot_tap(p: Dictionary, r: Dictionary) -> void:
 			r.field_acc -= 1.0
 			GameState.tap_wave()
 			return
-	if GameState.scrap < maxf(30.0 * GameState.war_scale(), r.get("want", 0.0)) or GameState.starved():
+	var reserve := 30.0 * GameState.war_scale()
+	if not GameState.revealed():
+		reserve = 0.0
+		for seg in GameState.lines[0].segments:
+			reserve += seg.scrap_cost()
+	if GameState.scrap < maxf(reserve, r.get("want", 0.0)) or GameState.starved():
 		r.scrap.tap += GameState.tap_scrap()
 		GameState.tap_pile()
 		return
@@ -1626,10 +1661,10 @@ func progression() -> void:
 	t.check(not hud.get_node("Mechs").visible and not hud.get_node("MechsRate").visible, "HUD: scrap only")
 	await t.shot("start_pile")
 	var pile: Control = yard.pile()
-	for i in 9:
+	for i in 2:
 		await t.click(pile)
 	await t.frames(2)
-	t.check(not line.visible and not GameState.shown("factory"), "9 scrap: still only the pile")
+	t.check(not line.visible and not GameState.shown("factory"), "2 scrap: still only the pile")
 	await t.click(pile)
 	await t.frames(2)
 	t.check(GameState.shown("factory") and line.visible and line.modulate.a < 1.0, "scrap for the first station: the line fades in")
@@ -2568,9 +2603,9 @@ func intro() -> void:
 	t.check(guide.modulate.a == 1.0 and label.modulate.a == 1.0, "label at full opacity")
 	t.check(guide.get("_lit") == (pile as TapArea).highlight, "the pile is lit while the guide points at it")
 	await t.shot("intro_pile")
-	for i in 10:
+	for i in 3:
 		await t.click(pile)
-	t.check(guide.text() == "BUILD THE FRAME STATION" and on_screen.call(), "10 scrap: build the frame, label kept on screen (%s)" % guide.text())
+	t.check(guide.text() == "BUILD THE FRAME STATION" and on_screen.call(), "3 scrap: build the frame, label kept on screen (%s)" % guide.text())
 	var build := _build_button(line, 0)
 	t.check(guide.get("_down") and label.get_global_rect().end.y <= line.segment_view(0).get_global_rect().position.y, "build label above the station, off its name (%s)" % label.get_global_rect())
 	await t.frames(2)
@@ -2592,7 +2627,7 @@ func intro() -> void:
 	await t.frames(1)
 	t.check(not guide.thumb_zone().has_area() and absf(label.get_global_rect().get_center().x - arrow_x.call()) <= 1.0, "mouse: no thumb zone, label centered again")
 	GameState.scrap -= GameState.tap_scrap()
-	for i in 40:
+	for i in 17:
 		await t.click(pile)
 	for i in 2:
 		await t.click(_build_button(line, i + 1))
