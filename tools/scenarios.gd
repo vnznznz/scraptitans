@@ -3622,6 +3622,8 @@ func gate() -> void:
 	GameState.gate_fell.connect(on_fell)
 	var alerts := int(Sound.plays.get(&"gate_alert", 0))
 	var hits := int(Sound.plays.get(&"gate_hit", 0))
+	var lost_before := int(Sound.plays.get(&"gate_lost", 0))
+	var fanfares := int(Sound.plays.get(&"run_card", 0))
 	t.check(field.visible and field.size.y == Battlefield.HEIGHT and field.enemy_count() > 0 and t.node("Rail").visible,
 			"new game: battlefield with the first wave and the scroll bar on screen")
 	t.check(GameState.siege == 0.0 and GameState.gate_health() == 1.0 and layer.position.x == 0.0 and not label.visible, "the column at its post, the gate whole")
@@ -3636,7 +3638,10 @@ func gate() -> void:
 	var guide: IntroGuide = main.get_node("IntroGuide")
 	t.check(guide.text() == "DRONES MARCH ON THE GATE\nTAP THE SCRAP PILE", "before the first mech the guide keeps to its steps")
 	t.check(int(Sound.plays.get(&"gate_alert", 0)) == alerts + 1, "the attack starts: one alert")
-	t.check(label.visible and label.text == "GATE UNDER ATTACK" and absf((field.get_node("World/Gate") as Gate).health - (1.0 - 10.0 / time)) < 0.01, "label and health bar show it")
+	var alarm: Label = field.get_node("GateAlarm")
+	t.check(alarm.visible and alarm.text == "GATE UNDER ATTACK" and absf(alarm.get_global_rect().get_center().x - field.get_global_rect().get_center().x) <= 1.0
+			and field.get_global_rect().encloses(alarm.get_global_rect()) and field.get_node("GateAlarmFrame").visible, "blinking banner in the middle of the field, red frame around it")
+	t.check(label.visible and label.text == "GATE" and absf((field.get_node("World/Gate") as Gate).health - (1.0 - 10.0 / time)) < 0.01, "label and health bar show it")
 	GameState.time_scale = 1.0
 	await t.wait(3.0)
 	GameState.time_scale = 0.0
@@ -3655,7 +3660,7 @@ func gate() -> void:
 	await t.frames(2)
 	t.check(absf(GameState.siege - 0.5) < 0.01 and not GameState.gate_attacked() and GameState.gate_damage < 100.0,
 			"a mech out: the column falls back, the damage stops (%.1f)" % GameState.gate_damage)
-	t.check(label.visible and label.text == "GATE", "repairing: plain label")
+	t.check(label.visible and label.text == "GATE" and not alarm.visible and not field.get_node("GateAlarmFrame").visible, "repairing: bar and plain label, no banner")
 	GameState.advance(10.0)
 	t.check(GameState.siege == 0.0 and absf(GameState.gate_damage - (100.0 - (10.0 + Data.econ("gate_retreat") / 2.0) * Data.econ("gate_repair"))) < 0.1,
 			"the gate repairs %.1f s of damage per second while mechs hold the field" % Data.econ("gate_repair"))
@@ -3683,6 +3688,7 @@ func gate() -> void:
 	t.check(lost.visible and not lost.card_visible(), "input blocked at once, the card waits for the blast")
 	await t.wait(GateLost.SHOW_DELAY + 0.6)
 	t.check(lost.card_visible() and not main.get_node("%Nuke").card_visible() and not t.node("Away").visible, "THE GATE HAS FALLEN card, no nuke card")
+	t.check(int(Sound.plays.get(&"gate_lost", 0)) == lost_before + 1 and int(Sound.plays.get(&"run_card", 0)) == fanfares and not alarm.visible, "a falling tune, not the victory fanfare; banner gone")
 	t.check(lost.get_node("Card").get_global_rect().size.x <= 360.0 and main.get_rect().encloses(lost.get_node("Card").get_global_rect()), "card inside the screen")
 	await t.shot("gate_lost")
 	t.get_tree().reload_current_scene()

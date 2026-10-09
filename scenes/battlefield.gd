@@ -52,6 +52,8 @@ const SIEGE_REACH := 196.0
 const GATE_TARGET := Rect2(6, 106, 12, 44)
 const GATE_BAR := Rect2(6, 32, 64, 8)
 const GATE_BLINK := 0.4
+const GATE_ALARM_Y := 46.0
+const GATE_FRAME := 3
 const GATE_ALERTS := 4
 const GATE_RUIN := Color(0.4, 0.34, 0.4)
 const SKY_TINT := [[0.0, Color(1, 1, 1)], [0.3, Color(1.0, 0.86, 0.8)], [0.6, Color(0.62, 0.66, 0.92)], [1.0, Color(1.0, 0.62, 0.58)]]
@@ -84,6 +86,9 @@ var _level := -1
 var _arrivals: Array[MechState] = []
 var _shell_t := 0.0
 var _gate_label: Label
+var _alarm: Label
+var _alarm_plate: StyleBoxFlat
+var _alarm_frame: Panel
 var _marching := false
 var _alert := 0
 var shells := 0
@@ -200,6 +205,33 @@ func _ready() -> void:
 	_gate_label = _bar_label("GateLabel", HORIZONTAL_ALIGNMENT_LEFT)
 	_gate_label.position = Vector2(GATE_BAR.end.x + 6.0, GATE_BAR.get_center().y - _gate_label.size.y / 2.0)
 	_gate_label.visible = false
+	_gate_label.text = "GATE"
+	var frame := StyleBoxFlat.new()
+	frame.draw_center = false
+	frame.border_color = Pal.RED
+	frame.set_border_width_all(GATE_FRAME)
+	_alarm_frame = Panel.new()
+	_alarm_frame.name = "GateAlarmFrame"
+	_alarm_frame.add_theme_stylebox_override("panel", frame)
+	_alarm_frame.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_alarm_frame.mouse_filter = MOUSE_FILTER_IGNORE
+	_alarm_frame.visible = false
+	add_child(_alarm_frame)
+	_alarm_plate = StyleBoxFlat.new()
+	_alarm_plate.border_color = Pal.INK
+	_alarm_plate.set_border_width_all(1)
+	_alarm_plate.content_margin_left = 6
+	_alarm_plate.content_margin_right = 6
+	_alarm_plate.content_margin_top = 2
+	_alarm_plate.content_margin_bottom = 2
+	_alarm = Label.new()
+	_alarm.name = "GateAlarm"
+	_alarm.text = "GATE UNDER ATTACK"
+	_alarm.add_theme_stylebox_override("normal", _alarm_plate)
+	_alarm.z_index = Main.TEXT_Z
+	_alarm.mouse_filter = MOUSE_FILTER_IGNORE
+	_alarm.visible = false
+	add_child(_alarm)
 	_on_resized()
 
 	GameState.mech_deployed.connect(_on_deployed)
@@ -391,16 +423,21 @@ func _update_siege() -> void:
 	_enemy_layer.position.x = x
 	_gate.health = GameState.gate_health()
 	_gate_label.visible = GameState.gate_damage > 0.0
-	if not _gate_label.visible:
-		_alert = 0
-		return
 	var attacked := GameState.gate_attacked()
+	_alarm.visible = attacked
+	_alarm_frame.visible = attacked
 	var alert := 1 + int((1.0 - GameState.gate_health()) * GATE_ALERTS) if attacked else 0
 	if alert > _alert:
 		Sound.play(&"gate_alert")
 	_alert = alert
-	_gate_label.text = "GATE UNDER ATTACK" if attacked else "GATE"
-	_gate_label.modulate = Pal.RED if attacked and fmod(Time.get_ticks_msec() / 1000.0, GATE_BLINK * 2.0) < GATE_BLINK else Pal.WHITE
+	if not attacked:
+		return
+	var lit := fmod(Time.get_ticks_msec() / 1000.0, GATE_BLINK * 2.0) < GATE_BLINK
+	_alarm_plate.bg_color = Pal.RED if lit else Pal.INK
+	_alarm.add_theme_color_override("font_color", Pal.WHITE if lit else Pal.RED)
+	_alarm_frame.modulate.a = 1.0 if lit else 0.35
+	_alarm.reset_size()
+	_alarm.position = Vector2(roundf((size.x - _alarm.size.x) / 2.0), GATE_ALARM_Y + _world.position.y)
 
 
 func _fire_at_gate(e: Sprite2D) -> void:
@@ -435,6 +472,8 @@ func _ruin_gate() -> void:
 	_gate.modulate = GATE_RUIN
 	_cannon.visible = false
 	_gate_label.visible = false
+	_alarm.visible = false
+	_alarm_frame.visible = false
 
 
 func _enemy_fire(e: Sprite2D) -> void:

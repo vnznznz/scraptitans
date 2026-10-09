@@ -88,13 +88,14 @@ func card_visible() -> bool:
 func _on_fell() -> void:
 	visible = true
 	get_tree().call_group("upgrade_menu", "close")
+	Sound.stop_music()
 	await get_tree().create_timer(SHOW_DELAY).timeout
 	_show()
 
 
 func _show() -> void:
 	visible = true
-	Sound.play(&"run_card")
+	Sound.play(&"gate_lost")
 	var secs := int(GameState.run_time)
 	_values[0].text = "%d:%02d" % [floori(secs / 60.0), secs % 60]
 	_values[1].text = Fmt.num(GameState.mechs_built)

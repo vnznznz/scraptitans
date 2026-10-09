@@ -73,6 +73,7 @@ Battlefield
 - `enemy_pop`: exp_shortest_soft2, 5, 6, 8; `enemy_pop_big`: exp_short_soft4 (the "soft" explosions decay smoothly; the "hard" ones are bit-crushed and harsh)
 - `mech_death`: exp_short_soft3, soft11
 - `gate_alert`: alarm_loop6 (two clean beeps, 0.1 s each, rising 700 → 880 Hz, nothing above 4 kHz; alternatives by the same measures: alarm_shorter_18 = four quick beeps at 720 Hz, alarm_longer_29 = a 0.8 s rising sweep 800 → 1300 Hz)
+- `gate_lost` (the THE GATE HAS FALLEN card): fail3, four notes each sliding down and each lower than the one before (1240 → 160 Hz, 1 s), mostly above 300 Hz so a phone speaker plays it; was the run card's victory fanfare; alternatives: fail7 (one long falling sweep 2200 → 300 Hz, 1.4 s), fail4 (a dark falling tone around 200 Hz, lost on phone speakers)
 - `gate_hit` (an enemy shot lands on the gate): small_break, break1_small, sounds_impact13; noisy 0.2–0.3 s cracks with 22–31 % of their energy below 250 Hz, heavier than the station ticks; at the busy level, ≥ 0.25 s apart, inside the battlefield budget; break2_medium (0.34 s, heavier) left out as too long for a sound this frequent
 - `wave_clear`: exp_cluster5, then `bounty`: coin_cluster4 (0.3 s later); `wave_arrive`: turn_enemy (0.6 s after)
 
@@ -93,7 +94,7 @@ Not used on purpose: robot/cyborg death screams (too comic ×50 deaths), alarm l
 
 ## Size
 
-- 74 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
+- 75 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
 - Web decodes every sample to 48 kHz stereo float: ~49 MB of `AudioBuffer`s (music 17, wind 12). If the iPhone struggles: cut the wind to a ~10 s loop, then drop it
 
 ## License
