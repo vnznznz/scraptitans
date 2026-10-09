@@ -76,15 +76,26 @@ def portrait():
     drop = 8
     feet = h - (FIELD_H - FEET) + drop
     img = field(w, h + drop).crop((0, 0, w, h))
+    for x, y in ((62, 66), (80, 78), (70, 92)):
+        img.alpha_composite(sprite("battlefield/enemy_drone_1.png"), (x, y))
+    stand(img, sprite("battlefield/enemy_boss_1.png"), 54, feet - 6)
+    stand(img, sprite("mech/nuclear.png", NUKE_CELL), -10, feet - 2)
+    stand(img, mech_cell(5), -18, feet + 6)
+    stand(img, sprite("battlefield/enemy_crawler_1.png"), 62, feet + 6)
+    img.alpha_composite(sprite("fx/explosion_big.png", (40, 40), 2), (44, feet - 62))
+    img.alpha_composite(sprite("fx/explosion.png", (24, 24), 2), (50, feet - 26))
     img.alpha_composite(upscale(title(), 2), (10, 16))
-    stand(img, sprite("mech/nuclear.png", NUKE_CELL), 14, feet)
     save(img, "covers/portrait")
 
 
 def square():
     w, h = 100, 100
     img = field(w, h + 40).crop((0, 0, w, h))
-    img.alpha_composite(sprite("mech/nuclear.png", NUKE_CELL), (14, 4))
+    for x, y in ((62, 4), (82, 14)):
+        img.alpha_composite(sprite("battlefield/enemy_drone_1.png"), (x, y))
+    img.alpha_composite(sprite("battlefield/enemy_boss_1.png"), (54, 8))
+    img.alpha_composite(sprite("mech/nuclear.png", NUKE_CELL), (-10, 2))
+    img.alpha_composite(sprite("fx/explosion_big.png", (40, 40), 2), (38, 14))
     img.alpha_composite(upscale(title(), 2), (10, 50))
     save(img, "covers/square")
 
