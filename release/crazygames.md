@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (expires 2026-10-28) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m22` ([M22](../docs/plan.md)); the live build is its no-ads one, `0.2.0-m22+128.145e523` (`build/crazygames/`), uploaded 2026-10-09. Browser checks done except Android; the ads side of the SDK only against a fake backend.
+Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (expires 2026-10-28) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m22` ([M22](../docs/plan.md)); the live build is its no-ads one, `0.2.0-m22+134.c750d9e` (`build/crazygames/`), uploaded 2026-10-09 (bugfix update of the same day's `+128.145e523`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
 
 ## Why CrazyGames
 
@@ -17,6 +17,7 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
   - Submitted for review on 2026-10-06 with the m19 build (no SDK, save in `user://`)
   - Live since 2026-10-08 with the m20 no-ads build (preset "CrazyGames"): https://www.crazygames.com/game/scrap-titans ← current stage
   - 2026-10-09: update to `0.2.0-m22+128.145e523` (still no ads) after the first day's numbers ([feedback.md](../docs/feedback.md)): faster start, battlefield from the first frame, the gate can fall, mission in the guide, away card (M21), pile tap particles, gate sounds, wake lock; saves load unchanged. Numbers before this date are the m20 build's
+  - 2026-10-09, later: bugfix update to `0.2.0-m22+134.c750d9e` after the QA pass (`--scenario qa`, [plan.md](../docs/plan.md) M23): the gate falls once on a long frame, the missile once in the MAXED list, `YOUR 1 WAR WON STAYS` on the lost card, the field hint ends at wave 5 and stays off the gate's bar; saves load unchanged
   - Art for the update, uploaded separately in the Art tab: new landscape cover, both videos, screenshots (`release/marketing/`)
   - Real players from here on: every update has to load their saves
   - Ends at 7 days live and 500 plays, else after 21 days (2026-10-28); updates any time, approved automatically; tracked without the SDK ([basic launch metrics](https://docs.crazygames.com/resources/basic-launch-metrics/), read 2026-10-09)
