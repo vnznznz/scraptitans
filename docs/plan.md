@@ -524,6 +524,14 @@ Build: an iPhone 16e no longer gets warm while playing. After M22; heat can only
 - [ ] Candidates, one at a time: canvas rendered at a whole multiple of the base size instead of the device's full pixel ratio (3× on the 16e: about 1170×2532 for a 360-wide pixel game), scaled up by the browser with nearest-neighbour; lower frame rate; particle and crowd counts on phones
 - [ ] Keep what cools the phone without a visible loss; docs: `tech.md`
 
+To discuss (from the QA pass of 2026-10-09: seven bot profiles, 19 wars won through real clicks, `--scenario qa`; its bugs are fixed, these are open questions, nothing decided):
+- [ ] Away reward late in a war: one capped hour away around minute 25 paid 6.3M credits against a 2.4M missile, and the idler profile ended wars 2 and 3 about as fast as the active one. Lower `away_max` (20 to 30 min) or cap the credits at a multiple of the next purchase the player can't afford; then `tune` and the idler pass again
+- [ ] Reset by stray taps: 80 random taps walked gear, RESET, RESET RUN / RESET SAVE, YES in two of six tries; the popup is the only guard. YES away from where the reset button just was, or a short hold on YES, RESET SAVE only
+- [ ] Save round trip: one of 12 save and load checks reported the mech list as different; probably a last-digit float, not confirmed. Compare `to_dict` at full precision on a late field
+- [ ] Ads UI before Full Launch: banner slot collapsed until a banner arrives (an empty dark box now), a gap or divider under the fixed SCRAP X2 row (scrolled rows are cut right under it), a line on the row after a failed or timed out ad (10 s of blocked input end without a word)
+- [ ] Scrap magnet effect line `CREW 10% » 11%` reads as a crew stat; say what a tap gains
+- [ ] `--scenario field` fails "level saved next to the sound settings" on a clean save folder: the check expects a `music` key that is only there once sound settings were saved
+
 Test (browser):
 - iPhone, 15 min into a run with three lines: the phone stays cool to the touch, the game looks and scrolls as before
 - Desktop and Android: pixels as sharp as before
