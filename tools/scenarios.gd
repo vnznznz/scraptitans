@@ -991,6 +991,7 @@ const PHASE_GAP := 30.0
 const SAVE_WINDOW := 30.0
 const START_WINDOW := 300.0
 const GATE_SAFE := 100.0
+const MID_WINDOW := Vector2(240.0, 480.0)
 
 
 func m9() -> void:
@@ -1172,10 +1173,10 @@ func tune() -> void:
 		print("  %-9s %5.1f   %4.0f%%    %4.1f%%  %3d  %4.0f  %4.0f  %5.0f  %5.1f  %4.0f%%  %3.0f%%  %5d  %5s  %4d" % [
 			key, r.time / 60.0, r.bounty * 100.0, r.starved * 100.0, r.phases, r.gap, r.first_fit, r.final_wait,
 			r.first_maxed / 60.0, r.tap_scrap * 100.0, r.tap_work * 100.0, r.lines, Fmt.num(r.peak_dps), r.wave])
-	print("  start      station  mech  wave   buy  quiet  gate (s; quiet = longest stretch of the first 5 min with nothing new, gate = most attack time the gate had taken)")
+	print("  start      station  mech  wave   buy  quiet  4-8  gate (s; quiet = longest stretch of the first 5 min with nothing new, 4-8 = longest wait between buys in minutes 4 to 8, gate = most attack time the gate had taken)")
 	for key: String in runs:
 		var r: Dictionary = runs[key]
-		print("  %-9s  %6.1f %5.1f %5.1f %5.1f  %5.1f %5.1f" % [key, r.first_build, r.first_mech, r.first_wave, r.first_buy, r.quiet, r.gate])
+		print("  %-9s  %6.1f %5.1f %5.1f %5.1f  %5.1f %4.0f %5.1f" % [key, r.first_build, r.first_mech, r.first_wave, r.first_buy, r.quiet, r.mid_gap, r.gate])
 	for key: String in runs:
 		var r: Dictionary = runs[key]
 		var shortest := 1500.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1800.0
@@ -1198,6 +1199,7 @@ func tune() -> void:
 		return
 	t.check(base.first_mech <= 20.0 and runs.casual.first_mech <= 35.0, "first mech at %.0f s (slow tapper %.0f s)" % [base.first_mech, runs.casual.first_mech])
 	t.check(base.first_buy <= 45.0 and runs.casual.first_buy <= 60.0, "first buy at %.0f s (slow tapper %.0f s)" % [base.first_buy, runs.casual.first_buy])
+	t.check(base.mid_gap <= 30.0 and runs.casual.mid_gap <= 30.0, "minutes 4 to 8: longest wait between buys %.0f s (slow tapper %.0f s)" % [base.mid_gap, runs.casual.mid_gap])
 	t.check(absf(runs.field.time / base.time - 1.0) <= 0.2, "all-battlefield taps within 20%% of baseline (%.2f×)" % (runs.field.time / base.time))
 	t.check(runs.quit10.time >= base.time * 1.1, "stopping taps at 10 min costs %.0f%% more time" % ((runs.quit10.time / base.time - 1.0) * 100.0))
 	t.check(runs.no_arms.time > base.time, "fitting Arms beats not fitting them (%.1f vs %.1f min)" % [base.time / 60.0, runs.no_arms.time / 60.0])
@@ -1320,6 +1322,12 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 	var quiet := 0.0
 	for i in range(1, news.size()):
 		quiet = maxf(quiet, news[i] - news[i - 1])
+	var mid_times: Array = [MID_WINDOW.x]
+	mid_times.append_array(buys.map(func(b: Array) -> float: return b[0]).filter(func(at: float) -> bool: return at > MID_WINDOW.x and at < MID_WINDOW.y))
+	mid_times.append(MID_WINDOW.y)
+	var mid_gap := 0.0
+	for i in range(1, mid_times.size()):
+		mid_gap = maxf(mid_gap, mid_times[i] - mid_times[i - 1])
 	var credits_total: float = r.credits.values().reduce(func(a: float, b: float) -> float: return a + b, 0.0)
 	var scrap_total: float = r.scrap.values().reduce(func(a: float, b: float) -> float: return a + b, 0.0)
 	return {
@@ -1336,6 +1344,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"first_wave": r.waves[0] if r.waves.size() else INF,
 		"first_buy": paid[0][0] if paid.size() else INF,
 		"quiet": quiet,
+		"mid_gap": mid_gap,
 		"lost": GameState.lost,
 		"gate": peak_gate,
 		"first_worker": hires[0][0] if hires.size() else INF,
