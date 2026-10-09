@@ -16,6 +16,7 @@ const THUMB_HALF := 44.0
 const THUMB_ABOVE := 12.0
 const LIT := Color(1.5, 1.5, 1.2)
 const FRAME_GROW := 2.0
+const MISSION := "DRONES MARCH ON THE GATE,\nBUILD A MECH ARMY TO DEFEND\nYOURSELF: TAP THE SCRAP PILE"
 const STATIONS := "TAP STATIONS TO BUILD A MECH\nIT WILL PUSH THE DRONES BACK"
 
 var pile: Control
@@ -157,7 +158,7 @@ func _step() -> Array:
 		if segs[i].built:
 			continue
 		if GameState.scrap < GameState.build_cost(0, i):
-			return ["DRONES MARCH ON THE GATE\nTAP THE SCRAP PILE" if i == 0 else "TAP THE SCRAP PILE", pile, Place.ABOVE]
+			return [MISSION if i == 0 else "TAP THE SCRAP PILE", pile, Place.ABOVE]
 		return ["BUILD THE %s STATION" % str(Data.segment_type(segs[i].type_id).name).to_upper(), line.segment_view(i), Place.ABOVE, line.segment_view(i).get_node("Build")]
 	for i in segs.size():
 		if segs[i].stall == SegmentState.Stall.NO_SCRAP:
