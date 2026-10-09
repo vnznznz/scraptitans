@@ -3726,6 +3726,7 @@ func gate() -> void:
 	GameState.gate_damage = 50.0
 	GameState.from_dict(old)
 	t.check(GameState.gate_health() == 1.0 and GameState.siege == 0.0 and not GameState.lost, "old save: gate whole")
+
 	GameState.away(600.0)
 	t.check(GameState.gate_damage == 0.0 and GameState.siege == 0.0, "time away does no damage")
 	GameState.prestige = 0
@@ -3799,3 +3800,781 @@ func _fill_bar(line: LineView, i: int) -> void:
 	for k in 8:
 		await t.click(tap)
 
+
+
+const QA_PROFILES := {
+	"baseline": {"size": Vector2i(720, 1280)},
+	"casual": {"taps": 1.5, "batch": 20.0, "size": Vector2i(720, 1560), "effects": 1},
+	"desktop": {"field": 1.0 / 3.0, "size": Vector2i(821, 462)},
+	"idler": {"stop": 600.0, "away": true, "effects": 0, "size": Vector2i(450, 800)},
+	"fiddler": {"fiddle": true, "size": Vector2i(720, 1280)},
+	"ads": {"ads": true, "away": true, "size": Vector2i(720, 1280)},
+	"loser": {"lose": true, "wars": 2, "size": Vector2i(720, 1280)},
+}
+const QA_SHOT_EVERY := 300.0
+const QA_STUCK := 600.0
+const QA_WAR_LIMIT := 3.0 * 3600.0
+const QA_WALL_LIMIT := 50.0 * 60.0
+const QA_AWAYS := [[420.0, 600.0], [900.0, 180.0], [1500.0, 7200.0]]
+
+var _qa := {}
+
+
+func qa() -> void:
+	var key := _qa_arg("--profile", "baseline")
+	if not QA_PROFILES.has(key):
+		t.check(false, "unknown qa profile %s" % key)
+		return
+	var p: Dictionary = QA_PROFILES[key]
+	var goal := int(_qa_arg("--wars", str(p.get("wars", 3))))
+	var speed := float(_qa_arg("--speed", "8"))
+	_qa = {"shots": 0, "issues": {}, "once": {}, "due": [], "presses": 0, "taps": 0, "tap_acc": 0.0, "field_acc": 0.0, "want": 0.0,
+			"managed": 0.0, "bought": 0.0, "progress": 0.0, "last_time": 0.0, "wars": [], "losses": 0, "ads": 0,
+			"frame_n": 0, "frame_sum": 0.0, "frame_max": 0.0, "perf_at": 0.0, "size": p.size, "rng": RandomNumberGenerator.new()}
+	_qa.rng.seed = 3
+	t.get_window().size = p.size
+	Reveal.instant = false
+	Effects.level = p.get("effects", Effects.HIGH)
+	if p.get("ads", false):
+		CrazyGames.use_fake()
+	GameState.prestige = 0
+	GameState.new_game()
+	Save.save_game()
+	t.get_tree().reload_current_scene()
+	await t.frames(10)
+	GameState.time_scale = speed
+	GameState.mech_deployed.connect(func(_m: MechState) -> void: _qa_due("first_mech", true))
+	GameState.wave_cleared.connect(func(_b: float) -> void:
+		_qa.progress = GameState.run_time
+		if Battlefield.is_boss_wave(GameState.wave):
+			_qa_due("boss_wave_%d" % (GameState.wave + 1), true)
+		if GameState.wave + 1 in [10, 18, 24, 28]:
+			_qa_due("front_wave_%d" % (GameState.wave + 1), true))
+	GameState.line_added.connect(func(i: int) -> void: _qa_due("line_%d" % (i + 1), true))
+	GameState.gate_fell.connect(func() -> void: _qa_log("the gate fell"))
+	print("QA profile %s: %d wars, x%s, window %s, effects %d" % [key, goal, speed, p.size, Effects.level])
+	var began := Time.get_ticks_msec()
+	var last := [began]
+	t.get_tree().process_frame.connect(func() -> void:
+		var now := Time.get_ticks_msec()
+		var frame: float = (now - last[0]) / 1000.0
+		last[0] = now
+		if _qa.get("shot_frame", false):
+			_qa.shot_frame = false
+			return
+		_qa.frame_n += 1
+		_qa.frame_sum += frame
+		_qa.frame_max = maxf(_qa.frame_max, frame))
+	_qa_due("start", true)
+	while GameState.prestige < goal:
+		await t.frames(1)
+		var now := Time.get_ticks_msec()
+		if now - began > QA_WALL_LIMIT * 1000.0 or GameState.run_time > QA_WAR_LIMIT:
+			_qa_issue("abort", "time limit reached")
+			await _qa_shot("abort")
+			break
+		var main := t.get_tree().current_scene as Main
+		if main == null:
+			continue
+		(main.get_node("%Debug") as Control).visible = false
+		_qa.loops = _qa.get("loops", 0) + 1
+		if GameState.run_time < _qa.managed:
+			_qa.managed = 0.0
+			_qa.bought = 0.0
+			_qa.last_time = 0.0
+			_qa.progress = 0.0
+			_qa.shot_at = 0.0
+		await _qa_watch(main)
+		if await _qa_overlays(main, p):
+			_qa.last_time = GameState.run_time
+			continue
+		if p.get("lose", false) and await _qa_lose(main):
+			continue
+		if p.get("fiddle", false):
+			await _qa_fiddle(main)
+			if t.get_tree().current_scene != main:
+				continue
+		if p.get("away", false):
+			for a: Array in QA_AWAYS:
+				if GameState.run_time >= a[0] and GameState.revealed() and _qa_once("away %d" % a[0]):
+					_qa_log("away for %d s" % a[1])
+					await _qa_menu(main, false)
+					GameState.away(a[1])
+					await t.frames(3)
+		if (main.get_node("%Away") as Control).visible:
+			continue
+		if GameState.run_time - _qa.managed >= 1.0:
+			_qa.managed = GameState.run_time
+			await _qa_manage(main, p)
+		if GameState.run_time < p.get("stop", INF):
+			_qa.tap_acc = minf(_qa.tap_acc + p.get("taps", TAPS_PER_S) * maxf(0.0, GameState.run_time - _qa.last_time), 6.0)
+		_qa.last_time = GameState.run_time
+		for i in 3:
+			if _qa.tap_acc < 1.0 or GameState.run_over:
+				break
+			_qa.tap_acc -= 1.0
+			_qa.taps += 1
+			await _qa_tap(main, p)
+	GameState.time_scale = 1.0
+	print("QA SUMMARY %s" % key)
+	for w: Dictionary in _qa.wars:
+		print("  war %d: %.1f min, %d mechs, wave %d, %d lines, %s credits" % [w.war, w.time / 60.0, w.mechs, w.wave, w.lines, Fmt.num(w.credits)])
+	print("  %d presses, %d taps, %d shots, %d gates lost, %.0f s real" % [_qa.presses, _qa.taps, _qa.shots, _qa.losses, (Time.get_ticks_msec() - began) / 1000.0])
+	print("  %d kinds of issues" % _qa.issues.size())
+	for issue: String in _qa.issues:
+		print("  ISSUE x%d %s" % [_qa.issues[issue], issue])
+	t.check(GameState.prestige >= goal, "%s: %d of %d wars won" % [key, GameState.prestige, goal])
+	GameState.prestige = 0
+	GameState.new_game()
+
+
+func _qa_arg(key: String, fallback: String) -> String:
+	var args := OS.get_cmdline_user_args()
+	var i := args.find(key)
+	return args[i + 1] if i != -1 and i + 1 < args.size() else fallback
+
+
+func _qa_stamp() -> String:
+	var s := int(GameState.run_time)
+	return "w%d %02d:%02d" % [GameState.prestige + 1, floori(s / 60.0), s % 60]
+
+
+func _qa_log(text: String) -> void:
+	print("QA [%s] %s" % [_qa_stamp(), text])
+
+
+func _qa_once(key: String) -> bool:
+	key = "w%d %s" % [GameState.prestige, key]
+	if _qa.once.has(key):
+		return false
+	_qa.once[key] = true
+	return true
+
+
+func _qa_due(shot_name: String, once := false) -> void:
+	if not once or _qa_once("shot " + shot_name):
+		_qa.due.append(shot_name)
+
+
+func _qa_issue(kind: String, text: String) -> bool:
+	var key := "%s: %s" % [kind, text]
+	_qa.issues[key] = _qa.issues.get(key, 0) + 1
+	if _qa.issues[key] > 1:
+		return false
+	print("QA ISSUE [%s] %s" % [_qa_stamp(), key])
+	return true
+
+
+func _qa_shot(shot_name: String) -> void:
+	_qa.shots += 1
+	var file := "%03d_w%d_%s" % [_qa.shots, GameState.prestige + 1, shot_name]
+	_qa_log("shot %s  scrap %s credits %s wave %d mechs %d lines %d" % [file, Fmt.num(GameState.scrap), Fmt.num(GameState.credits),
+			GameState.wave + 1, GameState.field.size(), GameState.lines.size()])
+	await t.shot(file)
+	_qa.shot_frame = true
+	_qa_audit(file)
+
+
+func _qa_press(target: Control, what: String, probe: Callable) -> bool:
+	_qa.presses += 1
+	for attempt in 2:
+		if not is_instance_valid(target):
+			return false
+		if not target.is_visible_in_tree():
+			if attempt == 0:
+				await t.wait(0.7)
+				continue
+			_qa_issue("hidden", what)
+			return false
+		var scroll := target.get_parent()
+		while scroll and not scroll is ScrollContainer:
+			scroll = scroll.get_parent()
+		await t.frames(1)
+		for k in 2:
+			if scroll and (k == 0 or not (scroll as Control).get_global_rect().has_point(target.get_global_rect().get_center())):
+				(scroll as ScrollContainer).ensure_control_visible(target)
+				await t.frames(1)
+		if target is BaseButton and (target as BaseButton).disabled:
+			return false
+		var at := target.get_global_rect().get_center()
+		if scroll and not (scroll as Control).get_global_rect().has_point(at):
+			await t.frames(2)
+			at = target.get_global_rect().get_center()
+			if not (scroll as Control).get_global_rect().has_point(at):
+				if attempt == 0:
+					await t.wait(0.7)
+					continue
+				if _qa_issue("scroll", "%s can't be scrolled into view" % what):
+					_qa_log("  target %s centre %s, scroll area %s" % [target.get_path(), at, (scroll as Control).get_global_rect()])
+					await _qa_shot("issue_scroll")
+				return false
+		var before: Variant = probe.call()
+		if t.get_viewport().get_visible_rect().has_point(at):
+			t.tap(at)
+			if probe.call() != before:
+				return true
+		if attempt == 0:
+			await t.wait(0.7)
+	var rect := target.get_global_rect()
+	if GameState.run_over and what.begins_with("tap"):
+		return false
+	if _qa_issue("no effect", what):
+		_qa_log("  target %s at %s size %s, screen %s" % [target.get_path(), rect.position, rect.size, t.get_viewport().get_visible_rect().size])
+		await _qa_shot("issue_no_effect")
+	return false
+
+
+func _qa_segment(main: Main, li: int, i: int) -> SegmentView:
+	var line := main.line_view(li) if main.get_node("%Lines").has_node("Line%d" % li) else null
+	if line == null or not line.is_visible_in_tree():
+		return null
+	return line.get_node_or_null("Segment%d" % i)
+
+
+func _qa_tap(main: Main, p: Dictionary) -> void:
+	var pile: Control = (main.get_node("%Scrapyard") as Scrapyard).pile()
+	var tap_pile := func() -> void: await _qa_press(pile, "tap the pile", func() -> float: return GameState.scrap)
+	if GameState.revealed() and p.get("field", 0.0) > 0.0:
+		_qa.field_acc += p.field
+		if _qa.field_acc >= 1.0:
+			_qa.field_acc -= 1.0
+			await _qa_press(main.get_node("%Battlefield").find_child("FieldTap", true, false), "tap the field", func() -> int: return GameState.field_taps)
+			return
+	var reserve := 30.0 * GameState.war_scale()
+	if not GameState.revealed():
+		reserve = 0.0
+		for seg in GameState.lines[0].segments:
+			reserve += seg.scrap_cost()
+		if not GameState.lines[0].is_complete():
+			reserve = INF
+	if GameState.scrap < maxf(reserve, _qa.want) or GameState.starved():
+		await tap_pile.call()
+		return
+	var best: SegmentState = null
+	var view: SegmentView = null
+	for li in GameState.lines.size():
+		var line := GameState.lines[li]
+		if line.paused or not line.is_complete():
+			continue
+		for i in line.segments.size():
+			var s := line.segments[i]
+			if s.built and not s.bar_full() and (best == null or s.work / s.bar_size() < best.work / best.bar_size()) and _qa_segment(main, li, i):
+				best = s
+				view = _qa_segment(main, li, i)
+	if best == null:
+		await tap_pile.call()
+		return
+	var tap: TapArea = view.get_node("Tap")
+	if not tap.has_meta(&"qa"):
+		tap.set_meta(&"qa", 0)
+		tap.tapped.connect(func(_at: Vector2) -> void: tap.set_meta(&"qa", tap.get_meta(&"qa") + 1))
+	await _qa_press(tap, "tap a station", func() -> int: return tap.get_meta(&"qa"))
+
+
+func _qa_menu(main: Main, open: bool) -> bool:
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	if menu.visible == open:
+		return true
+	var upgrades: Button = main.get_node("%Upgrades")
+	if not upgrades.is_visible_in_tree():
+		return false
+	if not await _qa_press(upgrades, "UPGRADES button", func() -> bool: return menu.visible):
+		return false
+	await t.frames(2)
+	if open and (_qa_once("menu first") or _qa.get("menu_due", false)):
+		_qa.menu_due = false
+		await t.wait(0.2)
+		await _qa_shot("menu")
+		var list: ScrollContainer = menu.find_child("List", true, false)
+		if list.get_v_scroll_bar().max_value > list.size.y:
+			list.scroll_vertical = int(list.get_v_scroll_bar().max_value)
+			await t.frames(3)
+			await _qa_shot("menu_end")
+			list.scroll_vertical = 0
+	return true
+
+
+func _qa_ad(what: String) -> bool:
+	_qa.ads += 1
+	var result := "finished"
+	if _qa.ads % 7 == 0:
+		result = "timeout"
+	elif _qa.ads % 4 == 0:
+		result = "unfilled"
+	CrazyGames.fake_ads = [result] as Array[String]
+	_qa_log("ad %d for %s: %s" % [_qa.ads, what, result])
+	return result == "finished"
+
+
+func _qa_ad_wait() -> void:
+	var began := Time.get_ticks_msec()
+	while CrazyGames.ad_open or t.get_tree().paused:
+		await t.frames(1)
+		if Time.get_ticks_msec() - began > 20000:
+			_qa_issue("ad", "ad break never ended")
+			return
+	await t.frames(2)
+
+
+func _qa_ads(main: Main) -> void:
+	if not GameState.revealed() or GameState.ad_cooldown_t > 0.0 or not CrazyGames.video_ads or not await _qa_menu(main, true):
+		return
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	var watch: Button = menu.find_child("Watch", true, false)
+	var calls := func() -> int: return CrazyGames.calls.size()
+	if watch.is_visible_in_tree() and not watch.disabled:
+		var finished := _qa_ad("scrap boost")
+		if not await _qa_press(watch, "watch ad for scrap", calls):
+			return
+		await _qa_ad_wait()
+		if (GameState.scrap_boost_t > 0.0) != finished:
+			_qa_issue("ad", "scrap boost %s after a %s ad" % ["on" if GameState.scrap_boost_t > 0.0 else "off", "finished" if finished else "failed"])
+		if _qa_once("boost shot"):
+			await _qa_shot("ad_boost")
+		return
+	var offers := GameState.ad_offers()
+	for id: String in offers:
+		var ad: Button = menu.row(id).find_child("Ad", true, false)
+		if not ad.is_visible_in_tree():
+			continue
+		var level := GameState.level(id)
+		var finished := _qa_ad("upgrade " + id)
+		if not await _qa_press(ad, "watch ad for an upgrade", calls):
+			return
+		await _qa_ad_wait()
+		if (GameState.level(id) == level + 1) != finished:
+			_qa_issue("ad", "upgrade level %d to %d after a %s ad" % [level, GameState.level(id), "finished" if finished else "failed"])
+		return
+
+
+func _qa_manage(main: Main, p: Dictionary) -> void:
+	if GameState.run_over:
+		return
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	for li in GameState.lines.size():
+		for i in GameState.lines[li].segments.size():
+			var s := GameState.lines[li].segments[i]
+			var sv := _qa_segment(main, li, i)
+			if s.built or sv == null or GameState.scrap < GameState.build_cost(li, i):
+				continue
+			if await _qa_press(sv.get_node("Build"), "build a station", func() -> bool: return s.built):
+				_qa.progress = GameState.run_time
+				_qa_log("build L%d %s" % [li + 1, s.type_id])
+				_qa_due("first_station", true)
+	var pending := INF
+	var nuke_ready: bool = GameState.unlocked_tier("arms") > GameState.top_tier("arms")
+	if nuke_ready:
+		_qa_due("missile_unlocked", true)
+	for li in GameState.lines.size():
+		for i in GameState.lines[li].segments.size():
+			var s := GameState.lines[li].segments[i]
+			var sv := _qa_segment(main, li, i)
+			if sv == null or not GameState.can_apply_tier(li, i) or (nuke_ready and li != 0):
+				continue
+			var cost := GameState.tier_apply_cost(li, i)
+			if GameState.scrap < cost:
+				pending = minf(pending, cost)
+			elif await _qa_press(sv.get_node("Apply"), "fit a tier", func() -> int: return s.tier):
+				_qa.progress = GameState.run_time
+				_qa_log("fit L%d %s" % [li + 1, s.tier_data().part])
+				_qa_due("fit_%s_%d" % [s.type_id, s.tier + 1], true)
+	_qa.want = pending if pending < INF else 0.0
+	var short := pending - GameState.scrap
+	var save := pending < INF and GameState.scrap_rate * 60.0 < short and GameState.scrap_gain_rate * SAVE_WINDOW >= short
+	if nuke_ready:
+		save = GameState.lines[0].segments[2].tier <= GameState.top_tier("arms")
+	if GameState.pause_shown():
+		for li in GameState.lines.size():
+			var line := GameState.lines[li]
+			var lv := main.line_view(li) if main.get_node("%Lines").has_node("Line%d" % li) else null
+			if line.paused != save and lv and lv.get_node("Pause").is_visible_in_tree():
+				if await _qa_press(lv.get_node("Pause"), "pause a line", func() -> bool: return line.paused) and save:
+					_qa_due("paused", true)
+	if GameState.starved():
+		_qa_due("starved", true)
+	if p.get("ads", false):
+		await _qa_ads(main)
+	if GameState.run_time - _qa.bought < p.get("batch", 0.0):
+		await _qa_menu(main, false)
+		return
+	for n in 8:
+		var options := []
+		for li in GameState.lines.size():
+			if GameState.lines[li].workers < GameState.lines[li].worker_slots():
+				options.append([GameState.worker_cost(li), "hire", li])
+		if GameState.yard_workers < GameState.yard_slots():
+			options.append([GameState.yard_worker_cost(), "yard"])
+		for row: Dictionary in Data.upgrade_list:
+			if GameState.upgrade_visible(row.id) and not GameState.upgrade_maxed(row.id) and not GameState.upgrade_locked(row.id):
+				options.append([GameState.upgrade_cost(row.id), "buy", row.id])
+		options.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+		if options.is_empty() or options[0][0] > GameState.credits:
+			break
+		_qa.bought = GameState.run_time
+		var o: Array = options[0]
+		var ok := false
+		var unlock: Button = main.find_child("UnlockLine", true, false)
+		if o[1] == "hire":
+			var hire := main.line_view(o[2]).hire_button() if main.get_node("%Lines").has_node("Line%d" % o[2]) else null
+			var line := GameState.lines[o[2]]
+			if hire == null or not hire.is_visible_in_tree() or not await _qa_menu(main, false):
+				break
+			ok = await _qa_press(hire, "hire line crew", func() -> int: return line.workers)
+			if ok:
+				_qa_due("first_hire", true)
+		elif o[1] == "yard":
+			var hire: Button = main.get_node("%Scrapyard").find_child("HireYard", true, false)
+			if not hire.is_visible_in_tree() or not await _qa_menu(main, false):
+				break
+			ok = await _qa_press(hire, "hire pile crew", func() -> int: return GameState.yard_workers)
+		elif o[2] == "lines" and GameState.lines.size() % 2 == 1 and unlock.is_visible_in_tree():
+			if not await _qa_menu(main, false):
+				break
+			ok = await _qa_press(unlock, "UNLOCK LINE", func() -> int: return GameState.lines.size())
+		else:
+			if not await _qa_menu(main, true):
+				break
+			var id: String = o[2]
+			var buy := _buy(menu, id)
+			if not buy.is_visible_in_tree():
+				await t.frames(2)
+			ok = await _qa_press(buy, "buy an upgrade row", func() -> int: return GameState.level(id))
+			if ok and (Data.upgrade_row(id).get("kind", "") != "" or id == "lines"):
+				_qa_log("%s %d" % [id, GameState.level(id)])
+			if ok and id == "final_arms":
+				await _qa_shot("missile_bought")
+		if not ok:
+			break
+		_qa.progress = GameState.run_time
+	await _qa_menu(main, false)
+
+
+func _qa_watch(main: Main) -> void:
+	for v: float in [GameState.scrap, GameState.credits, GameState.wave_hp, GameState.gate_damage, GameState.siege, GameState.credits_rate]:
+		if is_nan(v) or is_inf(v) or v < -0.001:
+			_qa_issue("number", "bad value %s (scrap, credits, wave hp, gate damage, siege, credits rate: %s)" % [v,
+					[GameState.scrap, GameState.credits, GameState.wave_hp, GameState.gate_damage, GameState.siege, GameState.credits_rate]])
+	if GameState.run_over:
+		return
+	for key: String in GameState.REVEALS:
+		if GameState.shown(key) and _qa_once("reveal " + key):
+			_qa_log("reveal %s" % key)
+			_qa.due.append("reveal_" + key)
+	if GameState.gate_attacked():
+		_qa_due("gate_attack", true)
+	if GameState.run_time >= QA_SHOT_EVERY * (floorf(_qa.get("shot_at", 0.0) / QA_SHOT_EVERY) + 1.0) or GameState.run_time < _qa.get("shot_at", 0.0):
+		_qa.shot_at = GameState.run_time
+		if GameState.run_time >= QA_SHOT_EVERY:
+			_qa.due.append("min_%02d" % int(GameState.run_time / 60.0))
+			_qa.menu_due = true
+			print("QA PERF [%s] frame %.1f ms mean, %.0f ms worst, %d nodes, %d orphans, %.0f MB, %d draw calls, %d mechs" % [_qa_stamp(),
+					_qa.frame_sum / maxi(_qa.frame_n, 1) * 1000.0, _qa.frame_max * 1000.0, Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+					Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT), Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
+					Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), GameState.field.size()])
+			_qa.frame_n = 0
+			_qa.frame_sum = 0.0
+			_qa.frame_max = 0.0
+	if GameState.run_time < _qa.progress:
+		_qa.progress = GameState.run_time
+	if GameState.run_time - _qa.progress > QA_STUCK:
+		_qa.progress = GameState.run_time
+		_qa_issue("stuck", "nothing built, bought, fitted or cleared for %d s at %s" % [QA_STUCK, _qa_stamp()])
+		_qa.due.append("issue_stuck")
+	if not _qa.due.is_empty() and not (main.get_node("%UpgradeMenu") as Control).visible:
+		var due: Array = _qa.due
+		_qa.due = []
+		await t.wait(0.4)
+		for shot_name: String in due:
+			await _qa_shot(shot_name)
+
+
+func _qa_overlays(main: Main, p: Dictionary) -> bool:
+	var away: AwayCard = main.get_node("%Away")
+	if away.visible:
+		await t.wait(0.3)
+		await _qa_shot("away_card")
+		var pending: float = GameState.away_scrap + GameState.away_credits
+		var before := GameState.scrap + GameState.credits
+		var ad: Button = away.find_child("Ad", true, false)
+		var mult := 1.0
+		if p.get("ads", false) and ad.is_visible_in_tree() and _qa_once("away ad"):
+			var finished := _qa_ad("away card")
+			if await _qa_press(ad, "watch ad on the away card", func() -> int: return CrazyGames.calls.size()):
+				await _qa_ad_wait()
+				if (GameState.away_t <= 0.0) != finished:
+					_qa_issue("ad", "away card %s after a %s ad" % ["closed" if GameState.away_t <= 0.0 else "open", "finished" if finished else "failed"])
+				mult = Data.econ("away_ad_mult")
+		if GameState.away_t > 0.0:
+			mult = 1.0
+			before = GameState.scrap + GameState.credits
+			await _qa_press(away.find_child("Collect", true, false), "COLLECT on the away card", func() -> float: return GameState.away_t)
+		_qa_log("away reward %s x%s collected" % [Fmt.num(pending), mult])
+		await t.wait(0.3)
+		await _qa_shot("away_collected")
+		return true
+	if GameState.lost:
+		var lost: GateLost = main.get_node("GateLost")
+		_qa.losses += 1
+		_qa_log("gate lost: %d mechs built, wave %d" % [GameState.mechs_built, GameState.wave + 1])
+		await t.wait(0.8)
+		await _qa_shot("gate_falling")
+		var began := Time.get_ticks_msec()
+		while not lost.card_visible() and Time.get_ticks_msec() - began < 8000:
+			await t.frames(1)
+		if not lost.card_visible():
+			_qa_issue("gate", "the lost card never showed")
+		await t.wait(0.8)
+		await _qa_shot("gate_lost_card")
+		var wars := GameState.prestige
+		await _qa_press(lost.find_child("TryAgain", true, false), "TRY AGAIN", func() -> bool: return GameState.lost)
+		await t.frames(10)
+		if GameState.prestige != wars or GameState.run_time > 5.0:
+			_qa_issue("gate", "TRY AGAIN left wars %d to %d, run time %.0f" % [wars, GameState.prestige, GameState.run_time])
+		_qa.progress = 0.0
+		await _qa_shot("after_try_again")
+		return true
+	if GameState.run_over:
+		await _qa_nuke(main)
+		return true
+	return false
+
+
+func _qa_nuke(main: Main) -> void:
+	var nuke: Nuke = main.get_node("%Nuke")
+	var wars := GameState.prestige
+	_qa.wars.append({"war": wars + 1, "time": GameState.run_time, "mechs": GameState.mechs_built, "wave": GameState.wave + 1,
+			"lines": GameState.lines.size(), "credits": GameState.credits_earned})
+	_qa_log("nuke launched: %.1f min, %d mechs, wave %d, %d lines" % [GameState.run_time / 60.0, GameState.mechs_built, GameState.wave + 1, GameState.lines.size()])
+	var began := Time.get_ticks_msec()
+	var n := 0
+	while not nuke.card_visible():
+		if Time.get_ticks_msec() - began > 60000:
+			_qa_issue("nuke", "the run card never showed")
+			break
+		await t.wait(0.5 if wars == 0 else 1.5)
+		n += 1
+		await _qa_shot("nuke_%02d" % n)
+	await t.wait(2.5)
+	await _qa_shot("run_card")
+	var again: Button = nuke.find_child("StartAgain", true, false)
+	await _qa_press(again, "START AGAIN", func() -> bool: return again.disabled)
+	await t.wait(0.8)
+	await _qa_shot("win_disc")
+	began = Time.get_ticks_msec()
+	while GameState.prestige == wars and Time.get_ticks_msec() - began < 20000:
+		await t.frames(1)
+	if GameState.prestige != wars + 1:
+		_qa_issue("nuke", "START AGAIN left the wars won at %d" % GameState.prestige)
+		GameState.prestige = wars + 1
+		Save.reset_run()
+	await t.frames(10)
+	_qa.progress = 0.0
+	_qa.managed = 0.0
+	_qa.bought = 0.0
+	_qa.last_time = 0.0
+	_qa.shot_at = 0.0
+	_qa_due("start", true)
+
+
+func _qa_lose(main: Main) -> bool:
+	if _qa.losses > GameState.prestige:
+		return false
+	if _qa_once("lose start"):
+		_qa_log("losing the gate without ever building")
+	if _qa.loops % 10 == 0:
+		await _qa_press((main.get_node("%Scrapyard") as Scrapyard).pile(), "tap the pile", func() -> float: return GameState.scrap)
+	return true
+
+
+func _qa_fiddle(main: Main) -> void:
+	if GameState.run_over or not GameState.revealed():
+		return
+	var now := GameState.run_time
+	var settings: SettingsOverlay = main.get_node("%Settings")
+	var rail: ScrollRail = main.get_node("%Rail")
+	var find := func(node_name: String) -> Button: return settings.find_child(node_name, true, false)
+	var file := func() -> int: return Sound.steps["music"]
+	var mode := func() -> Variant: return settings.get("_mode")
+	if now >= 90.0 and _qa_once("settings tour"):
+		_qa_log("fiddle: settings tour")
+		await _qa_menu(main, false)
+		await _qa_press(main.find_child("SettingsButton", true, false), "gear button", func() -> bool: return settings.visible)
+		await t.wait(0.3)
+		await _qa_shot("settings")
+		var effects: Control = settings.find_child("Effects", true, false)
+		await _qa_press(effects.find_child("Down", true, false), "VISUAL EFFECTS -", func() -> int: return Effects.level)
+		await _qa_press(effects.find_child("Up", true, false), "VISUAL EFFECTS +", func() -> int: return Effects.level)
+		await _qa_press(find.call("AudioButton"), "AUDIO", mode)
+		var music: Control = settings.find_child("Volume_music", true, false)
+		await _qa_press(music.find_child("Down", true, false), "MUSIC -", file)
+		await t.frames(2)
+		await _qa_shot("settings_audio")
+		await _qa_press(music.find_child("Up", true, false), "MUSIC +", file)
+		await _qa_press(find.call("Close"), "BACK from audio", mode)
+		await _qa_press(find.call("CreditsButton"), "CREDITS", mode)
+		await t.frames(2)
+		await _qa_shot("settings_credits")
+		var licenses := func() -> bool: return settings.has_node("Licenses") and (settings.get_node("Licenses") as Control).visible
+		await _qa_press(find.call("LicensesButton"), "OPEN SOURCE LICENSES", licenses)
+		await t.wait(0.5)
+		await _qa_shot("settings_licenses")
+		await _qa_press(find.call("LicensesClose"), "BACK from licenses", licenses)
+		await _qa_press(find.call("Close"), "BACK from credits", mode)
+		await _qa_press(find.call("Reset"), "RESET", mode)
+		var ask: Control = settings.find_child("Ask", true, false)
+		await _qa_press(find.call("ResetRun"), "RESET RUN", func() -> bool: return ask.visible)
+		await t.wait(0.3)
+		await _qa_shot("settings_reset_ask")
+		await _qa_press(ask.find_child("Cancel", true, false), "CANCEL reset", func() -> bool: return ask.visible)
+		await _qa_press(find.call("Close"), "BACK from reset", mode)
+		await _qa_press(find.call("Close"), "CLOSE settings", func() -> bool: return settings.visible)
+		var mute: Button = main.find_child("MuteButton", true, false)
+		await _qa_press(mute, "mute button", func() -> bool: return Sound.muted)
+		await t.frames(2)
+		await _qa_shot("muted")
+		await _qa_press(mute, "mute button", func() -> bool: return Sound.muted)
+	for pin: Array in [[200.0, 0, "pin the field"], [260.0, 1, "pin the pile"], [440.0, 0, "unpin the field"], [460.0, 1, "unpin the pile"]]:
+		if now >= pin[0] and _qa_once(pin[2]):
+			_qa_log("fiddle: %s (state %d)" % [pin[2], rail.state(pin[1])])
+			await _qa_menu(main, false)
+			if rail.is_visible_in_tree():
+				if (rail.state(pin[1]) == ScrollRail.Pin.AWAY) and pin[2].begins_with("pin"):
+					await _qa_press(rail.pin_button(pin[1]), "rail pin (jump)", func() -> int: return (main.get_node("%Scroll") as ScrollContainer).scroll_vertical)
+					await t.wait(0.5)
+				await _qa_press(rail.pin_button(pin[1]), "rail pin", func() -> bool: return rail.pinned[pin[1]])
+				await t.wait(0.4)
+				await _qa_shot(str(pin[2]).replace(" ", "_"))
+	for at: float in [300.0, 1000.0, 1700.0]:
+		if now >= at and _qa_once("reload %d" % at):
+			_qa_log("fiddle: save, load, reload the scene")
+			await _qa_menu(main, false)
+			Save.save_game()
+			var before := GameState.to_dict()
+			if not Save.load_game():
+				_qa_issue("save", "the save didn't load")
+			var after := GameState.to_dict()
+			for k: String in before:
+				if JSON.stringify(before[k]) != JSON.stringify(after.get(k)):
+					_qa_issue("save", "'%s' differs after a save and load" % k)
+					_qa_log("  before %s" % JSON.stringify(before[k]).left(300))
+					_qa_log("  after  %s" % JSON.stringify(after.get(k)).left(300))
+			t.get_tree().reload_current_scene()
+			await t.frames(10)
+			await _qa_shot("reloaded")
+			return
+	if now >= 600.0 and _qa_once("resize"):
+		_qa_log("fiddle: window sizes")
+		await _qa_menu(main, false)
+		for size: Vector2i in [Vector2i(821, 462), Vector2i(1280, 720), Vector2i(720, 1560), _qa.size]:
+			t.get_window().size = size
+			await t.wait(0.8)
+			await _qa_shot("window_%dx%d" % [size.x, size.y])
+			if await _qa_menu(main, true):
+				await t.wait(0.3)
+				await _qa_shot("window_%dx%d_menu" % [size.x, size.y])
+				await _qa_menu(main, false)
+	if now >= 800.0 and _qa_once("menu info"):
+		_qa_log("fiddle: row infos, settings over the menu")
+		if await _qa_menu(main, true):
+			var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+			var shown := 0
+			for row: Dictionary in Data.upgrade_list:
+				var panel := menu.row(row.id)
+				if panel.visible and shown < 4:
+					shown += 1
+					var desc: Control = panel.find_child("Desc", true, false)
+					await _qa_press(panel.find_child("Info", true, false), "row info button", func() -> bool: return desc.visible)
+			(menu.find_child("List", true, false) as ScrollContainer).scroll_vertical = 0
+			await t.frames(3)
+			await _qa_shot("menu_infos")
+			await _qa_press(main.find_child("SettingsButton", true, false), "gear button over the menu", func() -> bool: return settings.visible)
+			await t.wait(0.3)
+			await _qa_shot("settings_over_menu")
+			await _qa_press(find.call("Close"), "CLOSE settings", func() -> bool: return settings.visible)
+			await _qa_menu(main, false)
+	if now >= 240.0 and GameState.prestige == 1 and _qa_once("reset run"):
+		_qa_log("fiddle: RESET RUN at 1 war won")
+		await _qa_menu(main, false)
+		await _qa_press(main.find_child("SettingsButton", true, false), "gear button", func() -> bool: return settings.visible)
+		await _qa_press(find.call("Reset"), "RESET", mode)
+		var ask: Control = settings.find_child("Ask", true, false)
+		await _qa_press(find.call("ResetRun"), "RESET RUN", func() -> bool: return ask.visible)
+		await t.wait(0.3)
+		await _qa_shot("reset_run_ask")
+		await _qa_press(ask.find_child("Confirm", true, false), "YES, RESET RUN", func() -> float: return GameState.run_time)
+		await t.frames(10)
+		if GameState.prestige != 1 or GameState.run_time > 5.0 or GameState.mechs_built > 0:
+			_qa_issue("reset", "RESET RUN left wars %d, run time %.0f, mechs %d" % [GameState.prestige, GameState.run_time, GameState.mechs_built])
+		_qa.once["w1 reset run"] = true
+		for k: String in _qa.once.keys():
+			if k.begins_with("w1 ") and k != "w1 reset run":
+				_qa.once.erase(k)
+		_qa.progress = 0.0
+		_qa.shot_at = 0.0
+		await _qa_shot("after_reset_run")
+		return
+	for at: float in [500.0, 1500.0]:
+		if now >= at and _qa_once("monkey %d" % at):
+			_qa_log("fiddle: 80 random taps")
+			var screen := t.get_viewport().get_visible_rect().size
+			for i in 80:
+				t.tap(Vector2(_qa.rng.randf_range(0.0, screen.x), _qa.rng.randf_range(0.0, screen.y)))
+				await t.frames(1)
+				if GameState.run_over or t.get_tree().current_scene != main:
+					return
+			await t.wait(0.3)
+			await _qa_shot("after_random_taps")
+			for i in 4:
+				if settings.visible:
+					if settings.has_node("Licenses"):
+						(settings.get_node("Licenses") as Control).visible = false
+					(settings.find_child("Ask", true, false) as Control).visible = false
+					settings.close()
+			await _qa_menu(main, false)
+
+
+func _qa_audit(file: String) -> void:
+	var main := t.get_tree().current_scene as Control
+	if main == null:
+		return
+	var screen := t.get_viewport().get_visible_rect().grow(1.0)
+	var font: Font = preload("res://fonts/silkscreen.ttf")
+	var hud_labels: Array[Label] = []
+	for c: Control in main.find_children("*", "Control", true, false):
+		if not c.is_visible_in_tree() or not (c is Label or c is BaseButton):
+			continue
+		var text: String = c.get("text") if c is Label or c is Button else ""
+		for i in text.length():
+			if text[i] != "\n" and not font.has_char(text.unicode_at(i)):
+				_qa_issue("glyph", "'%s' has a character the font lacks (%s, first in %s)" % [text, c.name, file])
+				break
+		var rect := c.get_global_rect()
+		var scrolls := false
+		var box: Control = null
+		var up := c.get_parent()
+		while up and up != main:
+			if up is ScrollContainer or (up is Control and (up as Control).clip_contents):
+				scrolls = true
+			if box == null and (up is PanelContainer or up is BaseButton):
+				box = up
+			up = up.get_parent()
+		if rect.size.x <= 0.0 or rect.size.y <= 0.0 or c.modulate.a <= 0.0 or c.self_modulate.a <= 0.0:
+			continue
+		if not scrolls and not screen.encloses(rect) and not c.get_parent() is IntroGuide and not GameState.run_over:
+			if _qa_issue("layout", "%s '%s' reaches outside the screen" % [c.get_class(), _qa_name(c)]):
+				_qa_log("  at %s size %s, first in %s" % [rect.position, rect.size, file])
+		if box and (rect.position.x < box.get_global_rect().position.x - 1.0 or rect.end.x > box.get_global_rect().end.x + 1.0):
+			if _qa_issue("layout", "%s '%s' is wider than its %s '%s'" % [c.get_class(), _qa_name(c), box.get_class(), box.name]):
+				_qa_log("  first in %s" % file)
+		if c is Label and main.get_node("%Hud").is_ancestor_of(c) and not text.is_empty():
+			hud_labels.append(c)
+	for i in hud_labels.size():
+		for j in range(i + 1, hud_labels.size()):
+			if hud_labels[i].get_global_rect().grow(-1.0).intersects(hud_labels[j].get_global_rect().grow(-1.0)):
+				if _qa_issue("layout", "HUD texts %s and %s overlap" % [hud_labels[i].name, hud_labels[j].name]):
+					_qa_log("  '%s' and '%s', first in %s" % [hud_labels[i].text, hud_labels[j].text, file])
+
+
+func _qa_name(c: Control) -> String:
+	var text: String = c.get("text") if c is Label or c is Button else ""
+	return "%s %s" % [c.name, text.replace("\n", " / ")] if not text.is_empty() else str(c.get_parent().name) + "/" + str(c.name)
