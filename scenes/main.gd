@@ -12,6 +12,15 @@ const SAFE_AREA_JS := """(function () {
 	d.remove();
 	return r;
 })()"""
+const WAKE_LOCK_JS := """(function () {
+	if (window.scrapTitansWake || !('wakeLock' in navigator)) return;
+	window.scrapTitansWake = true;
+	var ask = function () {
+		if (document.visibilityState === 'visible') navigator.wakeLock.request('screen').catch(function () {});
+	};
+	document.addEventListener('visibilitychange', ask);
+	ask();
+})()"""
 const BADGE_ON := Pal.RED
 const BADGE_INSET := 8.0
 const BAR_H := 56.0
@@ -58,6 +67,8 @@ func _ready() -> void:
 	add_child(_lost)
 	get_window().size_changed.connect(_fit_window, CONNECT_DEFERRED)
 	_fit_window()
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval(WAKE_LOCK_JS)
 	for b: BaseButton in find_children("*", "BaseButton", true, false):
 		Hover.button(b)
 		Sound.hook_button(b)
