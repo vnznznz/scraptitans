@@ -487,6 +487,47 @@ Test (browser):
 - `build/crazygames_ads`: `X2` beside COLLECT; after the demo ad both amounts arrive doubled; a failed ad leaves the card as it was; the ad itself never produces a second card
 - `build/crazygames` and `build/web`: COLLECT alone
 
+## M22 · First-day numbers
+
+Build: the weak numbers of the first day on CrazyGames ([feedback.md](feedback.md), Numbers) get better: more players past the first minute, longer mobile sessions, more desktop clicks. Their targets ([crazygames.md](../release/crazygames.md), Launch stages): conversion 80 %+ (ours 42 %), playtime 10+ min (mobile 6m36s, desktop 17m12s), day 1 return 10–15 % (no data yet). Basic Launch is judged from 7 days live and 500 plays, about 2026-10-14 → one upload at the end of the milestone (updates are approved automatically).
+
+- [ ] First minute, measured: `--scenario` report for a slow tapper (profile `casual`) with the time of the first station, first mech, first kill, first upgrade and the longest stretch without something new on screen
+- [ ] First minute, shortened from that report: the first mech on the field within about 15 s of the first tap (start scrap, first build cost, first bar sizes); nothing to wait for before the first upgrade
+- [ ] First screen: the battlefield is there from the start, above the pile (M13 showed the pile alone), with an enemy column slowly walking toward the gate; the rest still appears stage by stage
+- [ ] Gate under attack: whenever no mech is on the field the column closes in and, once near the gate, attacks it; the gate has a health bar and falls after 5 min of attack in total; mechs walking out push the column back and the gate repairs slowly while they hold the field; the sim stands still while away, so no damage then
+- [ ] Gate fallen: game over card (`THE GATE HAS FALLEN`), then the war starts again from the pile; wars won and settings stay, no reward; counts as no gameplay for the SDK
+- [ ] Gate state saved (old saves: full health); `--scenario gate`: nobody tapping loses after the column's walk plus 5 min, a mech out stops the damage, repair rate, restart keeps wars won; tune profiles never lose the gate
+- [ ] Pile taps throw particles (scrap bits from the tapped spot): count, speed and size grow with the scrap a tap gives, scaled to a single war (weakest on the first tap of a war, full at what a tap gives by its nuke; the wars won multiplier doesn't count, so every war runs through the whole range); fewer by VISUAL EFFECTS level
+- [ ] Phone stays awake while the game is in front: `navigator.wakeLock` through `JavaScriptBridge`, asked again when the tab comes back; silent where it is refused (their iframe may not allow it)
+- [ ] Minutes 4–8, where the average mobile session ends: balance report of what a player waits for there (profiles `casual`, `quit10`); a wait above 30 s without anything to buy or build → tune
+- [ ] Landscape cover, shown on desktop (CTR 0.6 % against 2.1 % on mobile): the mechs and the fight fill the picture, the title sign smaller; two or three variants from `tools/gen_covers.py`, judged at 200 px wide next to the covers on their homepage
+- [ ] Landscape video: opens on the new cover, the first seconds show a full field instead of the pile
+- [ ] Simple performance pass: frame time and script time per frame in a late run (all lines, full field, menu open), headless; cut the work redone every frame without a change (menu sort, card and guide layout, redraws); `field_perf` no slower than before. The warm iPhone is [M23](#m23--phone-heat)
+- [ ] Build `0.2.0-m22`, saves from m20 and m21 load; docs: `tech.md`, pitch (start, gate, losing), `crazygames.md`
+- [ ] Upload `build/crazygames` (the user; first live build with the M21 away card, which pays for a locked phone and a hidden tab)
+- [ ] A row in [feedback.md](feedback.md) a few days after the upload: conversion, playtime and CTR by device, day 1 return
+
+Test (browser):
+- New game on a phone: the enemy column walks toward the gate before the first tap; the first mech walks out within a quarter of a minute of tapping; no stretch in the first minute where nothing can be done
+- New game left alone: the column reaches the gate and attacks it, its health bar drains; a mech sent out stops it and the bar climbs back; left alone to the end, the game over card comes and the war starts again with the wars won kept
+- All lines paused late in a war until the field is empty: the column comes back to the gate
+- Pile taps: a few bits fly on the first taps, clearly more late in a war; after START AGAIN they are small again and grow at the same pace
+- Phone left untouched with the game open for 2 min: the screen stays on (own site build; on CrazyGames if their frame allows it)
+- A save from the live build mid-run: loads, everything seen is there
+- Developer portal, Art tab: the new landscape cover and video are the ones shown on desktop
+
+## M23 · Phone heat
+
+Build: an iPhone 16e no longer gets warm while playing. After M22; heat can only be judged on the phone, so every step is a build the user tries.
+
+- [ ] Measure on the phone: Safari Web Inspector timeline (CPU, GPU, frame rate) in a late run; canvas size in device pixels
+- [ ] Candidates, one at a time: canvas rendered at a whole multiple of the base size instead of the device's full pixel ratio (3× on the 16e: about 1170×2532 for a 360-wide pixel game), scaled up by the browser with nearest-neighbour; lower frame rate; particle and crowd counts on phones
+- [ ] Keep what cools the phone without a visible loss; docs: `tech.md`
+
+Test (browser):
+- iPhone, 15 min into a run with three lines: the phone stays cool to the touch, the game looks and scrolls as before
+- Desktop and Android: pixels as sharp as before
+
 ## Not in the prototype
 
 A full tutorial (not in the pitch; only the intro guide label), Reactor/Thrusters/Shields (no stats yet), more lines or tiers for later wars, a sim that runs on while away (the away card pays a share instead), desktop layout.

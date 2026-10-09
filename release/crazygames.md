@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-08 at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m20` ([M20](../docs/plan.md)); the live build is the no-ads one (`build/crazygames/`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
+Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (expires 2026-10-28) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m20` ([M20](../docs/plan.md)); the live build is the no-ads one (`build/crazygames/`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
 
 ## Why CrazyGames
 
@@ -17,6 +17,8 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
   - Submitted for review on 2026-10-06 with the m19 build (no SDK, save in `user://`)
   - Live since 2026-10-08 with the m20 no-ads build (preset "CrazyGames"): https://www.crazygames.com/game/scrap-titans ← current stage
   - Real players from here on: every update has to load their saves
+  - Ends at 7 days live and 500 plays, else after 21 days (2026-10-28); updates any time, approved automatically; tracked without the SDK ([basic launch metrics](https://docs.crazygames.com/resources/basic-launch-metrics/), read 2026-10-09)
+  - Judged on: average playtime per session (10+ min), day 1 return (10–15 %), conversion = players who play at least one minute after starting (top games 80 %+) → [M22](../docs/plan.md)
 - Full Launch: second QA pass; SDK required, ads on
 
 ## Blockers for Basic Launch

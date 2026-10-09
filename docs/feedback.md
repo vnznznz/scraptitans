@@ -23,7 +23,7 @@ Developer portal figures worth tracking per build; one row per look.
 
 | Date | Build | Plays | Avg. playtime | Day 1 return | Notes |
 |---|---|---|---|---|---|
-| 2026-10-09 | live 2026-10-08 | 141 | 12m23s (mid range) | no data yet | First day. 107 players, all new; 16K impressions (mid range, mostly game pages), CTR 1.1 % (bottom 20 %); gameplay conversion 42.46 % (bottom 20 %); rating 10.0 from 10 votes; load 0.7 s, crash rate 0.69 % |
+| 2026-10-09 | live 2026-10-08 | 141 | 12m23s (mid range) | no data yet | First day. 107 players, all new; 16K impressions (mid range, mostly game pages), CTR 1.1 % (bottom 20 %); gameplay conversion 42.46 % (bottom 20 %); rating 10.0 from 10 votes; load 0.7 s, crash rate 0.69 %. Desktop: 77 plays, 59 players, 11K impressions, CTR 0.6 %, playtime 17m12s, conversion 46.84 %, load crash 1.19 %. Mobile: 64 plays, 48 players, 4.8K impressions, CTR 2.1 %, playtime 6m36s, conversion 39.00 %, gameplay crash 1.61 % |
 
 ## Closed
 
