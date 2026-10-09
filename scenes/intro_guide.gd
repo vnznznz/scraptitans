@@ -16,6 +16,7 @@ const THUMB_HALF := 44.0
 const THUMB_ABOVE := 12.0
 const LIT := Color(1.5, 1.5, 1.2)
 const FRAME_GROW := 2.0
+const STATIONS := "TAP STATIONS TO BUILD A MECH\nIT WILL PUSH THE DRONES BACK"
 
 var pile: Control
 var line: LineView
@@ -40,6 +41,7 @@ func _ready() -> void:
 	_label = Label.new()
 	_label.name = "Text"
 	_label.add_theme_color_override("font_color", COLOR)
+	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var plate := StyleBoxFlat.new()
 	plate.bg_color = OUTLINE
 	plate.border_color = COLOR
@@ -155,7 +157,7 @@ func _step() -> Array:
 		if segs[i].built:
 			continue
 		if GameState.scrap < GameState.build_cost(0, i):
-			return ["TAP THE SCRAP PILE", pile, Place.ABOVE]
+			return ["DRONES MARCH ON THE GATE\nTAP THE SCRAP PILE" if i == 0 else "TAP THE SCRAP PILE", pile, Place.ABOVE]
 		return ["BUILD THE %s STATION" % str(Data.segment_type(segs[i].type_id).name).to_upper(), line.segment_view(i), Place.ABOVE, line.segment_view(i).get_node("Build")]
 	for i in segs.size():
 		if segs[i].stall == SegmentState.Stall.NO_SCRAP:
@@ -167,8 +169,8 @@ func _step() -> Array:
 			from = i + 1 if segs[i].assembling or m.has_part(segs[i].type_id) else i
 	for i in range(from, segs.size()):
 		if not segs[i].bar_full():
-			return ["TAP STATIONS TO BUILD A MECH", line.segment_view(i), Place.ABOVE]
-	return ["TAP STATIONS TO BUILD A MECH", null, Place.ABOVE]
+			return [STATIONS, line.segment_view(i), Place.ABOVE]
+	return [STATIONS, null, Place.ABOVE]
 
 
 func _hint() -> Array:
@@ -178,6 +180,8 @@ func _hint() -> Array:
 		var buy := menu.first_affordable()
 		if buy:
 			return ["BUY IT", buy, Place.BESIDE]
+	if GameState.gate_attacked() and not (menu and menu.visible):
+		return ["THE GATE IS UNDER ATTACK\nBUILD MECHS TO DEFEND IT", line.segment_view(0), Place.ABOVE]
 	if GameState.field_taps < FIELD_TAPS and not GameState.field.is_empty() and battlefield and battlefield.size.y >= Battlefield.HEIGHT and not (menu and menu.visible):
 		return ["TAP THE FIELD TO HIT THE WAVE", battlefield.hint_anchor(), Place.ABOVE]
 	return []

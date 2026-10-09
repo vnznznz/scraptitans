@@ -2705,11 +2705,11 @@ func intro() -> void:
 	var guide: IntroGuide = main.get_node("IntroGuide")
 	var pile: Control = main.find_child("Pile", true, false)
 	var arrow_x := func() -> float: return guide.get("_tip").x + guide.global_position.x
-	t.check(guide.text() == "TAP THE SCRAP PILE", "fresh game: guide points at the pile (%s)" % guide.text())
+	t.check(guide.text() == "DRONES MARCH ON THE GATE\nTAP THE SCRAP PILE", "fresh game: the mission, guide points at the pile (%s)" % guide.text())
 	t.check(absf(arrow_x.call() - pile.get_global_rect().get_center().x) < 1.0, "arrow above the pile")
 	var label: Label = guide.get_node("Text")
 	var on_screen := func() -> bool: return main.get_global_rect().grow(-IntroGuide.MARGIN).encloses(label.get_global_rect())
-	t.check(absf(label.get_global_rect().get_center().x - arrow_x.call()) <= 1.0 and on_screen.call(), "label centered on its arrow")
+	t.check(absf(label.get_global_rect().get_center().x - arrow_x.call()) <= 1.0 and on_screen.call(), "label centered on its arrow (%s)" % label.get_global_rect())
 	t.check(guide.modulate.a == 1.0 and label.modulate.a == 1.0, "label at full opacity")
 	t.check(guide.get("_lit") == (pile as TapArea).highlight, "the pile is lit while the guide points at it")
 	await t.shot("intro_pile")
@@ -2741,7 +2741,7 @@ func intro() -> void:
 		await t.click(pile)
 	for i in 2:
 		await t.click(_build_button(line, i + 1))
-	t.check(guide.text() == "TAP STATIONS TO BUILD A MECH", "all built: tap the stations (%s)" % guide.text())
+	t.check(guide.text() == IntroGuide.STATIONS, "all built: tap the stations to push the drones back (%s)" % guide.text())
 	t.check(absf(arrow_x.call() - line.segment_view(0).get_global_rect().get_center().x) < 1.0 and guide.get("_down")
 			and label.get_global_rect().end.y <= line.segment_view(0).get_global_rect().position.y, "arrow and label above the frame station")
 	t.check(guide.get("_lit") == (line.segment_view(0).get_node("Tap") as TapArea).highlight, "the station's machine is lit")
@@ -2799,7 +2799,7 @@ func intro() -> void:
 	GameState.prestige = IntroGuide.VETERAN_WARS - 1
 	GameState.new_game()
 	await t.frames(1)
-	t.check(guide.text() == "TAP THE SCRAP PILE", "%d war won: the guide is still there" % (IntroGuide.VETERAN_WARS - 1))
+	t.check(guide.text() == "DRONES MARCH ON THE GATE\nTAP THE SCRAP PILE", "%d war won: the guide is still there" % (IntroGuide.VETERAN_WARS - 1))
 	GameState.prestige = IntroGuide.VETERAN_WARS
 	await t.frames(1)
 	t.check(not guide.visible, "%d wars won: no guide" % IntroGuide.VETERAN_WARS)
@@ -3620,6 +3620,8 @@ func gate() -> void:
 	var fell := [0]
 	var on_fell := func() -> void: fell[0] += 1
 	GameState.gate_fell.connect(on_fell)
+	var alerts := int(Sound.plays.get(&"gate_alert", 0))
+	var hits := int(Sound.plays.get(&"gate_hit", 0))
 	t.check(field.visible and field.size.y == Battlefield.HEIGHT and field.enemy_count() > 0 and t.node("Rail").visible,
 			"new game: battlefield with the first wave and the scroll bar on screen")
 	t.check(GameState.siege == 0.0 and GameState.gate_health() == 1.0 and layer.position.x == 0.0 and not label.visible, "the column at its post, the gate whole")
@@ -3631,10 +3633,14 @@ func gate() -> void:
 	GameState.advance(approach / 2.0 + 10.0)
 	await t.frames(2)
 	t.check(GameState.gate_attacked() and absf(GameState.gate_damage - 10.0) < 0.1, "at the gate: it takes damage (%.1f s after 10 s)" % GameState.gate_damage)
+	var guide: IntroGuide = main.get_node("IntroGuide")
+	t.check(guide.text() == "DRONES MARCH ON THE GATE\nTAP THE SCRAP PILE", "before the first mech the guide keeps to its steps")
+	t.check(int(Sound.plays.get(&"gate_alert", 0)) == alerts + 1, "the attack starts: one alert")
 	t.check(label.visible and label.text == "GATE UNDER ATTACK" and absf((field.get_node("World/Gate") as Gate).health - (1.0 - 10.0 / time)) < 0.01, "label and health bar show it")
 	GameState.time_scale = 1.0
-	await t.wait(1.0)
+	await t.wait(3.0)
 	GameState.time_scale = 0.0
+	t.check(int(Sound.plays.get(&"gate_hit", 0)) > hits, "shots landing on the gate sound")
 	await t.shot("gate_attack")
 	var before := JSON.stringify(GameState.to_dict(), "", true)
 	GameState.from_dict(JSON.parse_string(before))
@@ -3655,6 +3661,12 @@ func gate() -> void:
 			"the gate repairs %.1f s of damage per second while mechs hold the field" % Data.econ("gate_repair"))
 	GameState.advance(15.0)
 	t.check(GameState.field.is_empty() and GameState.siege > 0.0, "the mech dies: the column comes again")
+	GameState.siege = 1.0
+	GameState.advance(0.1)
+	await t.frames(2)
+	t.check(guide.text() == "THE GATE IS UNDER ATTACK\nBUILD MECHS TO DEFEND IT" and guide.get("_label").get_global_rect().size.x <= 328.0
+			and main.get_rect().encloses(guide.get("_label").get_global_rect()), "after the first mech: the guide calls for mechs (%s)" % guide.get("_label").get_global_rect())
+	await t.shot("gate_guide")
 	GameState.siege = 0.9
 	GameState.kill_wave()
 	t.check(GameState.siege == 0.0, "a cleared wave: the next one starts from its post")

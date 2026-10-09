@@ -19,6 +19,7 @@ Sound design, tuning and the sound assignment. How it's built: [tech.md](tech.md
 - Limits per sound: `cooldown` (plays inside it are dropped) and `voices` (max at once). The whole battlefield shares a budget (`groups.field` plays/s)
 - Rewards stand out: wave clear, unlocks, fits are the loudest regular sounds and rare
 - No repeating alarms: running out of scrap is a soft power-down, once per starved phase, ≥ 20 s apart
+- The gate alert is the exception that has to be heard: two short beeps when an attack on the gate starts and again each time it has lost another quarter of its health (at most 4 per siege, ≥ 10 s apart), also with the battlefield scrolled away (no `area`); no loop
 - The factory hum follows assemblies in the last 4 s, so pausing or starving lines audibly quiets the factory
 
 ## Tuning (`data/audio.json`)
@@ -71,6 +72,8 @@ Battlefield
 - `field_tap`: sounds_impact12, sounds_impact11, damage_hit1, 5, 7, 10 (Simple Damage Sounds: short noisy hits with a falling sweep, like the impacts; the gated chiptune blips left out)
 - `enemy_pop`: exp_shortest_soft2, 5, 6, 8; `enemy_pop_big`: exp_short_soft4 (the "soft" explosions decay smoothly; the "hard" ones are bit-crushed and harsh)
 - `mech_death`: exp_short_soft3, soft11
+- `gate_alert`: alarm_loop6 (two clean beeps, 0.1 s each, rising 700 → 880 Hz, nothing above 4 kHz; alternatives by the same measures: alarm_shorter_18 = four quick beeps at 720 Hz, alarm_longer_29 = a 0.8 s rising sweep 800 → 1300 Hz)
+- `gate_hit` (an enemy shot lands on the gate): small_break, break1_small, sounds_impact13; noisy 0.2–0.3 s cracks with 22–31 % of their energy below 250 Hz, heavier than the station ticks; at the busy level, ≥ 0.25 s apart, inside the battlefield budget; break2_medium (0.34 s, heavier) left out as too long for a sound this frequent
 - `wave_clear`: exp_cluster5, then `bounty`: coin_cluster4 (0.3 s later); `wave_arrive`: turn_enemy (0.6 s after)
 
 Income, buys, UI
@@ -86,11 +89,11 @@ Nuke
 - `collapse`: exp_cluster1, machine_destroyed, per line and the yard
 - `run_card`: fanfare5, then the Ending music
 
-Not used on purpose: robot/cyborg death screams (too comic ×50 deaths), alarm loops outside the nuke, `lazer_current(loop)` (piercing buzz), coin counter, speech.
+Not used on purpose: robot/cyborg death screams (too comic ×50 deaths), alarm loops outside the nuke (the gate alert plays a loop file once), `lazer_current(loop)` (piercing buzz), coin counter, speech.
 
 ## Size
 
-- 70 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
+- 74 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
 - Web decodes every sample to 48 kHz stereo float: ~49 MB of `AudioBuffer`s (music 17, wind 12). If the iPhone struggles: cut the wind to a ~10 s loop, then drop it
 
 ## License

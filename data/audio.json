@@ -61,6 +61,8 @@
 		"wave_clear": {"bus": "battle", "files": ["sfx_exp_cluster5"], "volume_db": -4, "area": "field"},
 		"bounty": {"bus": "battle", "files": ["sfx_coin_cluster4"], "volume_db": -9, "area": "field"},
 		"wave_arrive": {"bus": "battle", "files": ["sfx_turn_enemy"], "volume_db": -10, "area": "field"},
+		"gate_alert": {"bus": "battle", "files": ["sfx_alarm_loop6"], "volume_db": -11, "cooldown": 10},
+		"gate_hit": {"bus": "battle", "files": ["sfx_small_break", "sfx_break1_small", "sfx_sounds_impact13"], "file_db": {"sfx_break1_small": 2, "sfx_sounds_impact13": 2}, "volume_db": -14, "pitch": 0.08, "cooldown": 0.25, "voices": 2, "group": "field", "area": "field"},
 
 		"coin": {"bus": "factory", "files": ["sfx_coin_single3", "sfx_coin_single5"], "volume_db": -20, "pitch": 0.05, "cooldown": 0.25, "voices": 3},
 		"coin_big": {"bus": "factory", "files": ["sfx_coin_double1"], "volume_db": -14, "pitch": 0.03, "cooldown": 0.2, "voices": 2},

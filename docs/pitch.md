@@ -114,6 +114,8 @@ One word per thing, in every label, row, info text and guide line:
 | Credits on deploy | fee | bonus |
 | Better part on a station | fit (arrow button) | — |
 | Nukes launched so far | wars won | prestige, level |
+| The enemies | wave; drones in the guide's first lines (wave 1 is drones) | column, horde |
+| What the mechs defend | gate | base, wall |
 
 ## Station tiers (scrap, per station, per line)
 

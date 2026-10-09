@@ -52,6 +52,7 @@ const SIEGE_REACH := 196.0
 const GATE_TARGET := Rect2(6, 106, 12, 44)
 const GATE_BAR := Rect2(6, 32, 64, 8)
 const GATE_BLINK := 0.4
+const GATE_ALERTS := 4
 const GATE_RUIN := Color(0.4, 0.34, 0.4)
 const SKY_TINT := [[0.0, Color(1, 1, 1)], [0.3, Color(1.0, 0.86, 0.8)], [0.6, Color(0.62, 0.66, 0.92)], [1.0, Color(1.0, 0.62, 0.58)]]
 
@@ -84,6 +85,7 @@ var _arrivals: Array[MechState] = []
 var _shell_t := 0.0
 var _gate_label: Label
 var _marching := false
+var _alert := 0
 var shells := 0
 
 
@@ -390,8 +392,13 @@ func _update_siege() -> void:
 	_gate.health = GameState.gate_health()
 	_gate_label.visible = GameState.gate_damage > 0.0
 	if not _gate_label.visible:
+		_alert = 0
 		return
 	var attacked := GameState.gate_attacked()
+	var alert := 1 + int((1.0 - GameState.gate_health()) * GATE_ALERTS) if attacked else 0
+	if alert > _alert:
+		Sound.play(&"gate_alert")
+	_alert = alert
 	_gate_label.text = "GATE UNDER ATTACK" if attacked else "GATE"
 	_gate_label.modulate = Pal.RED if attacked and fmod(Time.get_ticks_msec() / 1000.0, GATE_BLINK * 2.0) < GATE_BLINK else Pal.WHITE
 
@@ -408,6 +415,7 @@ func _fire_at_gate(e: Sprite2D) -> void:
 	tw.tween_property(bullet, "position", target, bullet.position.distance_to(target) / 260.0)
 	tw.tween_callback(func() -> void:
 		_gate.hit()
+		Sound.play(&"gate_hit")
 		Fx.hit(_mechs, target, Pal.PINK)
 		bullet.queue_free())
 
