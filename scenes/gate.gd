@@ -14,6 +14,9 @@ const OPEN_TIME := 0.8
 const SLIDE_TIME := 0.15
 const FLOW_GAP := 0.25
 const FLOW_QUEUE := 8
+const HIT_FLASH := 0.1
+
+var health := 1.0
 
 var _open := 0.0
 var _lift := 0.0
@@ -21,6 +24,8 @@ var _shown := 0
 var _queue := []
 var _walkers := []
 var _gap := 0.0
+var _bar_px := -1
+var _flash := 0.0
 
 
 func _ready() -> void:
@@ -32,6 +37,11 @@ func send(m: MechState, to: Vector2) -> bool:
 		return false
 	_queue.append({"m": m, "to": to, "pos": EXIT})
 	return true
+
+
+func hit() -> void:
+	_flash = HIT_FLASH
+	queue_redraw()
 
 
 func clear() -> void:
@@ -60,16 +70,26 @@ func _process(delta: float) -> void:
 	_open = maxf(0.0, _open - delta)
 	_lift = move_toward(_lift, 1.0 if _open > 0.0 else 0.0, delta / SLIDE_TIME)
 	var shown := roundi(DOOR.get_height() * (1.0 - _lift))
-	if shown != _shown or moving or not _walkers.is_empty():
+	var bar_px := -1 if health >= 1.0 else ceili((Battlefield.GATE_BAR.size.x - 2.0) * maxf(health, 0.0))
+	var flashing := _flash > 0.0
+	_flash = maxf(0.0, _flash - delta)
+	if shown != _shown or bar_px != _bar_px or flashing or moving or not _walkers.is_empty():
 		_shown = shown
+		_bar_px = bar_px
 		queue_redraw()
 
 
 func _draw() -> void:
 	var top := Vector2(X, BOTTOM - WALL.get_height())
-	draw_texture(WALL, top)
+	var tint := Color(2, 1.4, 1.4) if _flash > 0.0 else Color.WHITE
+	draw_texture(WALL, top, tint)
 	var door := Vector2(DOOR.get_width(), _shown)
-	draw_texture_rect_region(DOOR, Rect2(top + DOOR_POS, door), Rect2(Vector2(0, DOOR.get_height() - _shown), door))
+	draw_texture_rect_region(DOOR, Rect2(top + DOOR_POS, door), Rect2(Vector2(0, DOOR.get_height() - _shown), door), tint)
+	if _bar_px >= 0:
+		var bar := Battlefield.GATE_BAR
+		draw_rect(bar, Pal.INK)
+		draw_rect(Rect2(bar.position + Vector2.ONE, bar.size - Vector2(2, 2)), Pal.NAVY)
+		draw_rect(Rect2(bar.position + Vector2.ONE, Vector2(_bar_px, bar.size.y - 2.0)), Pal.GREEN if health > 0.5 else Pal.GOLD if health > 0.25 else Pal.RED)
 	var tick := int(Time.get_ticks_msec() / (Crowd.MARCH_TICK * 1000.0))
 	for w: Dictionary in _walkers:
 		var m: MechState = w.m

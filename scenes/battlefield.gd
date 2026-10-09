@@ -48,6 +48,11 @@ const LAYER_TINT := [1.0, 1.0, 0.6, 0.3]
 const FRONT_STEP := 20.0
 const FRONT_GROWTH := 1.6
 const FRONT_END := 1080.0
+const SIEGE_REACH := 196.0
+const GATE_TARGET := Rect2(6, 106, 12, 44)
+const GATE_BAR := Rect2(6, 32, 64, 8)
+const GATE_BLINK := 0.4
+const GATE_RUIN := Color(0.4, 0.34, 0.4)
 const SKY_TINT := [[0.0, Color(1, 1, 1)], [0.3, Color(1.0, 0.86, 0.8)], [0.6, Color(0.62, 0.66, 0.92)], [1.0, Color(1.0, 0.62, 0.58)]]
 
 var _world: Node2D
@@ -77,6 +82,8 @@ var _dirty := true
 var _level := -1
 var _arrivals: Array[MechState] = []
 var _shell_t := 0.0
+var _gate_label: Label
+var _marching := false
 var shells := 0
 
 
@@ -137,6 +144,7 @@ func _ready() -> void:
 	_crowd = Crowd.new()
 	_world.add_child(_crowd)
 	_gate = Gate.new()
+	_gate.name = "Gate"
 	_gate.left.connect(_walk_out)
 	_gate.arrived.connect(func(m: MechState) -> void: _crowd.release(m.id))
 	_world.add_child(_gate)
@@ -151,6 +159,7 @@ func _ready() -> void:
 	add_child(_tap)
 
 	_enemy_layer = Node2D.new()
+	_enemy_layer.name = "Enemies"
 	_enemy_layer.y_sort_enabled = true
 	_world.add_child(_enemy_layer)
 	_mechs = Node2D.new()
@@ -186,21 +195,28 @@ func _ready() -> void:
 	_strip.size = Vector2(BAR_RECT.size.x, STRIP_H)
 	_strip.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_strip)
+	_gate_label = _bar_label("GateLabel", HORIZONTAL_ALIGNMENT_LEFT)
+	_gate_label.position = Vector2(GATE_BAR.end.x + 6.0, GATE_BAR.get_center().y - _gate_label.size.y / 2.0)
+	_gate_label.visible = false
 	_on_resized()
 
 	GameState.mech_deployed.connect(_on_deployed)
+	GameState.gate_fell.connect(_on_gate_fell)
 	GameState.mech_income.connect(_on_income)
 	GameState.mech_died.connect(_on_died)
 	GameState.wave_cleared.connect(_on_wave_cleared)
 	GameState.enemy_killed.connect(_on_enemy_killed)
 	_update_front(0.0)
-	if GameState.run_over:
+	if GameState.run_over and not GameState.lost:
 		scorch()
 		return
 	_sync_views()
 	for id: int in _views:
 		_views[id].position = _slot_pos(_slots[id])
 	_show_wave(false)
+	_update_siege()
+	if GameState.lost:
+		_ruin_gate()
 
 
 static func front_offset(wave: int) -> float:
@@ -236,6 +252,8 @@ func _on_resized() -> void:
 	for c: Control in [_bar, _hp_label, _dps_label]:
 		if c:
 			c.position.y = BAR_RECT.position.y + _world.position.y
+	if _gate_label:
+		_gate_label.position.y = GATE_BAR.get_center().y - _gate_label.size.y / 2.0 + _world.position.y
 	if _strip:
 		_strip.position.y = BAR_RECT.end.y + _world.position.y
 
@@ -267,6 +285,7 @@ func _process(delta: float) -> void:
 	if _dirty:
 		_sync_views()
 	_update_front(delta)
+	_update_siege()
 	_crowd.marching = advancing()
 	_step_views(delta, true)
 
@@ -288,9 +307,11 @@ func _process(delta: float) -> void:
 		var e := _enemies[i]
 		if e.get_meta("flying"):
 			e.offset.y = -e.texture.get_height() / 2.0 + roundf(sin(t * 3.0 + i) * 2.0)
+		else:
+			e.offset.y = -e.texture.get_height() / 2.0 - (1.0 if _marching and (int(t / Crowd.MARCH_TICK) + i) % 2 == 0 else 0.0)
 		if e.visible:
 			(e.get_node("Damage") as DamageFx).set_remaining(remaining)
-		if e.visible and not _views.is_empty():
+		if e.visible and (not _views.is_empty() or GameState.gate_attacked()):
 			var ft: float = e.get_meta("fire_t", randf_range(0.0, ENEMY_FIRE.y)) - delta * GameState.time_scale
 			if ft <= 0.0:
 				ft = randf_range(ENEMY_FIRE.x, ENEMY_FIRE.y)
@@ -359,10 +380,59 @@ func enemy_xs() -> Array:
 
 
 func _enemy_center(e: Sprite2D) -> Vector2:
-	return e.position + e.offset
+	return e.position + e.offset + _enemy_layer.position
+
+
+func _update_siege() -> void:
+	var x := -roundf(GameState.siege * SIEGE_REACH)
+	_marching = x != _enemy_layer.position.x
+	_enemy_layer.position.x = x
+	_gate.health = GameState.gate_health()
+	_gate_label.visible = GameState.gate_damage > 0.0
+	if not _gate_label.visible:
+		return
+	var attacked := GameState.gate_attacked()
+	_gate_label.text = "GATE UNDER ATTACK" if attacked else "GATE"
+	_gate_label.modulate = Pal.RED if attacked and fmod(Time.get_ticks_msec() / 1000.0, GATE_BLINK * 2.0) < GATE_BLINK else Pal.WHITE
+
+
+func _fire_at_gate(e: Sprite2D) -> void:
+	Sound.play(StringName("enemy_shot_" + e.get_meta("sprite")))
+	var bullet := Sprite2D.new()
+	bullet.texture = load("res://art/fx/enemy_shot_%s.png" % e.get_meta("sprite"))
+	bullet.position = _enemy_center(e) - Vector2(e.texture.get_width() / 2.0, 0)
+	_mechs.add_child(bullet)
+	var target := GATE_TARGET.position + Vector2(randf(), randf()) * GATE_TARGET.size
+	bullet.rotation = (target - bullet.position).angle() + PI
+	var tw := bullet.create_tween()
+	tw.tween_property(bullet, "position", target, bullet.position.distance_to(target) / 260.0)
+	tw.tween_callback(func() -> void:
+		_gate.hit()
+		Fx.hit(_mechs, target, Pal.PINK)
+		bullet.queue_free())
+
+
+func _on_gate_fell() -> void:
+	_update_siege()
+	Sound.play(&"collapse")
+	Sound.play(&"enemy_pop_big")
+	for k in 5:
+		Fx.explosion(_mechs, GATE_TARGET.position + Vector2(randf(), randf()) * GATE_TARGET.size, k % 2 == 0, randf_range(0.4, 0.8))
+	Fx.debris(_mechs, GATE_TARGET.get_center(), 16, true)
+	shake(4.0, 8)
+	_ruin_gate()
+
+
+func _ruin_gate() -> void:
+	_gate.modulate = GATE_RUIN
+	_cannon.visible = false
+	_gate_label.visible = false
 
 
 func _enemy_fire(e: Sprite2D) -> void:
+	if _views.is_empty():
+		_fire_at_gate(e)
+		return
 	var id: int = _views.keys().pick_random()
 	var view: MechView = _views[id]
 	if view.walking:

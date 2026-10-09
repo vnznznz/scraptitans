@@ -13,7 +13,7 @@ func m0() -> void:
 	var scroll: ScrollContainer = t.node("Scroll")
 	var content: Control = t.node("Content")
 	t.check(main.size == Vector2(360, 640), "viewport is 360x640 (got %s)" % main.size)
-	t.check(t.node("Hud").size.y == 48 and not t.node("Battlefield").visible, "hud 48, no battlefield before the first mech")
+	t.check(t.node("Hud").size.y == 48 and t.node("Battlefield").visible, "hud 48, battlefield under it from the start")
 	t.check(scroll.size.y >= content.get_combined_minimum_size().y and scroll.size.y == 592.0, "one scroll pane from the HUD to the screen bottom (%d px)" % scroll.size.y)
 	t.check(content.get_children().map(func(c: Node) -> String: return c.name) == ["Battlefield", "Lines", "Scrapyard", "YardSpacer"], "pane holds battlefield, lines, scrapyard")
 	t.check(scroll.scroll_vertical == 0, "pane starts at the top")
@@ -990,6 +990,7 @@ const STEP := 0.25
 const PHASE_GAP := 30.0
 const SAVE_WINDOW := 30.0
 const START_WINDOW := 300.0
+const GATE_SAFE := 100.0
 
 
 func m9() -> void:
@@ -1171,14 +1172,15 @@ func tune() -> void:
 		print("  %-9s %5.1f   %4.0f%%    %4.1f%%  %3d  %4.0f  %4.0f  %5.0f  %5.1f  %4.0f%%  %3.0f%%  %5d  %5s  %4d" % [
 			key, r.time / 60.0, r.bounty * 100.0, r.starved * 100.0, r.phases, r.gap, r.first_fit, r.final_wait,
 			r.first_maxed / 60.0, r.tap_scrap * 100.0, r.tap_work * 100.0, r.lines, Fmt.num(r.peak_dps), r.wave])
-	print("  start      station  mech  wave   buy  quiet (s; quiet = longest stretch of the first 5 min with nothing new)")
+	print("  start      station  mech  wave   buy  quiet  gate (s; quiet = longest stretch of the first 5 min with nothing new, gate = most attack time the gate had taken)")
 	for key: String in runs:
 		var r: Dictionary = runs[key]
-		print("  %-9s  %6.1f %5.1f %5.1f %5.1f  %5.1f" % [key, r.first_build, r.first_mech, r.first_wave, r.first_buy, r.quiet])
+		print("  %-9s  %6.1f %5.1f %5.1f %5.1f  %5.1f %5.1f" % [key, r.first_build, r.first_mech, r.first_wave, r.first_buy, r.quiet, r.gate])
 	for key: String in runs:
 		var r: Dictionary = runs[key]
 		var shortest := 1500.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1800.0
-		t.check(r.over and r.time >= shortest and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
+		t.check(r.over and not r.lost and r.time >= shortest and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
+		t.check(r.gate <= GATE_SAFE, "%s: the gate took %.0f s of attack at most" % [key, r.gate])
 	if not runs.has("baseline"):
 		GameState.new_game()
 		return
@@ -1249,6 +1251,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 	GameState.enemy_killed.connect(on_kill)
 	var taps := 0.0
 	var peak_dps := 0.0
+	var peak_gate := 0.0
 	var starved_t := 0.0
 	var phases := []
 	var seen := {}
@@ -1265,6 +1268,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		GameState.advance(STEP)
 		r.scrap.yard += (GameState.yard_chunks - yard_before) * chunk
 		peak_dps = maxf(peak_dps, GameState.field_dps())
+		peak_gate = maxf(peak_gate, GameState.gate_damage)
 		if GameState.starved():
 			starved_t += STEP
 			if phases.is_empty() or GameState.run_time - phases[-1][1] > PHASE_GAP:
@@ -1332,6 +1336,8 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"first_wave": r.waves[0] if r.waves.size() else INF,
 		"first_buy": paid[0][0] if paid.size() else INF,
 		"quiet": quiet,
+		"lost": GameState.lost,
+		"gate": peak_gate,
 		"first_worker": hires[0][0] if hires.size() else INF,
 		"final_wait": final_wait,
 		"first_maxed": r.maxed.values().min() if r.maxed.size() else INF,
@@ -1654,10 +1660,11 @@ func progression() -> void:
 	var unlock: Control = main.find_child("UnlockSlot", true, false)
 	var yard_hire: Control = yard.get_node("HireYard")
 	var col := column.get_global_rect()
-	t.check(not field.visible and not line.visible and not rail.visible and not bar.visible and not unlock.visible,
-			"new game: battlefield, line, scroll bar, UPGRADES, UNLOCK LINE hidden")
-	t.check(absf(yard.get_global_rect().get_center().y - col.get_center().y) <= 1.0 and absf(yard.get_global_rect().get_center().x - 180.0) <= 1.0,
-			"only the scrapyard, centered (%s)" % yard.get_global_rect())
+	t.check(not line.visible and not bar.visible and not unlock.visible, "new game: line, UPGRADES, UNLOCK LINE hidden")
+	t.check(field.visible and field.size.y == Battlefield.HEIGHT and field.get_global_rect().position.y == col.position.y and rail.visible and rail.size.x == ScrollRail.WIDTH,
+			"battlefield attached under the HUD from the start, with the scroll bar")
+	t.check(absf(yard.get_global_rect().get_center().y - (field.get_global_rect().end.y + col.end.y) / 2.0) <= 1.0 and absf(yard.get_global_rect().get_center().x - 170.0) <= 1.0,
+			"the scrapyard centered in the space under it (%s)" % yard.get_global_rect())
 	t.check(not hud.get_node("Mechs").visible and not hud.get_node("MechsRate").visible, "HUD: scrap only")
 	await t.shot("start_pile")
 	var pile: Control = yard.pile()
@@ -1682,12 +1689,7 @@ func progression() -> void:
 		await t.click(_build_button(line, i))
 	GameState.debug_spawn_mechs(1)
 	await t.frames(2)
-	t.check(field.visible and field.size.y < Battlefield.HEIGHT and rail.visible and rail.size.x < ScrollRail.WIDTH, "first mech: battlefield and scroll bar slide in")
-	await t.wait(Reveal.SLIDE_TIME / 2.0)
-	await t.shot("start_field_mid")
-	await t.wait(Reveal.SLIDE_TIME)
-	t.check(field.size.y == Battlefield.HEIGHT and field.get_global_rect().position.y == col.position.y and rail.size.x == ScrollRail.WIDTH,
-			"battlefield attached under the HUD, scroll bar in")
+	await t.wait(Reveal.SLIDE_TIME * 1.5)
 	t.check(yard.get_global_rect().end.y == col.end.y and line.get_global_rect().end.y == yard.get_global_rect().position.y
 			and line.get_global_rect().position.y > field.get_global_rect().end.y,
 			"factory and yard stay at the bottom, the gap sits between battlefield and factory")
@@ -1731,8 +1733,8 @@ func progression() -> void:
 
 	Save.reset_run()
 	await t.frames(4)
-	t.check(not (t.node("Battlefield") as Control).visible and not (t.node("Bar") as Control).visible and not t.get_tree().current_scene.line_view(0).visible,
-			"START AGAIN: back to the pile alone")
+	t.check((t.node("Battlefield") as Control).visible and not (t.node("Bar") as Control).visible and not t.get_tree().current_scene.line_view(0).visible,
+			"START AGAIN: back to the battlefield and the pile")
 	Reveal.instant = true
 
 
@@ -3497,6 +3499,95 @@ func away() -> void:
 	GameState.new_game()
 	t.check(GameState.away_t == 0.0, "a new war starts without a reward")
 	CrazyGames.use_none()
+
+
+func gate() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var field: Battlefield = t.node("Battlefield")
+	var layer: Node2D = field.get_node("World/Enemies")
+	var label: Label = field.get_node("GateLabel")
+	var approach := Data.econ("gate_approach")
+	var time := Data.econ("gate_time")
+	var fell := [0]
+	var on_fell := func() -> void: fell[0] += 1
+	GameState.gate_fell.connect(on_fell)
+	t.check(field.visible and field.size.y == Battlefield.HEIGHT and field.enemy_count() > 0 and t.node("Rail").visible,
+			"new game: battlefield with the first wave and the scroll bar on screen")
+	t.check(GameState.siege == 0.0 and GameState.gate_health() == 1.0 and layer.position.x == 0.0 and not label.visible, "the column at its post, the gate whole")
+	GameState.advance(approach / 2.0)
+	await t.frames(2)
+	t.check(absf(GameState.siege - 0.5) < 0.01 and GameState.gate_damage == 0.0 and absf(layer.position.x + Battlefield.SIEGE_REACH / 2.0) <= 1.0,
+			"no mech out: half the way to the gate after %d s (%d px)" % [approach / 2.0, layer.position.x])
+	await t.shot("gate_march")
+	GameState.advance(approach / 2.0 + 10.0)
+	await t.frames(2)
+	t.check(GameState.gate_attacked() and absf(GameState.gate_damage - 10.0) < 0.1, "at the gate: it takes damage (%.1f s after 10 s)" % GameState.gate_damage)
+	t.check(label.visible and label.text == "GATE UNDER ATTACK" and absf((field.get_node("World/Gate") as Gate).health - (1.0 - 10.0 / time)) < 0.01, "label and health bar show it")
+	GameState.time_scale = 1.0
+	await t.wait(1.0)
+	GameState.time_scale = 0.0
+	await t.shot("gate_attack")
+	var before := JSON.stringify(GameState.to_dict(), "", true)
+	GameState.from_dict(JSON.parse_string(before))
+	t.check(before == JSON.stringify(GameState.to_dict(), "", true) and GameState.gate_damage > 10.0, "reload keeps the siege and the damage")
+	var hp := GameState.wave_hp
+	await t.click(t.node("Battlefield").get_node("FieldTap"))
+	t.check(GameState.wave_hp < hp, "the gate cannon hits the wave before the first mech")
+
+	GameState.gate_damage = 100.0
+	_spawn_mechs(1)
+	GameState.advance(Data.econ("gate_retreat") / 2.0)
+	await t.frames(2)
+	t.check(absf(GameState.siege - 0.5) < 0.01 and not GameState.gate_attacked() and GameState.gate_damage < 100.0,
+			"a mech out: the column falls back, the damage stops (%.1f)" % GameState.gate_damage)
+	t.check(label.visible and label.text == "GATE", "repairing: plain label")
+	GameState.advance(10.0)
+	t.check(GameState.siege == 0.0 and absf(GameState.gate_damage - (100.0 - (10.0 + Data.econ("gate_retreat") / 2.0) * Data.econ("gate_repair"))) < 0.1,
+			"the gate repairs %.1f s of damage per second while mechs hold the field" % Data.econ("gate_repair"))
+	GameState.advance(15.0)
+	t.check(GameState.field.is_empty() and GameState.siege > 0.0, "the mech dies: the column comes again")
+	GameState.siege = 0.9
+	GameState.kill_wave()
+	t.check(GameState.siege == 0.0, "a cleared wave: the next one starts from its post")
+
+	var saved := GameState.gate_damage
+	GameState.advance(approach + time - saved - 1.0)
+	t.check(not GameState.run_over and fell[0] == 0, "one second before the 5 min are up: still standing")
+	GameState.prestige = 2
+	GameState.advance(2.0)
+	t.check(GameState.run_over and GameState.lost and fell[0] == 1, "after %d s of attack in total the gate falls" % time)
+	GameState.advance(5.0)
+	t.check(fell[0] == 1 and GameState.gate_health() == 0.0, "once")
+	var lost: GateLost = main.get_node("GateLost")
+	t.check(lost.visible and not lost.card_visible(), "input blocked at once, the card waits for the blast")
+	await t.wait(GateLost.SHOW_DELAY + 0.6)
+	t.check(lost.card_visible() and not main.get_node("%Nuke").card_visible() and not t.node("Away").visible, "THE GATE HAS FALLEN card, no nuke card")
+	t.check(lost.get_node("Card").get_global_rect().size.x <= 360.0 and main.get_rect().encloses(lost.get_node("Card").get_global_rect()), "card inside the screen")
+	await t.shot("gate_lost")
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
+	main = t.get_tree().current_scene
+	lost = main.get_node("GateLost")
+	t.check(lost.card_visible() and not main.get_node("%Nuke").card_visible(), "reload: the card again")
+	await t.click(lost.find_child("TryAgain", true, false))
+	await t.frames(3)
+	main = t.get_tree().current_scene
+	t.check(not GameState.run_over and not GameState.lost and GameState.prestige == 2 and GameState.mechs_built == 0 and GameState.scrap == 0.0,
+			"TRY AGAIN: the war starts over, wars won kept")
+	t.check(GameState.siege == 0.0 and GameState.gate_health() == 1.0 and not main.get_node("GateLost").visible, "gate whole, column at its post")
+	GameState.gate_fell.disconnect(on_fell)
+
+	var old := GameState.to_dict()
+	for key: String in ["lost", "siege", "gate_damage"]:
+		old.erase(key)
+	GameState.gate_damage = 50.0
+	GameState.from_dict(old)
+	t.check(GameState.gate_health() == 1.0 and GameState.siege == 0.0 and not GameState.lost, "old save: gate whole")
+	GameState.away(600.0)
+	t.check(GameState.gate_damage == 0.0 and GameState.siege == 0.0, "time away does no damage")
+	GameState.prestige = 0
+	GameState.new_game()
 
 
 func _reveal_all() -> void:

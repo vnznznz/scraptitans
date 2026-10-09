@@ -33,13 +33,12 @@ const ASSEMBLY_WINDOW := 4.0
 @onready var _scrapyard: Scrapyard = %Scrapyard
 @onready var _column: Control = %Column
 @onready var _flyers: Flyers = %Flyers
-@onready var _rail: ScrollRail = %Rail
 @onready var _bar: Control = %Bar
 @onready var _spacer: Control = %YardSpacer
 
 var _unlock: Button
+var _lost: GateLost
 var _unlock_slot: Control
-var _field_k := 0.0
 var _factory_k := 0.0
 var _bar_k := 0.0
 var _unlock_k := 0.0
@@ -54,6 +53,9 @@ var _tapped := false
 
 
 func _ready() -> void:
+	_lost = GateLost.new()
+	_lost.name = "GateLost"
+	add_child(_lost)
 	get_window().size_changed.connect(_fit_window, CONNECT_DEFERRED)
 	_fit_window()
 	for b: BaseButton in find_children("*", "BaseButton", true, false):
@@ -106,7 +108,7 @@ func _ready() -> void:
 	guide.z_index = OVERLAY_Z
 	_flyers.z_index = FLYERS_Z
 	_menu.z_index = TEXT_Z
-	for overlay: Control in [%Debug, %Settings, %Away, %Nuke]:
+	for overlay: Control in [%Debug, %Settings, %Away, %Nuke, _lost]:
 		overlay.z_index = OVERLAY_Z + 1
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.set_meta(&"silent", true)
@@ -173,15 +175,11 @@ func set_safe_area(top: float, bottom: float) -> void:
 	_settings.offset_bottom = -bottom
 	_away.offset_top = top
 	_away.offset_bottom = -bottom
+	_lost.offset_top = top
+	_lost.offset_bottom = -bottom
 
 
 func _reveal(delta: float) -> void:
-	_field_k = Reveal.step(_field_k, GameState.revealed(), delta, Reveal.SLIDE_TIME)
-	var field := Reveal.eased(_field_k)
-	_battlefield.visible = _field_k > 0.0
-	_battlefield.custom_minimum_size.y = roundf(Battlefield.HEIGHT * field)
-	_rail.visible = _field_k > 0.0
-	_rail.custom_minimum_size.x = roundf(ScrollRail.WIDTH * field)
 	_factory_k = Reveal.step(_factory_k, GameState.shown("factory"), delta, Reveal.SLIDE_TIME)
 	var factory := Reveal.eased(_factory_k)
 	var first := line_view(0)
@@ -191,7 +189,7 @@ func _reveal(delta: float) -> void:
 	_bar.visible = _bar_k > 0.0
 	_bar.custom_minimum_size.y = roundf(BAR_H * Reveal.eased(_bar_k))
 	var pane := _layout.size.y - (%Hud as Control).custom_minimum_size.y - _bar.custom_minimum_size.y
-	_spacer.custom_minimum_size.y = roundf(maxf(0.0, pane - _scrapyard.get_combined_minimum_size().y) / 2.0 * (1.0 - factory))
+	_spacer.custom_minimum_size.y = roundf(maxf(0.0, pane - Battlefield.HEIGHT - _scrapyard.get_combined_minimum_size().y) / 2.0 * (1.0 - factory))
 	_unlock_k = Reveal.step(_unlock_k, GameState.shown("unlock") and not GameState.upgrade_maxed("lines") and not GameState.run_over, delta)
 	_unlock_slot.visible = _unlock_k > 0.0
 	_unlock_slot.custom_minimum_size.y = roundf((UNLOCK_GAP * 2.0 + _unlock.custom_minimum_size.y) * Reveal.eased(_unlock_k))

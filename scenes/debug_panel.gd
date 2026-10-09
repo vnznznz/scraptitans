@@ -59,6 +59,11 @@ func _ready() -> void:
 	box.add_child(away)
 	_button(away, "10 MIN AWAY", GameState.away.bind(600.0))
 	_button(away, "2 H AWAY", GameState.away.bind(7200.0))
+	var gate := HBoxContainer.new()
+	box.add_child(gate)
+	_button(gate, "GATE 20 S LEFT", func() -> void:
+		GameState.siege = 1.0
+		GameState.gate_damage = Data.econ("gate_time") - 20.0)
 
 
 func _process(_delta: float) -> void:

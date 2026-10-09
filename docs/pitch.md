@@ -50,6 +50,8 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 - No combat sim beyond the wave: lifetime, payout and damage come from the stats; visuals play along.
 - **Tapping the battlefield** (anywhere) hits the wave: a small share of its HP and the same share of its bounty as credits. The nearest enemy flashes. A cannon on top of the gate fires a shell at it for every tap; the cannon and its shells get bigger with the Harder hits upgrade.
 - Later waves hit harder: mechs age faster the higher the wave, so they die sooner.
+- **The gate can fall.** Whenever no mech is on the field, the wave walks toward the gate (about 40 s) and attacks it. The gate has a health bar and stands 5 minutes of attack in total. Mechs walking out push the wave back, and the gate repairs slowly while they hold the field. Time away does no damage.
+- **Game over:** the gate falls → card `THE GATE HAS FALLEN`, TRY AGAIN starts this war over from the pile. Wars won stay.
 
 ## Enemy waves
 
@@ -176,9 +178,9 @@ One word per thing, in every label, row, info text and guide line:
 - The battlefield sits right under the HUD; factory and scrapyard stay at the bottom near the thumb; spare height is a gap between battlefield and factory.
 - UPGRADES spans the bottom.
 - **Staged start**, nothing shown before it can be used, everything eases in and stays:
-  1. A new game (and START AGAIN: "only scrap remains") shows only the scrap pile, centered; the HUD shows only scrap.
+  1. A new game (and START AGAIN) shows the battlefield with the first wave walking toward the gate, and the scrap pile centered under it; the HUD shows only scrap.
   2. Once the pile has paid for the first station, line 1 fades in with all three pads while the scrapyard slides down to the bottom.
-  3. The first mech deployed: the battlefield slides down from under the HUD (the mech walks onto it), with the scroll bar and the HUD's mechs and credits.
+  3. The first mech deployed: it walks onto the battlefield; the HUD's mechs and credits fade in.
   4. Each purchase appears the first time it's affordable: pile crew, station crew, UPGRADES, UNLOCK LINE; pause strips at the first stall (from the start once a war is won).
 - Desktop layout is out of scope for v1: the portrait column is pillarboxed and never scaled below 1× (in a short frame it gets shorter).
 
