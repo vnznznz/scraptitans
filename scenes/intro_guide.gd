@@ -160,9 +160,12 @@ func _process(delta: float) -> void:
 	_story.visible = not _story.text.is_empty()
 	if _story.visible:
 		_story.reset_size()
-		var story_x := clampf(_label.position.x + (_label.size.x - _story.size.x) / 2.0, MARGIN, right - MARGIN - _story.size.x)
-		var story_y := _label.position.y + _label.size.y + STORY_GAP if place == Place.BELOW else _label.position.y - STORY_GAP - _story.size.y
-		_story.position = Vector2(story_x, story_y).round()
+		var top := battlefield.get_global_rect().end.y - global_position.y if battlefield else 0.0
+		var action_top := _label.position.y + bob
+		var y := top + STORY_GAP
+		if place == Place.ABOVE and action_top > top:
+			y = minf(top + (action_top - top - _story.size.y) / 2.0, action_top - STORY_GAP - _story.size.y)
+		_story.position = Vector2((right - _story.size.x) / 2.0, y).round()
 	queue_redraw()
 
 

@@ -990,7 +990,7 @@ const STEP := 0.25
 const PHASE_GAP := 30.0
 const SAVE_WINDOW := 30.0
 const START_WINDOW := 300.0
-const GATE_SAFE := 100.0
+const GATE_SAFE := 0.5
 const MID_WINDOW := Vector2(240.0, 480.0)
 
 
@@ -1181,7 +1181,7 @@ func tune() -> void:
 		var r: Dictionary = runs[key]
 		var shortest := 1500.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1800.0
 		t.check(r.over and not r.lost and r.time >= shortest and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
-		t.check(r.gate <= GATE_SAFE, "%s: the gate took %.0f s of attack at most" % [key, r.gate])
+		t.check(r.gate <= (1.0 if key == "field" else GATE_SAFE) * Data.econ("gate_time"), "%s: the gate took %.0f s of attack at most" % [key, r.gate])
 	if not runs.has("baseline"):
 		GameState.new_game()
 		return
@@ -2708,11 +2708,18 @@ func intro() -> void:
 	t.check(guide.text() == "TAP THE SCRAP PILE", "fresh game: guide points at the pile (%s)" % guide.text())
 	var story: Label = guide.get_node("Story")
 	var action: Label = guide.get_node("Text")
-	t.check(guide.story() == IntroGuide.MISSION and story.get_global_rect().end.y < action.get_global_rect().position.y
-			and absf(story.get_global_rect().get_center().x - action.get_global_rect().get_center().x) <= 1.0
-			and main.get_global_rect().grow(-IntroGuide.MARGIN).encloses(story.get_global_rect())
-			and story.get_theme_color("font_color") != action.get_theme_color("font_color"),
-			"the mission on its own plate above the action, in another colour (%s)" % story.get_global_rect())
+	var field_end: float = (t.node("Battlefield") as Control).get_global_rect().end.y
+	var story_ys := {}
+	var action_ys := {}
+	for i in 30:
+		await t.wait(0.03)
+		story_ys[story.get_global_rect().position.y] = true
+		action_ys[action.get_global_rect().position.y] = true
+	t.check(guide.story() == IntroGuide.MISSION and story.get_theme_color("font_color") != action.get_theme_color("font_color")
+			and story.get_global_rect().position.y > field_end and story.get_global_rect().end.y < action_ys.keys().min()
+			and absf(story.get_global_rect().get_center().x - 170.0) <= 1.0,
+			"the mission on its own plate in the gap between the field and the action, in another colour (%s)" % story.get_global_rect())
+	t.check(story_ys.size() == 1 and action_ys.size() > 1, "the mission stands still while the action bobs")
 	t.check(absf(arrow_x.call() - pile.get_global_rect().get_center().x) < 1.0, "arrow above the pile")
 	var label: Label = guide.get_node("Text")
 	var on_screen := func() -> bool: return main.get_global_rect().grow(-IntroGuide.MARGIN).encloses(label.get_global_rect())
@@ -2752,6 +2759,8 @@ func intro() -> void:
 	t.check(absf(arrow_x.call() - line.segment_view(0).get_global_rect().get_center().x) < 1.0 and guide.get("_down")
 			and label.get_global_rect().end.y <= line.segment_view(0).get_global_rect().position.y, "arrow and label above the frame station")
 	t.check(guide.get("_lit") == (line.segment_view(0).get_node("Tap") as TapArea).highlight, "the station's machine is lit")
+	t.check(story.get_global_rect().position.y > field_end and story.get_global_rect().end.y < minf(label.get_global_rect().position.y, line.get_global_rect().position.y),
+			"its mission plate in the gap above the line and the action, off the stations (%s)" % story.get_global_rect())
 	await t.shot("intro_stations")
 	await _fill_bar(line, 0)
 	t.check(absf(arrow_x.call() - line.segment_view(1).get_global_rect().get_center().x) < 1.0, "frame full: arrow moves to core")
@@ -3685,7 +3694,7 @@ func gate() -> void:
 
 	var saved := GameState.gate_damage
 	GameState.advance(approach + time - saved - 1.0)
-	t.check(not GameState.run_over and fell[0] == 0, "one second before the 5 min are up: still standing")
+	t.check(not GameState.run_over and fell[0] == 0, "one second before the gate's time is up: still standing")
 	GameState.prestige = 2
 	GameState.advance(2.0)
 	t.check(GameState.run_over and GameState.lost and fell[0] == 1, "after %d s of attack in total the gate falls" % time)
