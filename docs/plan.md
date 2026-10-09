@@ -504,7 +504,7 @@ Build: the weak numbers of the first day on CrazyGames ([feedback.md](feedback.m
 - [x] Landscape video: opens on the new cover, then a full field in a mid-game fight instead of the pile; both videos and the screenshots recorded again with the new start (`tools/make_videos.py`)
 - [x] Simple performance pass: `--scenario perf` (late run: 5 lines, 170 mechs, per-part cost): 0.9 ms of script and scene time per frame, 0.95 ms with the menu open (was 1.2: the menu rewrote and sorted every row each frame, now only on a change); nothing else redone without a change worth cutting; `field_perf` as before. The warm iPhone is [M23](#m23--phone-heat)
 - [x] Build `0.2.0-m22`, saves from m20 and m21 load (save version unchanged; the gate's three keys default to a whole gate); docs: `tech.md`, pitch (start, gate, losing), `crazygames.md`
-- [ ] Upload `build/crazygames` (the user; first live build with the M21 away card, which pays for a locked phone and a hidden tab)
+- [x] Upload `build/crazygames` (the user, 2026-10-09: `0.2.0-m22+128.145e523`; first live build with the M21 away card, which pays for a locked phone and a hidden tab); cover and videos go up in the Art tab after it
 - [ ] A row in [feedback.md](feedback.md) a few days after the upload: conversion, playtime and CTR by device, day 1 return
 
 Test (browser):

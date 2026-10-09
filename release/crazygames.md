@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (expires 2026-10-28) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m22` ([M22](../docs/plan.md)), not uploaded yet; the live build is the m20 no-ads one (`build/crazygames/`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
+Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (expires 2026-10-28) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m22` ([M22](../docs/plan.md)); the live build is its no-ads one, `0.2.0-m22+128.145e523` (`build/crazygames/`), uploaded 2026-10-09. Browser checks done except Android; the ads side of the SDK only against a fake backend.
 
 ## Why CrazyGames
 
@@ -16,6 +16,8 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
 - Basic Launch: soft launch to a small share of players; SDK optional, ads off, no revenue. Wider rollout depends on play count, playtime, retention
   - Submitted for review on 2026-10-06 with the m19 build (no SDK, save in `user://`)
   - Live since 2026-10-08 with the m20 no-ads build (preset "CrazyGames"): https://www.crazygames.com/game/scrap-titans ← current stage
+  - 2026-10-09: update to `0.2.0-m22+128.145e523` (still no ads) after the first day's numbers ([feedback.md](../docs/feedback.md)): faster start, battlefield from the first frame, the gate can fall, mission in the guide, away card (M21), pile tap particles, gate sounds, wake lock; saves load unchanged. Numbers before this date are the m20 build's
+  - Art for the update, uploaded separately in the Art tab: new landscape cover, both videos, screenshots (`release/marketing/`)
   - Real players from here on: every update has to load their saves
   - Ends at 7 days live and 500 plays, else after 21 days (2026-10-28); updates any time, approved automatically; tracked without the SDK ([basic launch metrics](https://docs.crazygames.com/resources/basic-launch-metrics/), read 2026-10-09)
   - Judged on: average playtime per session (10+ min), day 1 return (10–15 %), conversion = players who play at least one minute after starting (top games 80 %+) → [M22](../docs/plan.md)
@@ -138,10 +140,10 @@ Read from their docs on 2026-10-08. Wanted: total mechs built and wars won. Not 
 
 Not requirements; they decide whether Basic Launch leads to a wider rollout. All deliberate prototype cuts.
 
-- Hidden tab: no frames → the sim stands still (delta clamped to 0.25 s); idle players on desktop tab away → since M21 the away card pays a quarter of the factory's output for that time (≤ 1 h; first live with the m22 upload)
+- Hidden tab: no frames → the sim stands still (delta clamped to 0.25 s); idle players on desktop tab away → since M21 the away card pays a quarter of the factory's output for that time (≤ 1 h; live since the m22 upload)
 - First minute (their conversion: playing for at least a minute; 42 % on day one): M22: first mech after 17 s of steady taps instead of 28 s, the battlefield and an advancing wave on screen from the first frame, pile taps throw scrap bits
 - Losing: since M22 the gate falls after 2.5 min of attack with no mech on the field → the war starts over; a player who leaves the game open and untouched before the first crews loses the run (time away with the tab hidden does no damage)
-- Phone screen: since M22 a wake lock keeps it on while the game is in front, if their frame allows it (unknown until the upload)
+- Phone screen: since M22 a wake lock keeps it on while the game is in front, if their frame allows it (not checked yet on the live build)
 - One 30–60 min run; START AGAIN keeps the wars won (bigger numbers, a bigger pile, M19), but no new content → little to come back for
 - Desktop: a third to under half of the iframe, reads as a phone port
 - Name: an itch.io jam game "Scrap Titans" exists; none found on CrazyGames (web search only)
