@@ -30,6 +30,7 @@ var _open_t := 0.0
 var _ad_row: PanelContainer
 var _ad_effect: Label
 var _ad_watch: Button
+var _shown := []
 
 
 class Pips:
@@ -316,6 +317,14 @@ func _refresh() -> void:
 	var offers: Array[String] = []
 	if CrazyGames.video_ads:
 		offers = GameState.ad_offers()
+	_thumb.queue_redraw()
+	var affordable := []
+	for id: String in _row_nodes:
+		affordable.append(GameState.credits >= GameState.upgrade_cost(id))
+	var state := [GameState.levels.hash(), GameState.prestige, offers, affordable]
+	if state == _shown:
+		return
+	_shown = state
 	var order := []
 	var maxed_names := []
 	for id: String in _row_nodes:
@@ -347,7 +356,6 @@ func _refresh() -> void:
 	_maxed.visible = not maxed_names.is_empty()
 	_maxed_list.text = ", ".join(maxed_names)
 	_rows.move_child(_maxed, -1)
-	_thumb.queue_redraw()
 
 
 func track() -> Rect2:

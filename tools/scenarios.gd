@@ -2330,6 +2330,7 @@ func _war_numbers() -> Dictionary:
 
 const PERF_MECHS := 170
 const PERF_FRAMES := 480
+const PERF_BUDGET_MS := 2.0
 
 
 func field_perf() -> void:
@@ -2353,6 +2354,73 @@ func field_perf() -> void:
 		t.check(field.mech_count() > 0, "field measured")
 		await t.shot("field_perf_%d" % level)
 	Effects.level = Effects.HIGH
+
+
+func perf() -> void:
+	await _fresh(false)
+	var main := t.get_tree().current_scene
+	_reveal_all()
+	GameState.scrap = 1e15
+	GameState.credits = 1e15
+	for row: Dictionary in Data.upgrade_list:
+		if row.get("kind", "") != "final":
+			for i in int(row.max_level) - (1 if row.get("kind", "") == "" else 0):
+				GameState.buy_upgrade(row.id)
+	GameState.buy_upgrade("lines")
+	for li in GameState.lines.size():
+		for i in GameState.lines[li].segments.size():
+			GameState.build_segment(li, i)
+			GameState.apply_tier(li, i)
+		while GameState.hire_worker(li):
+			pass
+	while GameState.hire_yard_worker():
+		pass
+	GameState.scrap = 1e15
+	GameState.credits = 1e15
+	GameState.wave = 26
+	GameState.wave_hp = GameState.wave_max_hp() * 1e6
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	_perf_fill(rng)
+	await t.wait(3.0)
+	_perf_fill(rng)
+	t.check(is_equal_approx(t.get_process_delta_time(), 1.0 / 60.0), "run with --fixed-fps 60: each frame is 1/60 s of game time")
+	t.check(GameState.lines.size() == 5 and GameState.field.size() >= PERF_MECHS and not GameState.run_over, "late run: 5 lines, %d mechs" % GameState.field.size())
+	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
+	var all := await _perf_measure(rng, PERF_FRAMES)
+	print("  late run: %.2f ms/frame mean, %.2f ms p95, %d nodes" % [all.mean_ms, all.p95_ms, all.nodes])
+	var parts := {
+		"lines": main.get_node("%Lines").find_children("*", "LineView", true, false) + main.get_node("%Lines").find_children("*", "SegmentView", true, false),
+		"battlefield": [main.get_node("%Battlefield"), main.get_node("%Battlefield").crowd(), main.get_node("%Battlefield/World/Gate"), main.get_node("%Battlefield/World/Cannon")],
+		"hud": [main.get_node("%Hud")],
+		"scrapyard": [main.get_node("%Scrapyard")],
+		"rail": [main.get_node("%Rail")],
+		"guide": [main.get_node("IntroGuide")],
+		"flyers": [main.get_node("%Flyers")],
+		"menu (closed)": [menu],
+		"main": [main],
+		"sim": [GameState],
+		"sound": [Sound],
+	}
+	for key: String in parts:
+		var nodes: Array = (parts[key] as Array).filter(func(n: Node) -> bool: return n.is_processing())
+		for n: Node in nodes:
+			n.set_process(false)
+		var without := await _perf_measure(rng, PERF_FRAMES / 4)
+		for n: Node in nodes:
+			n.set_process(true)
+		print("  %-14s %.2f ms" % [key, all.mean_ms - without.mean_ms])
+	menu.open()
+	await t.wait(0.5)
+	var open := await _perf_measure(rng, PERF_FRAMES)
+	print("  menu open: %.2f ms/frame mean, %.2f ms p95" % [open.mean_ms, open.p95_ms])
+	menu.set_process(false)
+	var open_idle := await _perf_measure(rng, PERF_FRAMES / 4)
+	menu.set_process(true)
+	print("  %-14s %.2f ms" % ["menu (open)", open.mean_ms - open_idle.mean_ms])
+	menu.close()
+	t.check(all.mean_ms <= PERF_BUDGET_MS and open.mean_ms <= PERF_BUDGET_MS, "late run within %.1f ms of script and scene time per frame (menu open %.2f)" % [PERF_BUDGET_MS, open.mean_ms])
+	await _fresh()
 
 
 func field() -> void:
