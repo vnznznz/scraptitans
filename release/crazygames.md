@@ -23,7 +23,7 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
   - Ends at 7 days live and 500 plays, else after 21 days (2026-10-28); updates any time, approved automatically; tracked without the SDK ([basic launch metrics](https://docs.crazygames.com/resources/basic-launch-metrics/), read 2026-10-09)
   - Judged on: average playtime per session (10+ min), day 1 return (10–15 %), conversion = players who play at least one minute after starting (top games 80 %+) → [M22](../docs/plan.md)
   - Scored in the developer portal, desktop and mobile/tablet apart: three metrics, 15 points in all, 9 needed per device (below: "below requirements" on desktop, not enabled on mobile and tablet); benchmarks Jul–Sep 2026
-    - 2026-10-11, 423 plays: 8/15 on both (playtime 3, day 1 return 3, conversion 2)
+    - 2026-10-11, 423 plays: 8/15 on both (playtime 3, day 1 return 3, conversion 2); friends of the first days are in these totals, so playtime and conversion drift down as strangers add up
 
     | Next point at | Desktop | Ours | Mobile and tablet | Ours |
     |---|---|---|---|---|
