@@ -3672,15 +3672,19 @@ func away() -> void:
 	_reveal_all()
 	GameState.add_away(min_t - 1.0, 10.0, 5.0, 8.0)
 	t.check(GameState.away_t == 0.0, "nothing under %d s away" % min_t)
-	var cheapest := INF
-	for cost in GameState.credit_prices():
-		if cost > GameState.credits:
-			cheapest = minf(cheapest, cost)
-	GameState.add_away(max_t, 1e9, 5.0, 8.0)
-	t.check(is_equal_approx(GameState.away_credits, cheapest * Data.econ("away_credits_cap")) and GameState.away_credits < GameState.upgrade_cost("final_arms"),
-			"credits capped at %dx the cheapest purchase out of reach (%.0f of %.0f)" % [Data.econ("away_credits_cap"), GameState.away_credits, cheapest])
+	var cap_minutes := Data.econ("away_cap_minutes")
+	GameState.add_away(max_t, 20.0, 5.0, 8.0)
+	t.check(is_equal_approx(GameState.away_credits, 20.0 * cap_minutes * 60.0),
+			"a long absence pays at most %d min of the factory's credits (%.0f)" % [cap_minutes, GameState.away_credits])
 	GameState._clear_away()
-	GameState.credits = 1e9
+	GameState.add_away(Data.econ("away_cap_minutes") * 60.0 / Data.econ("away_share") - 1.0, 20.0, 5.0, 8.0)
+	t.check(GameState.away_credits < 20.0 * cap_minutes * 60.0,
+			"a shorter one is paid in full (%.0f under the cap)" % GameState.away_credits)
+	GameState._clear_away()
+	GameState.add_away(max_t, 1e9, 5.0, 8.0)
+	t.check(is_equal_approx(GameState.away_credits, GameState.war_end_cost() * Data.econ("away_cap_final")) and GameState.away_credits < GameState.war_end_cost(),
+			"however rich the factory, one absence never pays the missile (%s of %s)" % [Fmt.num(GameState.away_credits), Fmt.num(GameState.war_end_cost())])
+	GameState._clear_away()
 	GameState.add_away(600.0, 10.0, 5.0, 8.0)
 	t.check(GameState.away_t == 600.0 and is_equal_approx(GameState.away_credits, 6000.0 * share) and is_equal_approx(GameState.away_scrap, 3000.0 * share),
 			"10 min away: %d %% of the credits and net scrap of that time (%.0f credits, %.0f scrap)" % [share * 100.0, GameState.away_credits, GameState.away_scrap])

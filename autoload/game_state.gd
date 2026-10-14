@@ -459,25 +459,16 @@ func reward_upgrade(id: String) -> bool:
 	return true
 
 
-func credit_prices() -> Array[float]:
-	var prices: Array[float] = []
+func war_end_cost() -> float:
+	var cost := INF
 	for r: Dictionary in Data.upgrade_list:
-		if upgrade_visible(r.id) and not upgrade_maxed(r.id) and not upgrade_locked(r.id):
-			prices.append(upgrade_cost(r.id))
-	for i in lines.size():
-		if lines[i].workers < lines[i].worker_slots():
-			prices.append(worker_cost(i))
-	if yard_workers < yard_slots():
-		prices.append(yard_worker_cost())
-	return prices
+		if r.get("kind", "") == "final":
+			cost = minf(cost, upgrade_cost(r.id))
+	return cost
 
 
-func away_cap() -> float:
-	var cheapest := INF
-	for cost in credit_prices():
-		if cost > credits:
-			cheapest = minf(cheapest, cost)
-	return cheapest * Data.econ("away_credits_cap")
+func away_cap(credits_per_s: float) -> float:
+	return minf(credits_per_s * Data.econ("away_cap_minutes") * 60.0, war_end_cost() * Data.econ("away_cap_final"))
 
 
 static func today() -> String:
@@ -547,7 +538,7 @@ func add_away(seconds: float, credits_per_s: float, scrap_per_s: float, scrap_ga
 	var scrap_floor := maxf(scrap_gain_per_s * Data.econ("away_scrap_floor"), tap_scrap() * Data.econ("away_taps"))
 	away_t += counted
 	away_scrap += maxf(scrap_per_s, scrap_floor) * counted * share
-	away_credits = minf(away_credits + maxf(credits_per_s, 0.0) * counted * share, away_cap())
+	away_credits = minf(away_credits + maxf(credits_per_s, 0.0) * counted * share, away_cap(credits_per_s))
 	purchased.emit()
 
 
