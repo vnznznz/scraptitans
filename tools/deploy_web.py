@@ -48,9 +48,10 @@ def main() -> None:
         f"set ssl:verify-certificate {env.get('FTP_VERIFY_CERT', 'true')}",
         "set xfer:use-temp-file true",
         "mirror --reverse --delete --verbose"
-        f" -x '\\.import$' -x '^index\\.html$' -x '^marketing/' build/web {remote}",
+        f" -x '\\.import$' -x '^index\\.html$' -x '^marketing/' -x '^analytics/' build/web {remote}",
         f"put -O {remote} build/web/index.html",
         f"mirror --reverse --delete --verbose release/marketing {marketing}",
+        f"mirror --reverse --verbose tools/analytics {remote.rstrip('/')}/analytics",
         "bye",
     ]
     print(f"$ lftp {env['FTP_HOST']}")

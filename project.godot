@@ -28,6 +28,7 @@ Save="*res://autoload/save.gd"
 Instrument="*res://autoload/instrument.gd"
 Sound="*res://autoload/sound.gd"
 Effects="*res://autoload/effects.gd"
+Analytics="*res://autoload/analytics.gd"
 
 [display]
 
