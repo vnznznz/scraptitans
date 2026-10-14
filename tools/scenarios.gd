@@ -1728,6 +1728,13 @@ func ui() -> void:
 	GameState.credits = 1e6
 	await t.frames(2)
 	t.check(not buy_all.visible, "it never appears while the menu is open: nothing moves under the thumb")
+	GameState.credits = GameState.affordable_total() - 1.0
+	menu.close()
+	menu.open()
+	await t.frames(2)
+	t.check(not buy_all.visible and GameState.affordable_ids().size() > UpgradeMenu.BUY_ALL_FROM,
+			"not enough for all of them together: no button, however many rows are in reach one by one")
+	GameState.credits = 1e6
 	menu.close()
 	menu.open()
 	await t.frames(2)
@@ -2160,6 +2167,11 @@ func stations() -> void:
 	await t.frames(2)
 	t.check(GameState.lines[0].work_target() == 3, "the crew works the first station that isn't full (%d)" % GameState.lines[0].work_target())
 	var walked: float = roamer.position.x
+	var hops := {}
+	for k in 12:
+		await t.wait(0.05)
+		hops[roamer.position.y] = true
+	t.check(hops.size() > 1, "the runner hops while it goes (%d heights)" % hops.size())
 	await t.wait(1.0)
 	var toward: float = main.line_view(0).segment_view(3).position.x
 	t.check(roamer.visible and roamer.hframes == 2 and absf(roamer.position.x - toward) < absf(walked - toward),

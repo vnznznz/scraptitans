@@ -20,8 +20,9 @@ const TAG := Vector2(16, 20)
 const TAG_GAP := 4.0
 const NUKE_TEXT := "NEXT MECH LAUNCHES THE NUKE"
 const NUKE_Y := SegmentView.MACHINE_Y + 30.0
-const ROAM_SPEED := 36.0
-const ROAM_FPS := 7.0
+const ROAM_SPEED := 110.0
+const ROAM_FPS := 14.0
+const ROAM_HOP := 3.0
 const ROAM_GAP := 9.0
 const ROAM_TEX := [preload("res://art/line/worker_walk_0.png"), preload("res://art/line/worker_walk_1.png"), preload("res://art/line/worker_walk_2.png")]
 
@@ -51,6 +52,7 @@ var _nuke: Label
 var _roamers: Array[Sprite2D] = []
 var _roam_at := 0
 var _roam_x := -1.0
+var _roam_right := false
 
 
 func _ready() -> void:
@@ -292,14 +294,18 @@ func _step_roamers(delta: float) -> void:
 	var before := _roam_x
 	_roam_x = move_toward(_roam_x, target, ROAM_SPEED * delta * maxf(GameState.time_scale, 1.0))
 	var gear := SegmentView.step(GameState.level("interval"), SegmentView.STEP_HIGH)
-	var frame := int(Time.get_ticks_msec() / 1000.0 * ROAM_FPS) % 2 if not is_equal_approx(_roam_x, before) else 0
+	var running := not is_equal_approx(_roam_x, before)
+	var step := Time.get_ticks_msec() / 1000.0 * ROAM_FPS
+	if running:
+		_roam_right = _roam_x > before
 	for i in _roamers.size():
 		var w := _roamers[i]
 		w.visible = i < n
 		w.texture = ROAM_TEX[gear]
-		w.frame = frame
-		w.flip_h = _roam_x > before
-		w.position = Vector2(roundf(_roam_x + i * ROAM_GAP), _top + SegmentView.MACHINE_Y + SegmentView.WORKERS_Y)
+		w.frame = (int(step) + i) % 2 if running else 0
+		w.flip_h = _roam_right
+		var hop := -roundf(absf(sin((step + i) * PI / 2.0)) * ROAM_HOP) if running else 0.0
+		w.position = Vector2(roundf(_roam_x + i * ROAM_GAP), _top + SegmentView.MACHINE_Y + SegmentView.WORKERS_Y + hop)
 
 
 func segment_view(i: int) -> SegmentView:

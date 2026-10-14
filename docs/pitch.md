@@ -91,10 +91,10 @@ A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**
 
 - **The guide follows the cold open:** the drones on the field first (the gate cannon pays and teaches tapping), then the pile, then the stations — the station lesson runs while the player builds mech two.
 - **Desktop: hold the mouse** on the pile, a station or the field to tap it 3 times a second; SPACE taps whatever the cursor is on.
-- **BUY n UPGRADES**, with what they cost together, above the list once more than five rows are affordable: one tap takes them all, cheapest first, never the Atomic Missile.
+- **BUY n UPGRADES**, with what they cost together, above the list once more than five rows are affordable and the credits cover all of them: one tap takes them all, cheapest first, never the Atomic Missile.
 - **Holding a crew button keeps hiring** (the first repeat after 0.4 s, then every 0.15 s), so a full crew is one hold instead of twelve taps. Tapping one three times in a row says so.
 - **An unaffordable crew hire fills from the left** with the credits over its price, so the next buy shows how far off it is.
-- **The crew fills the line front to back:** an even share of the workers stands at every station, the rest walk to the first station whose bar isn't full — which is exactly where their work goes.
+- **The crew fills the line front to back:** an even share of the workers stands at every station, the rest run over to the first station whose bar isn't full — which is exactly where their work goes.
 - **A fitted Atomic Missile announces itself:** the missile icon in the station's header and `NEXT MECH LAUNCHES THE NUKE` across the line, so the end of the war is never a surprise.
 - **A colour per tier** (rust, iron, steel, blue, gold, atomic green): on the machine's accent band, the station's name, the fit arrow and the part's name in the menu, so a line reads its tiers at a glance.
 - **Tiers:** unlock the next tier of each station type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
