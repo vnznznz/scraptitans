@@ -3515,6 +3515,15 @@ func away() -> void:
 	_reveal_all()
 	GameState.add_away(min_t - 1.0, 10.0, 5.0, 8.0)
 	t.check(GameState.away_t == 0.0, "nothing under %d s away" % min_t)
+	var cheapest := INF
+	for cost in GameState.credit_prices():
+		if cost > GameState.credits:
+			cheapest = minf(cheapest, cost)
+	GameState.add_away(max_t, 1e9, 5.0, 8.0)
+	t.check(is_equal_approx(GameState.away_credits, cheapest * Data.econ("away_credits_cap")) and GameState.away_credits < GameState.upgrade_cost("final_arms"),
+			"credits capped at %dx the cheapest purchase out of reach (%.0f of %.0f)" % [Data.econ("away_credits_cap"), GameState.away_credits, cheapest])
+	GameState._clear_away()
+	GameState.credits = 1e9
 	GameState.add_away(600.0, 10.0, 5.0, 8.0)
 	t.check(GameState.away_t == 600.0 and is_equal_approx(GameState.away_credits, 6000.0 * share) and is_equal_approx(GameState.away_scrap, 3000.0 * share),
 			"10 min away: %d %% of the credits and net scrap of that time (%.0f credits, %.0f scrap)" % [share * 100.0, GameState.away_credits, GameState.away_scrap])
@@ -3527,9 +3536,9 @@ func away() -> void:
 			"no scrap income at all: still scrap worth some pile taps (%.0f)" % GameState.away_scrap)
 	GameState._clear_away()
 	GameState.add_away(max_t * 30.0, 10.0, 5.0, 8.0)
-	var capped := GameState.away_credits
+	var capped := GameState.away_scrap
 	GameState.add_away(600.0, 10.0, 5.0, 8.0)
-	t.check(GameState.away_t == max_t and is_equal_approx(capped, 10.0 * max_t * share) and GameState.away_credits == capped, "capped at %d min, also over several absences" % (max_t / 60.0))
+	t.check(GameState.away_t == max_t and is_equal_approx(capped, 5.0 * max_t * share) and GameState.away_scrap == capped, "capped at %d h, also over several absences" % (max_t / 3600.0))
 	GameState._clear_away()
 	GameState.add_away(600.0, 10.0, 5.0, 8.0)
 	GameState.add_away(300.0, 10.0, 5.0, 8.0)
@@ -3623,7 +3632,7 @@ func away() -> void:
 	await t.frames(2)
 	await t.wait(0.3)
 	t.check(card.visible and not ad.is_visible_in_tree() and collect.size.x == time.size.x, "no video ads (Basic Launch, own site, ad blocker): COLLECT alone, full width (%d)" % collect.size.x)
-	t.check(time.text == "THE CREWS WORKED 1 H (MAX)" and not card._rows[Flyers.Kind.CREDITS].visible and card._rows[Flyers.Kind.SCRAP].visible, "the cap is named, no credits row without credits (%s)" % time.text)
+	t.check(time.text == "THE CREWS WORKED 8 H (MAX)" and not card._rows[Flyers.Kind.CREDITS].visible and card._rows[Flyers.Kind.SCRAP].visible, "the cap is named, no credits row without credits (%s)" % time.text)
 	t.check(absf(panel.get_global_rect().get_center().y - screen.get_center().y) <= 1.0 and panel.size.y < 150.0, "a shorter card is still centered (%s)" % panel.get_global_rect())
 	await t.shot("away_card")
 	t.get_tree().reload_current_scene()
