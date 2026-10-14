@@ -258,8 +258,11 @@ func _ready() -> void:
 		scorch()
 		return
 	_sync_views()
-	for id: int in _views:
-		_views[id].position = _slot_pos(_slots[id])
+	if GameState.run_time > 0.0:
+		for id: int in _views:
+			_views[id].position = _slot_pos(_slots[id])
+	else:
+		_gate.open()
 	_show_wave(false)
 	_update_siege()
 

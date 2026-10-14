@@ -35,6 +35,10 @@ func _ready() -> void:
 	GameState.mech_deployed.connect(func(_m: MechState) -> void: _open = OPEN_TIME)
 
 
+func open() -> void:
+	_open = OPEN_TIME
+
+
 func send(m: MechState, to: Vector2) -> bool:
 	if _queue.size() >= FLOW_QUEUE:
 		return false

@@ -1,4 +1,5 @@
 {
+	"first_hp": 18,
 	"base_hp": 40,
 	"hp_growth": 1.45,
 	"base_bounty": 35,

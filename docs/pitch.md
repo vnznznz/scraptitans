@@ -4,8 +4,9 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 
 ## Core loop
 
+0. **Every war opens cold:** line 1 stands built with its three stations (empty bars, no crew) and one free mech walks out of the gate at 0 s. It holds the field while the player learns the rest; the first wave is small enough to die to it in about 20 s and pays its bounty.
 1. Tap the **scrap pile** → scrap.
-2. **Line 1 is unlocked from the start.** Build its stations with scrap. Each station has a **work bar** filled by player taps or its workers. When the bar is full and a mech is waiting, the station consumes scrap, plays a short assembly animation and the mech moves along the belt to the next station.
+2. **Line 1 is unlocked and built from the start.** Later lines and the Plate station are built with scrap. Each station has a **work bar** filled by player taps or its workers. When the bar is full and a mech is waiting, the station consumes scrap, plays a short assembly animation and the mech moves along the belt to the next station.
 3. After the last station the mech **walks off the line** onto the **battlefield**. The player **receives a deploy fee** in credits.
 4. On the battlefield it fires at the current **enemy wave** and takes fire. It earns **credits per second** (rising in steps while it lives), and its damage drains the wave's healthbar. A drained wave pays a big **credit bounty**.
 5. The mech explodes. Lifetime depends on its parts. **Salvage** returns a share of its scrap cost. Mechs pay no scrap while alive.
@@ -87,6 +88,7 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 
 A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**, cheapest first. Everything here costs credits. Rows the player can't afford are greyed.
 
+- **The guide follows the cold open:** the drones on the field first (the gate cannon pays and teaches tapping), then the pile, then the stations — the station lesson runs while the player builds mech two.
 - **Tiers:** unlock the next tier of each station type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
 - **Crew per station:** more workers per station on every line.
 - **Faster crews, Lighter work:** shorter chunk interval, lighter work bars (all stations).

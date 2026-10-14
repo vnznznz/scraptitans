@@ -20,11 +20,15 @@ const FRAME_GROW := 2.0
 const STORY_COLOR := Pal.CREAM
 const STORY_EDGE := Pal.SLATE
 const STORY_GAP := 4.0
+const DRONES := "TAP THE DRONES"
+const FIELD := "TAP THE FIELD TO HIT THE WAVE"
 const PILE := "TAP THE SCRAP PILE"
+const NO_SCRAP := "OUT OF SCRAP: TAP THE PILE"
 const STATIONS := "TAP STATIONS TO BUILD A MECH"
 const DEFEND := "BUILD MECHS TO DEFEND IT"
 const MISSION := "DRONES MARCH ON THE GATE\nBUILD A MECH ARMY\nTO DEFEND YOURSELF"
-const STORIES := {STATIONS: "MECHS PUSH THE DRONES BACK", DEFEND: "THE GATE IS UNDER ATTACK"}
+const STORIES := {DRONES: MISSION, PILE: "MECHS ARE BUILT FROM SCRAP",
+		STATIONS: "MECHS PUSH THE DRONES BACK", DEFEND: "THE GATE IS UNDER ATTACK"}
 
 var pile: Control
 var line: LineView
@@ -79,8 +83,6 @@ func story() -> String:
 
 
 func _story_for(action: String) -> String:
-	if action == PILE and not GameState.lines[0].segments[0].built:
-		return MISSION
 	return STORIES.get(action, "")
 
 
@@ -186,25 +188,39 @@ func _draw() -> void:
 func _step() -> Array:
 	if GameState.run_over or GameState.prestige >= VETERAN_WARS or pile == null or line == null:
 		return []
-	if GameState.revealed():
-		return _hint()
+	var field_step := _field_step()
+	if not field_step.is_empty():
+		return field_step
+	if GameState.mechs_built <= 1:
+		return _build_step()
+	return _hint()
+
+
+func _field_step() -> Array:
+	if GameState.field_taps >= FIELD_TAPS or GameState.wave >= FIELD_WAVES or GameState.field.is_empty() \
+			or GameState.gate_damage > 0.0 or battlefield == null or battlefield.size.y < Battlefield.HEIGHT or (menu and menu.visible):
+		return []
+	return [DRONES if GameState.wave == 0 else FIELD, battlefield.hint_anchor(), Place.ABOVE]
+
+
+func _build_step() -> Array:
 	var segs := GameState.lines[0].segments
 	for i in segs.size():
-		if segs[i].built:
-			continue
-		if GameState.scrap < GameState.build_cost(0, i):
-			return [PILE, pile, Place.ABOVE]
-		return ["BUILD THE %s STATION" % str(Data.segment_type(segs[i].type_id).name).to_upper(), line.segment_view(i), Place.ABOVE, line.segment_view(i).get_node("Build")]
-	for i in segs.size():
 		if segs[i].stall == SegmentState.Stall.NO_SCRAP:
-			return ["OUT OF SCRAP: TAP THE PILE", pile, Place.ABOVE]
+			return [NO_SCRAP, pile, Place.ABOVE]
 	var from := 0
 	for i in segs.size():
 		var m := segs[i].mech
 		if m:
 			from = i + 1 if segs[i].assembling or m.has_part(segs[i].type_id) else i
+	var parts := 0.0
 	for i in range(from, segs.size()):
-		if not segs[i].bar_full():
+		if segs[i].built:
+			parts += segs[i].scrap_cost()
+	if GameState.scrap < parts:
+		return [PILE, pile, Place.ABOVE]
+	for i in range(from, segs.size()):
+		if segs[i].built and not segs[i].bar_full():
 			return [STATIONS, line.segment_view(i), Place.ABOVE]
 	return [STATIONS, null, Place.ABOVE]
 
@@ -218,6 +234,4 @@ func _hint() -> Array:
 			return ["BUY IT", buy, Place.BESIDE]
 	if GameState.gate_attacked() and not (menu and menu.visible):
 		return [DEFEND, line.segment_view(0), Place.ABOVE]
-	if GameState.field_taps < FIELD_TAPS and GameState.wave < FIELD_WAVES and GameState.gate_damage <= 0.0 and not GameState.field.is_empty() and battlefield and battlefield.size.y >= Battlefield.HEIGHT and not (menu and menu.visible):
-		return ["TAP THE FIELD TO HIT THE WAVE", battlefield.hint_anchor(), Place.ABOVE]
 	return []

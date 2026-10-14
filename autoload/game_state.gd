@@ -104,6 +104,8 @@ func new_game() -> void:
 	levels = {}
 	_stats = {}
 	lines = [LineState.create(active_slots())]
+	for s in lines[0].segments:
+		s.built = true
 	field = []
 	next_mech_id = 1
 	run_time = 0.0
@@ -125,6 +127,18 @@ func new_game() -> void:
 	ad_cooldown_t = 0.0
 	_clear_away()
 	_reset_rates()
+	_cold_open()
+	_update_seen()
+
+
+func _cold_open() -> void:
+	var m := MechState.new()
+	m.id = next_mech_id
+	next_mech_id += 1
+	for s in lines[0].segments:
+		m.parts[s.type_id] = s.tier
+	_deploy(m)
+	m.lifetime = Data.econ("open_mech_life")
 
 
 func war_scale() -> float:
@@ -477,6 +491,8 @@ func salvage_share() -> float:
 
 
 func wave_max_hp() -> float:
+	if wave == 0:
+		return float(Data.enemies.first_hp) * war_scale()
 	return float(Data.enemies.base_hp) * pow(float(Data.enemies.hp_growth), wave) * war_scale()
 
 

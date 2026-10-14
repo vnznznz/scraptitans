@@ -56,7 +56,7 @@ func m0() -> void:
 
 
 func m1() -> void:
-	await _fresh()
+	await _fresh_scratch()
 	var main := t.get_tree().current_scene
 	var line: LineView = main.line_view(0)
 	var segs := GameState.lines[0].segments
@@ -98,6 +98,7 @@ func m1() -> void:
 		probe.age = age
 		rates.append(snappedf(GameState.payout_rate(probe), 0.001))
 	t.check(rates == [1.0, 1.0, 1.0, 1.0, 1.0], "payout starts flat %s" % [rates])
+	GameState.wave_hp = 1000.0
 	GameState.advance(18.0)
 	await t.frames(20)
 	await t.shot("m1_field")
@@ -146,11 +147,12 @@ func m1() -> void:
 	await t.wait(0.2)
 	await t.click(main.get_node("%Settings").find_child("Confirm", true, false))
 	await t.frames(3)
-	t.check(GameState.mechs_built == 0 and not GameState.lines[0].segments[0].built, "settings reset starts a fresh run")
+	t.check(GameState.mechs_built == 1 and GameState.field.size() == 1 and GameState.lines[0].segments[0].built and GameState.run_time < 1.0,
+			"settings reset starts the war again from the cold open")
 
 
 func m2() -> void:
-	await _fresh()
+	await _fresh_scratch()
 	var main := t.get_tree().current_scene
 	var field: Battlefield = main.get_node("%Battlefield")
 	var hp0 := GameState.wave_max_hp()
@@ -520,7 +522,7 @@ func m6() -> void:
 
 	GameState.debug_spawn_mechs(50)
 	await t.frames(2)
-	t.check(field.mech_count() == 24 and GameState.field.size() == 53, "53 mechs simulated, 24 drawn")
+	t.check(field.mech_count() == 24 and GameState.field.size() == 54, "54 mechs simulated, 24 drawn")
 	var elite := MechState.new()
 	elite.id = GameState.next_mech_id
 	GameState.next_mech_id += 1
@@ -628,12 +630,12 @@ func m7() -> void:
 	await t.click(main.get_node("%Nuke").find_child("StartAgain", true, false))
 	await t.wait(Nuke.WIN_FLY + Nuke.WIN_HOLD + 0.3)
 	main = t.get_tree().current_scene
-	t.check(not GameState.run_over and GameState.mechs_built == 0 and not main.get_node("%Nuke").visible, "Start again gives a fresh game")
+	t.check(not GameState.run_over and GameState.mechs_built == 1 and GameState.field.size() == 1 and not main.get_node("%Nuke").visible, "Start again opens the next war cold")
 	t.check(GameState.prestige == 1, "and counts a war won")
 
 
 func m8() -> void:
-	await _fresh()
+	await _fresh_scratch()
 	var main := t.get_tree().current_scene
 	var line: LineView = main.line_view(0)
 	var segs := GameState.lines[0].segments
@@ -849,6 +851,7 @@ func m8() -> void:
 	var hud_mechs: Label = main.find_child("Mechs", true, false)
 	var hud_rate: Label = main.find_child("MechsRate", true, false)
 	var on_field := GameState.field.size()
+	GameState._reset_rates()
 	GameState.debug_spawn_mechs(3)
 	GameState.advance(1.1)
 	await t.frames(2)
@@ -940,7 +943,7 @@ func m8() -> void:
 	t.check(gear.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND and main.get_node("%Upgrades").mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND, "buttons show a hand cursor")
 
 
-	await _fresh()
+	await _fresh_scratch()
 	main = t.get_tree().current_scene
 	line = main.line_view(0)
 	flyers = main.get_node("%Flyers")
@@ -990,12 +993,13 @@ const STEP := 0.25
 const PHASE_GAP := 30.0
 const SAVE_WINDOW := 30.0
 const START_WINDOW := 300.0
+const OPEN_WINDOW := 90.0
 const GATE_SAFE := 0.5
 const MID_WINDOW := Vector2(240.0, 480.0)
 
 
 func m9() -> void:
-	await _fresh()
+	await _fresh_scratch()
 	var main := t.get_tree().current_scene
 	var line: LineView = main.line_view(0)
 	var menu: UpgradeMenu = main.get_node("%UpgradeMenu")
@@ -1179,10 +1183,10 @@ func tune() -> void:
 		print("  %-9s %5.1f   %4.0f%%    %4.1f%%  %3d  %4.0f  %4.0f  %5.0f  %5.1f  %4.0f%%  %3.0f%%  %5d  %5s  %4d" % [
 			key, r.time / 60.0, r.bounty * 100.0, r.starved * 100.0, r.phases, r.gap, r.first_fit, r.final_wait,
 			r.first_maxed / 60.0, r.tap_scrap * 100.0, r.tap_work * 100.0, r.lines, Fmt.num(r.peak_dps), r.wave])
-	print("  start      station  mech  wave   buy  quiet  4-8  gate (s; quiet = longest stretch of the first 5 min with nothing new, 4-8 = longest wait between buys in minutes 4 to 8, gate = most attack time the gate had taken)")
+	print("  start      station  mech  wave   buy  open  quiet  4-8  gate (s; open = longest stretch of the first 90 s without an enemy popping, a mech, a cleared wave, a build, a buy or a fit, quiet = the same over the first 5 min without the pops, 4-8 = longest wait between buys in minutes 4 to 8, gate = most attack time the gate had taken)")
 	for key: String in runs:
 		var r: Dictionary = runs[key]
-		print("  %-9s  %6.1f %5.1f %5.1f %5.1f  %5.1f %4.0f %5.1f" % [key, r.first_build, r.first_mech, r.first_wave, r.first_buy, r.quiet, r.mid_gap, r.gate])
+		print("  %-9s  %6.1f %5.1f %5.1f %5.1f %5.1f  %5.1f %4.0f %5.1f" % [key, r.first_build, r.first_mech, r.first_wave, r.first_buy, r.open, r.quiet, r.mid_gap, r.gate])
 	for key: String in runs:
 		var r: Dictionary = runs[key]
 		var shortest := 1200.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1500.0
@@ -1193,8 +1197,8 @@ func tune() -> void:
 		return
 	var base: Dictionary = runs.baseline
 	t.check(base.first_worker < 240.0, "first worker at %.1f min" % (base.first_worker / 60.0))
-	t.check(base.bounty >= 0.25 and base.bounty <= 0.4, "bounties %.0f%% of credits" % (base.bounty * 100.0))
-	t.check(base.starved >= 0.05 and base.starved <= 0.15 and base.phases >= 3, "scrap short %.1f%% of the run in %d phases" % [base.starved * 100.0, base.phases])
+	t.check(base.bounty >= 0.2 and base.bounty <= 0.4, "bounties %.0f%% of credits" % (base.bounty * 100.0))
+	t.check(base.starved >= 0.05 and base.starved <= 0.2 and base.phases >= 3, "scrap short %.1f%% of the run in %d phases" % [base.starved * 100.0, base.phases])
 	t.check(base.empty_windows == 0, "every 5 min window has buys (%d without)" % base.empty_windows)
 	t.check(base.gap <= 120.0, "longest wait between buys %.0f s" % base.gap)
 	t.check(base.first_fit <= 180.0, "first tier fit at %.0f s" % base.first_fit)
@@ -1203,7 +1207,8 @@ func tune() -> void:
 	if runs.size() < PROFILES.size():
 		GameState.new_game()
 		return
-	t.check(base.first_mech <= 20.0 and runs.casual.first_mech <= 35.0, "first mech at %.0f s (slow tapper %.0f s)" % [base.first_mech, runs.casual.first_mech])
+	t.check(base.open <= 10.0 and runs.casual.open <= 15.0, "the first 90 s bring something new every %.0f s (slow tapper %.0f s)" % [base.open, runs.casual.open])
+	t.check(base.first_mech <= 20.0 and runs.casual.first_mech <= 35.0, "first built mech at %.0f s (slow tapper %.0f s)" % [base.first_mech, runs.casual.first_mech])
 	t.check(base.first_buy <= 45.0 and runs.casual.first_buy <= 60.0, "first buy at %.0f s (slow tapper %.0f s)" % [base.first_buy, runs.casual.first_buy])
 	t.check(base.mid_gap <= 30.0 and runs.casual.mid_gap <= 30.0, "minutes 4 to 8: longest wait between buys %.0f s (slow tapper %.0f s)" % [base.mid_gap, runs.casual.mid_gap])
 	t.check(absf(runs.field.time / base.time - 1.0) <= 0.2, "all-battlefield taps within 20%% of baseline (%.2f×)" % (runs.field.time / base.time))
@@ -1242,6 +1247,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"maxed": {},
 		"mechs": [],
 		"waves": [],
+		"pops": [],
 	}
 	var on_deploy := func(m: MechState) -> void:
 		r.credits.fee += m.deploy_fee
@@ -1276,8 +1282,12 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 			_bot_manage(p, r)
 		var yard_before := GameState.yard_chunks
 		var chunk := GameState.yard_chunk()
+		var alive := GameState.wave_alive()
 		GameState.advance(STEP)
 		r.scrap.yard += (GameState.yard_chunks - yard_before) * chunk
+		if GameState.run_time < OPEN_WINDOW:
+			for k in maxi(alive - GameState.wave_alive(), 0):
+				r.pops.append(GameState.run_time)
 		peak_dps = maxf(peak_dps, GameState.field_dps())
 		peak_gate = maxf(peak_gate, GameState.gate_damage)
 		if GameState.starved():
@@ -1331,6 +1341,14 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 	var quiet := 0.0
 	for i in range(1, news.size()):
 		quiet = maxf(quiet, news[i] - news[i - 1])
+	var opening := news.filter(func(at: float) -> bool: return at < OPEN_WINDOW)
+	opening.append_array(r.mechs.filter(func(at: float) -> bool: return at < OPEN_WINDOW))
+	opening.append_array(r.pops)
+	opening.append(OPEN_WINDOW)
+	opening.sort()
+	var open_gap := 0.0
+	for i in range(1, opening.size()):
+		open_gap = maxf(open_gap, opening[i] - opening[i - 1])
 	var mid_times: Array = [MID_WINDOW.x]
 	mid_times.append_array(buys.map(func(b: Array) -> float: return b[0]).filter(func(at: float) -> bool: return at > MID_WINDOW.x and at < MID_WINDOW.y))
 	mid_times.append(MID_WINDOW.y)
@@ -1353,6 +1371,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"first_wave": r.waves[0] if r.waves.size() else INF,
 		"first_buy": paid[0][0] if paid.size() else INF,
 		"quiet": quiet,
+		"open": open_gap,
 		"mid_gap": mid_gap,
 		"breaches": breaches[0],
 		"gate": peak_gate,
@@ -1678,42 +1697,18 @@ func progression() -> void:
 	var unlock: Control = main.find_child("UnlockSlot", true, false)
 	var yard_hire: Control = yard.get_node("HireYard")
 	var col := column.get_global_rect()
-	t.check(not line.visible and not bar.visible and not unlock.visible, "new game: line, UPGRADES, UNLOCK LINE hidden")
+	t.check(line.visible and line.modulate.a == 1.0 and GameState.shown("factory") and GameState.lines[0].is_complete(),
+			"cold open: line 1 built and shown from the first frame")
 	t.check(field.visible and field.size.y == Battlefield.HEIGHT and field.get_global_rect().position.y == col.position.y and rail.visible and rail.size.x == ScrollRail.WIDTH,
 			"battlefield attached under the HUD from the start, with the scroll bar")
-	t.check(absf(yard.get_global_rect().get_center().y - (field.get_global_rect().end.y + col.end.y) / 2.0) <= 1.0 and absf(yard.get_global_rect().get_center().x - 170.0) <= 1.0,
-			"the scrapyard centered in the space under it (%s)" % yard.get_global_rect())
-	t.check(not hud.get_node("Mechs").visible and not hud.get_node("MechsRate").visible, "HUD: scrap only")
-	await t.shot("start_pile")
-	var pile: Control = yard.pile()
-	for i in 2:
-		await t.click(pile)
-	await t.frames(2)
-	t.check(not line.visible and not GameState.shown("factory"), "2 scrap: still only the pile")
-	await t.click(pile)
-	await t.frames(2)
-	t.check(GameState.shown("factory") and line.visible and line.modulate.a < 1.0, "scrap for the first station: the line fades in")
-	await t.wait(Reveal.SLIDE_TIME / 2.0)
-	var mid := yard.get_global_rect().end.y
-	t.check(mid > yard.get_global_rect().size.y and mid < col.end.y, "the yard slides down (bottom at %d)" % mid)
-	await t.shot("start_factory_mid")
-	await t.wait(Reveal.SLIDE_TIME)
-	t.check(line.modulate.a == 1.0 and yard.get_global_rect().end.y == col.end.y and line.get_global_rect().end.y == yard.get_global_rect().position.y,
-			"yard at the bottom, the line right above it")
-	await t.shot("start_factory")
-
-	GameState.scrap = 45.0
-	for i in 3:
-		await t.click(_build_button(line, i))
-	GameState.debug_spawn_mechs(1)
-	await t.frames(2)
-	await t.wait(Reveal.SLIDE_TIME * 1.5)
 	t.check(yard.get_global_rect().end.y == col.end.y and line.get_global_rect().end.y == yard.get_global_rect().position.y
-			and line.get_global_rect().position.y > field.get_global_rect().end.y,
-			"factory and yard stay at the bottom, the gap sits between battlefield and factory")
-	t.check(hud.get_node("Mechs").visible and hud.get_node("Mechs").self_modulate.a == 1.0, "HUD: mechs and credits faded in")
-	t.check(not bar.visible and not line.hire_button().visible and not yard_hire.visible and not unlock.visible, "nothing affordable: no crew bars, UPGRADES, UNLOCK LINE")
-	await t.shot("start_field")
+			and line.get_global_rect().position.y > field.get_global_rect().end.y and absf(yard.get_global_rect().get_center().x - 170.0) <= 1.0,
+			"yard at the bottom, the line right above it, the gap between battlefield and factory (%s)" % yard.get_global_rect())
+	t.check(GameState.field.size() == 1 and hud.get_node("Mechs").visible and hud.get_node("Mechs").self_modulate.a == 1.0,
+			"the free mech is out, so the HUD shows every column at once")
+	t.check(not bar.visible and not unlock.visible and not line.hire_button().visible and not yard_hire.visible,
+			"nothing affordable yet: no crew bars, UPGRADES, UNLOCK LINE")
+	await t.shot("start_cold_open")
 
 	GameState.credits = GameState.yard_worker_cost()
 	await t.frames(2)
@@ -1751,8 +1746,9 @@ func progression() -> void:
 
 	Save.reset_run()
 	await t.frames(4)
-	t.check((t.node("Battlefield") as Control).visible and not (t.node("Bar") as Control).visible and not t.get_tree().current_scene.line_view(0).visible,
-			"START AGAIN: back to the battlefield and the pile")
+	t.check((t.node("Battlefield") as Control).visible and not (t.node("Bar") as Control).visible
+			and t.get_tree().current_scene.line_view(0).visible and GameState.field.size() == 1,
+			"START AGAIN: the next war opens cold again, the bar gone")
 	Reveal.instant = true
 
 
@@ -1887,7 +1883,7 @@ func pane() -> void:
 	var guide: IntroGuide = main.get_node("IntroGuide")
 	var tip: Vector2 = guide.get("_tip") + guide.global_position
 	var pin_rect := field_pin.get_global_rect()
-	t.check(guide.text() == "TAP THE FIELD TO HIT THE WAVE" and tip.x == pin_rect.get_center().x and tip.y > pin_rect.end.y and tip.y < pin_rect.end.y + 8.0,
+	t.check(guide.text() == IntroGuide.DRONES and tip.x == pin_rect.get_center().x and tip.y > pin_rect.end.y and tip.y < pin_rect.end.y + 8.0,
 			"field hint points at the field pin while the field is away (%s)" % tip)
 
 	rail.pin(0, true)
@@ -2197,7 +2193,7 @@ func prestige() -> void:
 	hud = t.node("Hud")
 	var wars: Label = hud.get_node("Wars")
 	var mute: Control = hud.get_node("MuteButton")
-	t.check(wars.visible and wars.text == "4" and not hud.get_node("Mechs").visible, "new war: HUD shows scrap and 4 wars won")
+	t.check(wars.visible and wars.text == "4" and hud.get_node("Mechs").visible, "new war: HUD shows 4 wars won beside the columns")
 	_reveal_all()
 	GameState.prestige = 99
 	GameState.credits_rate = 999000.0
@@ -2278,7 +2274,7 @@ func prestige() -> void:
 	t.check(hud.get_node("Wars").text == "5" and GameState.prestige == 4 and GameState.run_over, "it lands on the HUD counter, which shows 5 before the new war starts")
 	await t.wait(Nuke.WIN_HOLD + 0.2)
 	hud = t.node("Hud")
-	t.check(GameState.prestige == 5 and not GameState.run_over and GameState.mechs_built == 0 and hud.get_node("Wars").text == "5", "then the next war starts with 5 wars won")
+	t.check(GameState.prestige == 5 and not GameState.run_over and GameState.mechs_built == 1 and hud.get_node("Wars").text == "5", "then the next war starts with 5 wars won")
 	var widths := []
 	var textures := {}
 	var placed := true
@@ -2713,40 +2709,59 @@ func intro() -> void:
 	var line: LineView = main.line_view(0)
 	var guide: IntroGuide = main.get_node("IntroGuide")
 	var pile: Control = main.find_child("Pile", true, false)
-	var arrow_x := func() -> float: return guide.get("_tip").x + guide.global_position.x
-	t.check(guide.text() == "TAP THE SCRAP PILE", "fresh game: guide points at the pile (%s)" % guide.text())
+	var field: Battlefield = main.get_node("%Battlefield")
+	var field_tap: Control = field.find_child("FieldTap", true, false)
 	var story: Label = guide.get_node("Story")
-	var action: Label = guide.get_node("Text")
-	var field_end: float = (t.node("Battlefield") as Control).get_global_rect().end.y
+	var label: Label = guide.get_node("Text")
+	var arrow_x := func() -> float: return guide.get("_tip").x + guide.global_position.x
+	var on_screen := func() -> bool: return main.get_global_rect().grow(-IntroGuide.MARGIN).encloses(label.get_global_rect())
+	var field_end := field.get_global_rect().end.y
+
+	t.check(GameState.field.size() == 1 and GameState.mechs_built == 1 and guide.text() == IntroGuide.DRONES,
+			"cold open: a mech on the field and the guide pointing at the drones (%s)" % guide.text())
+	t.check(absf(arrow_x.call() - field.hint_anchor().get_global_rect().get_center().x) < 1.0 and guide.get("_down"), "arrow points down at the enemies")
+	var rail_x: float = (t.node("Rail") as Control).get_global_rect().position.x
+	t.check(label.get_global_rect().end.x <= rail_x - IntroGuide.MARGIN and on_screen.call(), "the label stays on screen and off the scroll rail (%d of %d)" % [label.get_global_rect().end.x, rail_x])
 	var story_ys := {}
 	var action_ys := {}
 	for i in 30:
 		await t.wait(0.03)
 		story_ys[story.get_global_rect().position.y] = true
-		action_ys[action.get_global_rect().position.y] = true
-	t.check(guide.story() == IntroGuide.MISSION and story.get_theme_color("font_color") != action.get_theme_color("font_color")
-			and story.get_global_rect().position.y > field_end and story.get_global_rect().end.y < action_ys.keys().min()
-			and absf(story.get_global_rect().get_center().x - 170.0) <= 1.0,
-			"the mission on its own plate in the gap between the field and the action, in another colour (%s)" % story.get_global_rect())
+		action_ys[label.get_global_rect().position.y] = true
+	t.check(guide.story() == IntroGuide.MISSION and story.get_theme_color("font_color") != label.get_theme_color("font_color")
+			and story.get_global_rect().position.y > field_end and absf(story.get_global_rect().get_center().x - 170.0) <= 1.0,
+			"the mission on its own plate in the gap under the field, in another colour (%s)" % story.get_global_rect())
 	t.check(story_ys.size() == 1 and action_ys.size() > 1, "the mission stands still while the action bobs")
+	await t.shot("intro_drones")
+	GameState.wave = 1
+	await t.frames(2)
+	t.check(guide.text() == IntroGuide.FIELD, "from wave 2 on the enemies are not drones any more (%s)" % guide.text())
+	GameState.wave = 0
+	GameState.gate_damage = 5.0
+	await t.frames(1)
+	t.check(guide.text() != IntroGuide.DRONES, "no field step over the gate's bar while the gate is damaged (%s)" % guide.text())
+	GameState.gate_damage = 0.0
+	GameState.wave = IntroGuide.FIELD_WAVES
+	await t.frames(1)
+	t.check(guide.text() != IntroGuide.DRONES, "no field step from wave %d on" % (IntroGuide.FIELD_WAVES + 1))
+	GameState.wave = 0
+	var mech: MechState = GameState.field[0]
+	GameState.field.clear()
+	await t.frames(1)
+	t.check(guide.text() != IntroGuide.DRONES, "no field step while the field is empty (%s)" % guide.text())
+	GameState.field.append(mech)
+	await t.frames(1)
+
+	for i in IntroGuide.FIELD_TAPS:
+		await t.click(field_tap)
+	await t.frames(1)
+	t.check(guide.text() == IntroGuide.PILE and guide.story() == IntroGuide.STORIES[IntroGuide.PILE],
+			"%d taps on the drones: the pile is next, and why (%s / %s)" % [IntroGuide.FIELD_TAPS, guide.text(), guide.story()])
 	t.check(absf(arrow_x.call() - pile.get_global_rect().get_center().x) < 1.0, "arrow above the pile")
-	var label: Label = guide.get_node("Text")
-	var on_screen := func() -> bool: return main.get_global_rect().grow(-IntroGuide.MARGIN).encloses(label.get_global_rect())
 	t.check(absf(label.get_global_rect().get_center().x - arrow_x.call()) <= 1.0 and on_screen.call(), "label centered on its arrow (%s)" % label.get_global_rect())
 	t.check(guide.modulate.a == 1.0 and label.modulate.a == 1.0, "label at full opacity")
 	t.check(guide.get("_lit") == (pile as TapArea).highlight, "the pile is lit while the guide points at it")
 	await t.shot("intro_pile")
-	for i in 3:
-		await t.click(pile)
-	t.check(guide.text() == "BUILD THE FRAME STATION" and on_screen.call(), "3 scrap: build the frame, label kept on screen (%s)" % guide.text())
-	var build := _build_button(line, 0)
-	t.check(guide.get("_down") and label.get_global_rect().end.y <= line.segment_view(0).get_global_rect().position.y, "build label above the station, off its name (%s)" % label.get_global_rect())
-	await t.frames(2)
-	var frame: Rect2 = guide.get("_frame")
-	t.check(frame.encloses(build.get_global_rect()) and frame.size.x <= build.size.x + 2.0 * IntroGuide.FRAME_GROW, "the build button is framed (%s around %s)" % [frame, build.get_global_rect()])
-	await t.shot("intro_build")
-	await t.click(_build_button(line, 0))
-	t.check(guide.text() == "TAP THE SCRAP PILE", "short on scrap again: back to the pile")
 	var station: Control = line.segment_view(0).get_node("Tap")
 	t.touch(station, 0, true)
 	t.touch(station, 0, false)
@@ -2759,12 +2774,14 @@ func intro() -> void:
 	await t.click(pile)
 	await t.frames(1)
 	t.check(not guide.thumb_zone().has_area() and absf(label.get_global_rect().get_center().x - arrow_x.call()) <= 1.0, "mouse: no thumb zone, label centered again")
-	GameState.scrap -= GameState.tap_scrap()
-	for i in 17:
+
+	var parts := 0.0
+	for s in GameState.lines[0].segments:
+		parts += s.scrap_cost()
+	while GameState.scrap < parts:
 		await t.click(pile)
-	for i in 2:
-		await t.click(_build_button(line, i + 1))
-	t.check(guide.text() == "TAP STATIONS TO BUILD A MECH" and guide.story() == "MECHS PUSH THE DRONES BACK", "all built: tap the stations, and why (%s)" % guide.story())
+	t.check(guide.text() == IntroGuide.STATIONS and guide.story() == IntroGuide.STORIES[IntroGuide.STATIONS],
+			"scrap for a whole mech: tap the stations, and why (%s)" % guide.story())
 	t.check(absf(arrow_x.call() - line.segment_view(0).get_global_rect().get_center().x) < 1.0 and guide.get("_down")
 			and label.get_global_rect().end.y <= line.segment_view(0).get_global_rect().position.y, "arrow and label above the frame station")
 	t.check(guide.get("_lit") == (line.segment_view(0).get_node("Tap") as TapArea).highlight, "the station's machine is lit")
@@ -2781,34 +2798,16 @@ func intro() -> void:
 	await _fill_bar(line, 2)
 	await t.frames(1)
 	t.check(guide.visible and not guide.get("_arrow"), "all bars full: text stays, no arrow")
+	GameState.scrap = 0.0
 	GameState.advance(4.0)
 	await t.frames(2)
-	t.check(guide.text() == "OUT OF SCRAP: TAP THE PILE", "stalled on scrap: back to the pile (%s)" % guide.text())
-	for i in 10:
+	t.check(guide.text() == IntroGuide.NO_SCRAP, "stalled on scrap: back to the pile (%s)" % guide.text())
+	for i in 20:
 		await t.click(pile)
-	GameState.advance(4.0)
+	GameState.advance(6.0)
 	await t.frames(2)
-	var field: Control = main.get_node("%Battlefield")
-	t.check(GameState.mechs_built == 1 and guide.text() == "TAP THE FIELD TO HIT THE WAVE", "first mech deployed: tap the battlefield (%s)" % guide.text())
-	var anchor: Control = field.hint_anchor()
-	t.check(absf(arrow_x.call() - anchor.get_global_rect().get_center().x) < 1.0 and guide.get("_down"), "arrow points down at the enemies")
-	var rail_x: float = (t.node("Rail") as Control).get_global_rect().position.x
-	t.check(label.get_global_rect().end.x <= rail_x - IntroGuide.MARGIN, "field hint stays off the scroll rail (%d of %d)" % [label.get_global_rect().end.x, rail_x])
-	await t.shot("intro_field")
-	GameState.gate_damage = 5.0
-	await t.frames(1)
-	t.check(guide.text() != "TAP THE FIELD TO HIT THE WAVE" or not guide.visible, "no field hint over the gate's bar while the gate is damaged")
-	GameState.gate_damage = 0.0
-	GameState.wave = IntroGuide.FIELD_WAVES
-	await t.frames(1)
-	t.check(not guide.visible, "no field hint from wave %d on" % (IntroGuide.FIELD_WAVES + 1))
-	GameState.wave = 0
-	await t.frames(1)
-	var field_tap: Control = field.find_child("FieldTap", true, false)
-	for i in IntroGuide.FIELD_TAPS:
-		await t.click(field_tap)
-	await t.frames(1)
-	t.check(not guide.visible, "%d battlefield taps: hint gone" % IntroGuide.FIELD_TAPS)
+	t.check(GameState.mechs_built == 2 and guide.text() != IntroGuide.STATIONS and guide.text() != IntroGuide.PILE,
+			"the mech the player built: the lesson is over (%s)" % guide.text())
 	var upgrades: Button = main.get_node("%Upgrades")
 	GameState.credits = 1000.0
 	await t.frames(2)
@@ -2826,14 +2825,11 @@ func intro() -> void:
 	await t.click(menu.first_affordable())
 	await t.frames(2)
 	t.check(not guide.visible, "first upgrade bought: guide gone for good")
-	GameState.field_taps = 0
-	GameState.field.clear()
-	await t.frames(1)
-	t.check(not guide.visible, "no field hint while the field is empty")
+	menu.close()
 	GameState.prestige = IntroGuide.VETERAN_WARS - 1
 	GameState.new_game()
-	await t.frames(1)
-	t.check(guide.text() == "TAP THE SCRAP PILE" and guide.story() == IntroGuide.MISSION, "%d war won: the guide is still there" % (IntroGuide.VETERAN_WARS - 1))
+	await t.frames(2)
+	t.check(guide.text() == IntroGuide.DRONES and guide.story() == IntroGuide.MISSION, "%d war won: the next war opens the same way" % (IntroGuide.VETERAN_WARS - 1))
 	GameState.prestige = IntroGuide.VETERAN_WARS
 	await t.frames(1)
 	t.check(not guide.visible, "%d wars won: no guide" % IntroGuide.VETERAN_WARS)
@@ -2894,6 +2890,7 @@ func audio() -> void:
 		await t.wait(0.15)
 	t.check(played.call(&"pile_tap") == 3, "pile taps sound (%d, scrap %d)" % [played.call(&"pile_tap"), GameState.scrap])
 	GameState.scrap = 1000.0
+	GameState.lines[0].segments[0].built = false
 	await t.frames(2)
 	var line: LineView = main.line_view(0)
 	await t.click(_build_button(line, 0))
@@ -2913,10 +2910,10 @@ func audio() -> void:
 	t.check(first == 0.0 and fast <= float(cfg.soften.min_db) + 1.0 and after == 0.0 and calm == 0.0,
 			"fast taps soften (%.1f dB at 10/s), full after a pause and at 3/s" % fast)
 	var upgrades: Button = main.get_node("%Upgrades")
-	t.check(not Sound.music_playing, "no music before the first mech")
 	_reveal_all()
-	await t.frames(2)
-	t.check(Sound.music_playing and played.call(&"music") == 1, "music starts with the first mech")
+	Sound.stop_music()
+	await t.wait(Sound.MUSIC_STOP_FADE + 0.3)
+	t.check(Sound.music_playing and played.call(&"music") >= 1, "the music arms itself with a mech on the field (the cold open's, from 0 s)")
 	await t.click(upgrades)
 	await t.click(upgrades)
 	t.check(played.call(&"menu_open") == 1 and played.call(&"menu_close") == 1, "menu open/close sound")
@@ -2971,6 +2968,10 @@ func audio() -> void:
 	t.check(is_equal_approx(Sound._area_gain("field"), db_to_linear(cfg.areas.field.hidden_db)), "hidden area plays at hidden_db")
 	await t.frames(1)
 	t.check(Sound.presence.field == 1.0, "main keeps presence up to date")
+	for m: MechState in GameState.field.duplicate():
+		GameState.field.erase(m)
+		GameState.mech_died.emit(m, 0.0)
+	await t.wait(float(cfg.beds.battle.smooth) + 0.3)
 	t.check(Sound._beds.battle.gain < 0.05, "battle bed silent with no mechs (%.2f)" % Sound._beds.battle.gain)
 
 	GameState.time_scale = 10.0
@@ -3047,8 +3048,10 @@ func audio() -> void:
 	t.check(Sound.muted, "reset run keeps sound settings")
 	Sound.play_music()
 	Save.reset_run()
+	await t.frames(2)
+	t.check(Sound._music_fading, "start again fades the music out")
 	await t.wait(Sound.MUSIC_STOP_FADE + 0.3)
-	t.check(not Sound.music_playing, "start again stops the music")
+	t.check(Sound.music_playing, "the next war's cold open starts it again")
 	_reveal_all()
 	await t.frames(2)
 	t.check(Sound.music_playing, "the new run's first mech starts it again")
@@ -3395,9 +3398,10 @@ func sdk() -> void:
 
 	var pick: String = want[2]
 	var level := GameState.level(pick)
+	var purse := GameState.credits
 	t.tap((menu.row(pick).find_child("Ad", true, false) as Control).get_global_rect().get_center())
 	await t.wait(0.5)
-	t.check(GameState.level(pick) == level + 1 and GameState.credits == 0.0 and GameState.ad_cooldown_t > 170.0, "free upgrade: one level of that row, no credits spent, cooldown")
+	t.check(GameState.level(pick) == level + 1 and GameState.credits >= purse and GameState.ad_cooldown_t > 170.0, "free upgrade: one level of that row, no credits spent, cooldown")
 	t.check(not GameState.reward_upgrade(want[0]), "no second reward during the cooldown")
 	GameState.ad_cooldown_t = 0.0
 	t.check(not GameState.ad_offers().any(func(id: String) -> bool: return Data.upgrade_row(id).get("kind", "") == "final"), "the missile is never offered")
@@ -3513,8 +3517,10 @@ func away() -> void:
 	var share := Data.econ("away_share")
 	var mult := Data.econ("away_ad_mult")
 
+	GameState.mechs_built = 0
+	GameState.field.clear()
 	GameState.add_away(600.0, 10.0, 5.0, 8.0)
-	t.check(GameState.away_t == 0.0, "nothing before the first mech")
+	t.check(GameState.away_t == 0.0, "nothing before the first mech (an old save loaded before its first one)")
 	_reveal_all()
 	GameState.add_away(min_t - 1.0, 10.0, 5.0, 8.0)
 	t.check(GameState.away_t == 0.0, "nothing under %d s away" % min_t)
@@ -3654,6 +3660,9 @@ func away() -> void:
 
 func gate() -> void:
 	await _fresh()
+	GameState.field.clear()
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
 	var main := t.get_tree().current_scene
 	var field: Battlefield = t.node("Battlefield")
 	var layer: Node2D = field.get_node("World/Enemies")
@@ -3709,11 +3718,12 @@ func gate() -> void:
 			"the gate repairs %.1f s of damage per second while mechs hold the field" % Data.econ("gate_repair"))
 	GameState.advance(15.0)
 	t.check(GameState.field.is_empty() and GameState.siege > 0.0, "the mech dies: the column comes again")
+	GameState.credits = 0.0
 	GameState.siege = 1.0
 	GameState.advance(0.1)
 	await t.frames(2)
 	t.check(guide.text() == "BUILD MECHS TO DEFEND IT" and guide.story() == "THE GATE IS UNDER ATTACK" and guide.get("_label").get_global_rect().size.x <= 328.0
-			and main.get_rect().encloses(guide.get("_label").get_global_rect()), "after the first mech: the guide calls for mechs (%s)" % guide.get("_label").get_global_rect())
+			and main.get_rect().encloses(guide.get("_label").get_global_rect()), "after the first mech: the guide calls for mechs (%s, %s)" % [guide.text(), guide.get("_label").get_global_rect()])
 	await t.shot("gate_guide")
 	GameState.siege = 0.9
 	GameState.kill_wave()
@@ -3773,6 +3783,7 @@ func gate() -> void:
 
 	GameState.prestige = 1
 	GameState.new_game()
+	GameState.field.clear()
 	GameState.siege = 1.0
 	GameState.gate_damage = time - 0.05
 	var falls := [0]
@@ -3792,6 +3803,21 @@ func _reveal_all() -> void:
 	GameState.mechs_built = maxi(GameState.mechs_built, 1)
 	for key: String in GameState.REVEALS:
 		GameState.seen[key] = true
+
+
+func _fresh_scratch() -> void:
+	GameState.time_scale = 0.0
+	GameState.prestige = 0
+	GameState.new_game()
+	GameState.field.clear()
+	GameState.mechs_built = 0
+	GameState.credits = 0.0
+	GameState.credits_earned = 0.0
+	GameState._reset_rates()
+	for seg in GameState.lines[0].segments:
+		seg.built = false
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
 
 
 func _fresh(frozen := true) -> void:

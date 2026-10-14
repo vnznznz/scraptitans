@@ -1,5 +1,6 @@
 {
 	"start_scrap": 0,
+	"open_mech_life": 45,
 	"ad_scrap_mult": 2,
 	"ad_scrap_time": 300,
 	"ad_cooldown": 180,
