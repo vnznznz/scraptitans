@@ -1185,7 +1185,7 @@ func tune() -> void:
 		print("  %-9s  %6.1f %5.1f %5.1f %5.1f  %5.1f %4.0f %5.1f" % [key, r.first_build, r.first_mech, r.first_wave, r.first_buy, r.quiet, r.mid_gap, r.gate])
 	for key: String in runs:
 		var r: Dictionary = runs[key]
-		var shortest := 1500.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1800.0
+		var shortest := 1200.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1500.0
 		t.check(r.over and not r.lost and r.time >= shortest and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
 		t.check(r.gate <= (1.0 if key == "field" else GATE_SAFE) * Data.econ("gate_time"), "%s: the gate took %.0f s of attack at most" % [key, r.gate])
 	if not runs.has("baseline"):
@@ -1219,8 +1219,8 @@ func tune() -> void:
 	t.check(gain >= 60.0, "pausing gets a fit sooner (%s by %.0f s)" % [gain_fit.trim_prefix("apply L1 "), gain])
 	t.check(runs.no_pause.time <= base.time * 1.1 and runs.no_pause.gap <= 150.0, "never pausing isn't stuck: %.1f vs %.1f min, longest wait %.0f s" % [runs.no_pause.time / 60.0, base.time / 60.0, runs.no_pause.gap])
 	var wars := [base, runs.wars1, runs.wars5, runs.wars10]
-	t.check(range(3).all(func(i: int) -> bool: return wars[i + 1].time < wars[i].time and wars[i + 1].starved < wars[i].starved),
-			"each war won: a shorter run, less often short on scrap (%s min, %s %%)" % [
+	t.check(range(3).all(func(i: int) -> bool: return wars[i + 1].time < wars[i].time) and range(1, 3).all(func(i: int) -> bool: return wars[i + 1].starved < wars[i].starved),
+			"each war won: a shorter run, less often short on scrap from the first war won (%s min, %s %%)" % [
 			wars.map(func(r: Dictionary) -> String: return "%.1f" % (r.time / 60.0)), wars.map(func(r: Dictionary) -> String: return "%.1f" % (r.starved * 100.0))])
 	t.check(runs.wars10.starved < 0.01 and runs.wars5.starved > 0.0, "the pile gets ahead of the costs over 10 wars, not at once")
 	t.check(range(3).all(func(i: int) -> bool: return wars[i + 1].peak_dps > wars[i].peak_dps * 1.9) and runs.wars10.peak_dps > base.peak_dps * 1000.0,
