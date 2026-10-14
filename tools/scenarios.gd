@@ -2814,6 +2814,7 @@ func intro() -> void:
 			and story.get_global_rect().position.y > field_end and absf(story.get_global_rect().get_center().x - 170.0) <= 1.0,
 			"the mission on its own plate in the gap under the field, in another colour (%s)" % story.get_global_rect())
 	t.check(story_ys.size() == 1 and action_ys.size() > 1, "the mission stands still while the action bobs")
+	t.check(story.get_global_rect().end.y < line.get_global_rect().position.y, "the mission plate stays off the factory (%s above %d)" % [story.get_global_rect(), line.get_global_rect().position.y])
 	await t.shot("intro_drones")
 	GameState.wave = 1
 	await t.frames(2)

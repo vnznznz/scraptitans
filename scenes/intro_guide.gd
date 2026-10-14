@@ -169,6 +169,8 @@ func _process(delta: float) -> void:
 		if place == Place.ABOVE and action_top > top:
 			y = minf(top + (action_top - top - _story.size.y) / 2.0, action_top - STORY_GAP - _story.size.y)
 		_story.position = Vector2((right - _story.size.x) / 2.0, y).round()
+		var gap_end := line.global_position.y - global_position.y
+		_story.visible = y >= top and _story.position.y + _story.size.y <= gap_end - STORY_GAP
 	queue_redraw()
 
 
