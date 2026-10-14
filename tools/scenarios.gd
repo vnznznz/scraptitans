@@ -2106,7 +2106,22 @@ func stations() -> void:
 		GameState.hire_worker(0)
 	await t.frames(2)
 	var worker: TextureRect = machine.get_node("Worker0")
-	t.check(seg.free_slots() == 2 and main.line_view(0).segment_view(3).free_slots() == 3, "Crew per station: 4 slots, the free ones marked (%d)" % seg.free_slots())
+	var marks := 0
+	for i in 4:
+		marks += main.line_view(0).segment_view(i).free_slots()
+	t.check(marks == GameState.lines[0].worker_slots() - GameState.lines[0].workers and seg.free_slots() == 3 and main.line_view(0).segment_view(3).free_slots() == 2,
+			"Crew per station: 4 slots each, the line's free ones marked across the stations (%d)" % marks)
+	t.check(GameState.lines[0].station_workers(0) == 1 and GameState.lines[0].roamers() == 2,
+			"6 hired on 4 stations: one parks at each, two roam (%d + %d)" % [GameState.lines[0].station_workers(0), GameState.lines[0].roamers()])
+	var roamer: Sprite2D = main.line_view(0).get_node("Roamer0")
+	var walked: float = roamer.position.x
+	for k in LineView.ROAM_SWITCH:
+		GameState.lines[0].segments[3].chunks += 1
+		await t.frames(2)
+	await t.wait(1.0)
+	var toward: float = main.line_view(0).segment_view(3).position.x
+	t.check(roamer.visible and roamer.hframes == 2 and absf(roamer.position.x - toward) < absf(walked - toward),
+			"a couple of chunks landing at the last station: the roamer walks that way (%d to %d, station at %d)" % [walked, roamer.position.x, toward])
 	t.check(wheel.visible and wheel.frame < 2 and worker.visible and worker.texture == SegmentView.WORKER_TEX[1], "Lighter work: small flywheel; Faster crews: drills")
 	await t.shot("station_upgrades")
 	for i in 5:
@@ -2619,9 +2634,10 @@ func field() -> void:
 			"full field: a new mech walks out of the gate and fades, its shadow heads for the crowd, its spot there stays empty")
 	await t.wait(crowd.spot(newcomer.id).distance_to(Gate.EXIT) / Battlefield.WALK_SPEED)
 	t.check((gate.get("_walkers") as Array).is_empty() and held.is_empty() and walking_out.call() == 0, "the shadow walks to its spot in the crowd, the mech is gone")
+	var crowded := crowd.count()
 	GameState.debug_spawn_mechs(20)
 	await t.frames(2)
-	t.check(crowd.count() == 27 and held.size() == Gate.FLOW_QUEUE, "many at once: %d wait at the gate, the others stand in the crowd at once" % Gate.FLOW_QUEUE)
+	t.check(crowd.count() == crowded + 20 and held.size() == Gate.FLOW_QUEUE, "many at once: %d wait at the gate, the other %d stand in the crowd at once" % [held.size(), crowd.count()])
 	await t.wait(1.1)
 	var out := (gate.get("_walkers") as Array).map(func(w: Dictionary) -> float: return (w.pos as Vector2).distance_to(Gate.EXIT))
 	var gap := Battlefield.WALK_SPEED * Gate.FLOW_GAP

@@ -246,7 +246,7 @@ func _update_workers(s: SegmentState) -> void:
 		_slots.queue_redraw()
 	for i in _workers.size():
 		_workers[i].visible = i < n
-	var free := slots - n if GameState.shown("crew") else 0
+	var free := GameState.lines[line_index].free_slots(seg_index) if GameState.shown("crew") else 0
 	if free != _free_slots:
 		_free_slots = free
 		_slots.queue_redraw()

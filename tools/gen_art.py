@@ -1527,6 +1527,19 @@ def workers():
             px(d, 9, 3, CYAN)
         save(img, f"line/worker_{gear}.png")
 
+        sheet, _ = new(20, 14)
+        sheet.paste(img, (0, 0))
+        step, sd = new(10, 14)
+        step.paste(img, (0, 0))
+        rect(sd, 2, 11, 3, 13, CLEAR)
+        rect(sd, 6, 11, 7, 13, CLEAR)
+        rect(sd, 2, 11, 2, 12, BLUE_D)
+        rect(sd, 1, 13, 2, 13, INK)
+        rect(sd, 6, 11, 7, 11, BLUE_D)
+        rect(sd, 7, 12, 8, 13, INK)
+        sheet.paste(step, (10, 0))
+        save(sheet, f"line/worker_walk_{gear}.png")
+
     for gear, ramp in enumerate((R_STEEL, R_GOLD, R_BLUE)):
         for haul in range(3):
             img, d = new(16, 14)

@@ -20,6 +20,11 @@ const TAG := Vector2(16, 20)
 const TAG_GAP := 4.0
 const NUKE_TEXT := "NEXT MECH LAUNCHES THE NUKE"
 const NUKE_Y := SegmentView.MACHINE_Y + 30.0
+const ROAM_SWITCH := 2
+const ROAM_SPEED := 36.0
+const ROAM_FPS := 7.0
+const ROAM_GAP := 9.0
+const ROAM_TEX := [preload("res://art/line/worker_walk_0.png"), preload("res://art/line/worker_walk_1.png"), preload("res://art/line/worker_walk_2.png")]
 
 var line_index := 0
 
@@ -44,6 +49,11 @@ var _belt_offset := 0.0
 var _collapsed := false
 var _hire_hold := Hold.new()
 var _nuke: Label
+var _roamers: Array[Sprite2D] = []
+var _roam_at := 0
+var _roam_votes := 0
+var _roam_x := -1.0
+var _chunks_seen: Array[int] = []
 
 
 func _ready() -> void:
@@ -254,6 +264,48 @@ func _burst(tex: Texture2D, pos: Vector2, amount: int, life: float) -> CPUPartic
 	return p
 
 
+func _step_roamers(delta: float) -> void:
+	var line := _line()
+	var segs := line.segments
+	while _chunks_seen.size() < segs.size():
+		_chunks_seen.append(0)
+	for i in segs.size():
+		if segs[i].chunks > _chunks_seen[i] and segs[i].built:
+			if i == _roam_at:
+				_roam_votes = 0
+			else:
+				_roam_votes += 1
+				if _roam_votes >= ROAM_SWITCH:
+					_roam_at = i
+					_roam_votes = 0
+		_chunks_seen[i] = segs[i].chunks
+	var n := line.roamers()
+	while _roamers.size() < n:
+		var w := Sprite2D.new()
+		w.name = "Roamer%d" % _roamers.size()
+		w.texture = ROAM_TEX[0]
+		w.hframes = 2
+		w.centered = false
+		add_child(w)
+		_roamers.append(w)
+	if _roam_at >= segs.size() or not segs[_roam_at].built:
+		_roam_at = line.last_built()
+	var target := _center(_roam_at) - SegmentView.WORKER_W / 2.0
+	if _roam_x < 0.0:
+		_roam_x = target
+	var before := _roam_x
+	_roam_x = move_toward(_roam_x, target, ROAM_SPEED * delta * maxf(GameState.time_scale, 1.0))
+	var gear := SegmentView.step(GameState.level("interval"), SegmentView.STEP_HIGH)
+	var frame := int(Time.get_ticks_msec() / 1000.0 * ROAM_FPS) % 2 if not is_equal_approx(_roam_x, before) else 0
+	for i in _roamers.size():
+		var w := _roamers[i]
+		w.visible = i < n
+		w.texture = ROAM_TEX[gear]
+		w.frame = frame
+		w.flip_h = _roam_x > before
+		w.position = Vector2(roundf(_roam_x + i * ROAM_GAP), _top + SegmentView.MACHINE_Y + SegmentView.WORKERS_Y)
+
+
 func segment_view(i: int) -> SegmentView:
 	return _segments[i]
 
@@ -302,6 +354,7 @@ func _process(delta: float) -> void:
 	_usage.position = Vector2(METER.position.x, METER.end.y - h)
 	_usage.size = Vector2(METER.size.x, h)
 	_usage.color = Hud.STARVED if _line().starved() else (USAGE_COLOR * Color(1, 1, 1, 0.5) if paused else USAGE_COLOR)
+	_step_roamers(delta)
 	var armed := -1
 	for i in segs_now.size():
 		if segs_now[i].is_final():

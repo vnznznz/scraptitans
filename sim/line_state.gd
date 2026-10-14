@@ -58,12 +58,24 @@ func worker_slots() -> int:
 func station_workers(seg_index: int) -> int:
 	if not segments[seg_index].built:
 		return 0
+	return floori(float(workers) / built_count())
+
+
+func roamers() -> int:
+	var n := built_count()
+	return workers % n if n > 0 else 0
+
+
+func free_slots(seg_index: int) -> int:
+	if not segments[seg_index].built:
+		return 0
 	var k := 0
 	for i in seg_index:
 		if segments[i].built:
 			k += 1
 	var n := built_count()
-	return floori(float(workers) / n) + (1 if k < workers % n else 0)
+	var free := worker_slots() - workers
+	return floori(float(free) / n) + (1 if k < free % n else 0)
 
 
 func last_built() -> int:
