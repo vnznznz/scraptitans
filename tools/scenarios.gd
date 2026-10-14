@@ -3219,7 +3219,7 @@ func desktop() -> void:
 	await t.wait(0.5)
 	t.key(KEY_SPACE, false)
 	var spaced := GameState.scrap
-	t.check(spaced > GameState.tap_scrap() * 2.0, "holding space keeps tapping (%.0f taps)" % (spaced / GameState.tap_scrap()))
+	t.check(spaced >= GameState.tap_scrap() * 2.0, "holding space keeps tapping (%.0f taps)" % (spaced / GameState.tap_scrap()))
 	await t.wait(0.5)
 	t.check(GameState.scrap == spaced, "let go of space: it stops")
 	var window := t.get_window()

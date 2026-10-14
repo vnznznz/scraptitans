@@ -3,7 +3,7 @@ extends Control
 
 signal tapped(at: Vector2)
 
-const HOLD_RATE := 5.0
+const HOLD_RATE := 3.0
 
 var highlight: CanvasItem
 

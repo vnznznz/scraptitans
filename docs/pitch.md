@@ -90,7 +90,7 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**, cheapest first. Everything here costs credits. Rows the player can't afford are greyed.
 
 - **The guide follows the cold open:** the drones on the field first (the gate cannon pays and teaches tapping), then the pile, then the stations — the station lesson runs while the player builds mech two.
-- **Desktop: hold the mouse** on the pile, a station or the field to tap it 5 times a second; SPACE taps whatever the cursor is on.
+- **Desktop: hold the mouse** on the pile, a station or the field to tap it 3 times a second; SPACE taps whatever the cursor is on.
 - **Holding a crew button keeps hiring** (the first repeat after 0.4 s, then every 0.15 s), so a full crew is one hold instead of twelve taps.
 - **X1 / MAX toggle** beside UPGRADES, from the moment two hires are affordable at once: on MAX one tap on a crew button hires as many as the credits and the slots allow, and the button reads the count and the total. Saved with the settings.
 - **An unaffordable hire or fit fills from the left** with what the player has over its price, so the next buy shows how far off it is.
