@@ -549,8 +549,8 @@ Desktop:
 - [x] Holding the mouse button on the pile, a station or the field taps there 5 times a second; Space taps under the cursor
 
 Sound and art:
-- [ ] Sounds from the pack by measurement, then listening ([audio.md](audio.md)): crate drop and open, breach (the falling tune stays, shorter), MAX hire (one buy sound, more discs); hold-to-tap and hold-to-hire stay under the `soften` rule
-- [ ] Art (`tools/gen_art.py`): supply crate (closed, lid flying, open with the goods), smashed gate shutter for the breach, the toggle's two states, button fill, tier color accents, the station missile icon, worker walk frames
+- [x] Sounds from the pack by measurement, then listening ([audio.md](audio.md)): crate drop and open, breach (the falling tune stays, shorter), MAX hire (one buy sound, more discs); hold-to-tap and hold-to-hire stay under the `soften` rule
+- [x] Art (`tools/gen_art.py`): supply crate (closed, lid flying, open with the goods), smashed gate shutter for the breach, button fill, tier color accents, the station missile icon, worker walk frames; the X1 / MAX toggle needs no art (the theme's sunken face marks MAX, like the pause key)
 
 Rest:
 - [ ] Build `0.2.0-m24`, m22 saves load (a save mid-attack gets a whole gate; new keys default); docs: pitch (start, gate, away, crate, buying, late fits), `tech.md`, `crazygames.md`

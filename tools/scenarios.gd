@@ -3844,10 +3844,13 @@ func crate() -> void:
 	GameState._credits_history.assign([20.0])
 	GameState._scrap_history.assign([5.0])
 	GameState._scrap_gain_history.assign([8.0])
+	var drops := int(Sound.plays.get(&"crate_drop", 0))
+	var opens := int(Sound.plays.get(&"crate_open", 0))
 	GameState.crate_day = GameState.yesterday()
 	GameState.check_crate()
 	await t.frames(2)
 	await t.wait(0.4)
+	t.check(int(Sound.plays.get(&"crate_drop", 0)) == drops + 1 and int(Sound.plays.get(&"crate_open", 0)) == opens + 1, "the crate lands and the lid comes off, once each")
 	var amounts := GameState.crate_amounts()
 	t.check(GameState.crate_due and card.visible and GameState.crate_streak_next() == 1,
 			"a new day after playing: the crate card opens on day 1")
@@ -3924,7 +3927,7 @@ func gate() -> void:
 	GameState.gate_breached.connect(on_fell)
 	var alerts := int(Sound.plays.get(&"gate_alert", 0))
 	var hits := int(Sound.plays.get(&"gate_hit", 0))
-	var lost_before := int(Sound.plays.get(&"gate_lost", 0))
+	var breach_before := int(Sound.plays.get(&"gate_breach", 0))
 	var fanfares := int(Sound.plays.get(&"run_card", 0))
 	t.check(field.visible and field.size.y == Battlefield.HEIGHT and field.enemy_count() > 0 and t.node("Rail").visible,
 			"new game: battlefield with the first wave and the scroll bar on screen")
@@ -3989,7 +3992,7 @@ func gate() -> void:
 			"after %d s of attack the gate is breached: the war goes on, the wars won untouched" % time)
 	t.check(GameState.breached and is_equal_approx(GameState.gate_damage, time * Data.econ("gate_breach_left")) and is_equal_approx(GameState.wave_hp, GameState.wave_max_hp()),
 			"the gate is repaired to half, the wave back at full health (%.0f of %.0f s)" % [GameState.gate_damage, time])
-	t.check(int(Sound.plays.get(&"gate_lost", 0)) == lost_before + 1 and int(Sound.plays.get(&"run_card", 0)) == fanfares, "a falling tune, not the victory fanfare")
+	t.check(int(Sound.plays.get(&"gate_breach", 0)) == breach_before + 1 and int(Sound.plays.get(&"run_card", 0)) == fanfares, "a falling tune, not the victory fanfare")
 	var breach: Label = field.get_node("GateBreach")
 	t.check(breach.visible and breach.text == "THE GATE WAS BREACHED" and not alarm.visible and field.get_global_rect().encloses(breach.get_global_rect()),
 			"banner on the field instead of the attack one")

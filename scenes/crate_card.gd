@@ -104,13 +104,16 @@ func amount(kind: Flyers.Kind) -> float:
 func _open() -> void:
 	visible = true
 	get_tree().call_group("upgrade_menu", "close")
-	Sound.play(&"menu_open")
+	Sound.play(&"crate_drop")
 	_panel.pivot_offset = _panel.size / 2.0
 	_panel.scale = Vector2(0.8, 0.8)
 	_panel.create_tween().tween_property(_panel, "scale", Vector2.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var tw := create_tween()
 	for k in 3:
-		tw.tween_callback(func() -> void: _crate.texture = CRATE[k]).set_delay(OPEN_STEP if k else 0.0)
+		tw.tween_callback(func() -> void:
+			_crate.texture = CRATE[k]
+			if k == 1:
+				Sound.play(&"crate_open")).set_delay(OPEN_STEP if k else 0.0)
 
 
 func _claim() -> void:

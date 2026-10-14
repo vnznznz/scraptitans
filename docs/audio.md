@@ -73,7 +73,7 @@ Battlefield
 - `enemy_pop`: exp_shortest_soft2, 5, 6, 8; `enemy_pop_big`: exp_short_soft4 (the "soft" explosions decay smoothly; the "hard" ones are bit-crushed and harsh)
 - `mech_death`: exp_short_soft3, soft11
 - `gate_alert`: alarm_loop6 (two clean beeps, 0.1 s each, rising 700 → 880 Hz, nothing above 4 kHz; alternatives by the same measures: alarm_shorter_18 = four quick beeps at 720 Hz, alarm_longer_29 = a 0.8 s rising sweep 800 → 1300 Hz)
-- `gate_lost` (the THE GATE HAS FALLEN card): fail3, four notes each sliding down and each lower than the one before (1240 → 160 Hz, 1 s), mostly above 300 Hz so a phone speaker plays it; was the run card's victory fanfare; alternatives: fail7 (one long falling sweep 2200 → 300 Hz, 1.4 s), fail4 (a dark falling tone around 200 Hz, lost on phone speakers)
+- `gate_breach` (the gate is breached, M24): fail3 cut to 0.6 s with a fade from 0.45 s — the same four falling notes as the old `gate_lost` card sound, short enough for something the war goes on after (measured −9.6 dBFS active RMS against the full file's −11.0); alternatives: fail7 (one long falling sweep 2200 → 300 Hz, 1.4 s), fail4 (a dark falling tone around 200 Hz, lost on phone speakers)
 - `gate_hit` (an enemy shot lands on the gate): small_break, break1_small, sounds_impact13; noisy 0.2–0.3 s cracks with 22–31 % of their energy below 250 Hz, heavier than the station ticks; at the busy level, ≥ 0.25 s apart, inside the battlefield budget; break2_medium (0.34 s, heavier) left out as too long for a sound this frequent
 - `wave_clear`: exp_cluster5, then `bounty`: coin_cluster4 (0.3 s later); `wave_arrive`: turn_enemy (0.6 s after)
 
@@ -81,6 +81,8 @@ Income, buys, UI
 - `coin` (credit disc lands): coin_single3, single5, ≥ 0.25 s apart; `coin_big` (tier 3 disc): coin_double1; scrap discs silent
 - `build`: machine_activates1; `fit`: upgrade_30; `hire`: gain_ability; `buy_upgrade`: upgrade_19; `buy_tier`: upgrade_long_14; `unlock_line`: positive_complex10; the last three cut to 0.35 / 0.5 / 0.8 s with a fade-out (were 0.68 / 0.92 / 1.32 s)
 - `menu_open` / `menu_close`: ui_menu_open / ui_menu_close (UPGRADES, settings); `click`: menu_click_mini (every other button)
+- `crate_drop` (the supply crate card opens): machine_drop, a 0.57 s heavy mechanical landing, 87 % of its energy below 250 Hz — the crate hitting the ground; `crate_open` (the lid flies off, 0.12 s later): open_container, a 0.31 s latch and lift. Picked from IMPACTS and CONTACTS / INTERACTIONS by measure (length 0.3–0.6 s, low-heavy, no bright edge) against lootbox_hit_to_open and crate_jumped_on, which are hits, not an opening
+- MAX hires play one `hire` and send the discs of the whole total, so a bulk buy sounds like one buy. `hire` is a `soften` sound with a 0.05 s cooldown: holding a hire button (M24) thins it like fast tapping
 
 Nuke
 - `nuke_alarm`: alarm_scifi_dramatic, every 2.9 s while the Nuclear Mech walks in
@@ -94,7 +96,7 @@ Not used on purpose: robot/cyborg death screams (too comic ×50 deaths), alarm l
 
 ## Size
 
-- 75 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
+- 76 files, 1.6 MB imported (QOA); pck 305 KB → 1.9 MB (1.6 MB brotli). The wind bed is the biggest file (32 s, ~280 KB)
 - Web decodes every sample to 48 kHz stereo float: ~49 MB of `AudioBuffer`s (music 17, wind 12). If the iPhone struggles: cut the wind to a ~10 s loop, then drop it
 
 ## License

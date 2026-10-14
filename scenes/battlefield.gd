@@ -480,7 +480,7 @@ func _fire_at_gate(e: Sprite2D) -> void:
 func _on_gate_breached() -> void:
 	Sound.play(&"collapse")
 	Sound.play(&"enemy_pop_big")
-	Sound.play(&"gate_lost")
+	Sound.play(&"gate_breach")
 	for k in 5:
 		Fx.explosion(_mechs, GATE_TARGET.position + Vector2(randf(), randf()) * GATE_TARGET.size, k % 2 == 0, randf_range(0.4, 0.8))
 	Fx.debris(_mechs, GATE_TARGET.get_center(), 16, true)
