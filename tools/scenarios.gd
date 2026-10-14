@@ -3974,13 +3974,9 @@ func crate() -> void:
 	t.check(not card.visible, "nothing while the war is over")
 	GameState.run_over = false
 
-	var guide: IntroGuide = main.get_node("IntroGuide")
-	GameState.crate_due = false
-	GameState.crate_day = GameState.today()
-	GameState.run_time = Main.CRATE_HINT
-	await t.frames(3)
-	t.check(guide.visible and guide.story() == CrateCard.TOMORROW, "after %d min of play the mission plate says it once (%s)" % [Main.CRATE_HINT / 60.0, guide.story()])
-	await t.shot("crate_notice")
+	var card_texts := (t.get_tree().current_scene as Control).find_children("*", "Label", true, false).filter(func(l: Label) -> bool:
+		return l.text == CrateCard.TOMORROW and l.is_visible_in_tree())
+	t.check(card_texts.is_empty(), "nothing else in the game mentions tomorrow's crate %s" % [card_texts.map(func(l: Label) -> String: return str(l.get_parent().name))])
 	GameState.crate_day = ""
 	GameState.crate_streak = 0
 	Save.store_settings({"crate_day": "", "crate_streak": 0})

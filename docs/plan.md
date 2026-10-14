@@ -531,7 +531,7 @@ First minute:
 
 Losing and coming back:
 - [x] The gate is breached instead of falling: the mechs on the field are destroyed, the wave walks back to its post with full health; banner `THE GATE WAS BREACHED`, the war goes on. The gate is repaired only to half and heals the rest while mechs hold the field, so a breach keeps a cost; no TRY AGAIN card, no restart from the pile. `gate_fell` consumers move over: the `gate` scenario, the lost card, `Analytics` (its `gate` event fires on a breach), the SDK gameplay flag (a breach is not game over)
-- [x] Daily supply crate: the first visit on a new local day (from the second day on, after the first mech) opens a crate card: 10 min of the factory's current output in credits and scrap, ×1.25 per day in a row up to 7 days; COLLECT like the away card. `COME BACK TOMORROW FOR A SUPPLY CRATE` on the away card, the nuke card and once on the mission plate after 10 min of play
+- [x] Daily supply crate: the first visit on a new local day (from the second day on, after the first mech) opens a crate card: 10 min of the factory's current output in credits and scrap, ×1.25 per day in a row up to 7 days; COLLECT like the away card. `COME BACK TOMORROW FOR A SUPPLY CRATE` on the away card only (review: it was on the nuke card and the mission plate too, which was saying it everywhere)
 - [x] Away: `away_max` 1 h → 8 h; credits capped at ten minutes of the factory's output and never half the missile's price (M23 QA note: one capped hour paid for the missile; the first try, 3× the cheapest purchase out of reach, was far too little early); `tune` and the idler `qa` profile again
 
 Buying:

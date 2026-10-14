@@ -93,13 +93,6 @@ func _ready() -> void:
 	next.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
 	next.modulate = Color(1, 1, 1, 0.6)
 	box.add_child(next)
-	var tomorrow := Label.new()
-	tomorrow.name = "Tomorrow"
-	tomorrow.text = CrateCard.TOMORROW
-	tomorrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tomorrow.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
-	tomorrow.add_theme_color_override("font_color", Pal.ORANGE)
-	box.add_child(tomorrow)
 	_again = Button.new()
 	_again.name = "StartAgain"
 	_again.text = "START AGAIN"

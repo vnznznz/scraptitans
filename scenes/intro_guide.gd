@@ -144,12 +144,6 @@ static func quick_buy(tree: SceneTree, button: Control, can_repeat: bool) -> voi
 		tree.call_group("intro_guide", "notice_at", button, HOLD_HINT)
 
 
-func notice(text: String, seconds := 8.0) -> void:
-	_notice_target = null
-	_notice = text
-	_notice_t = seconds
-
-
 func notice_at(target: Control, text: String, seconds := 5.0) -> void:
 	_notice_target = target
 	_notice = text
@@ -162,19 +156,12 @@ func _process(delta: float) -> void:
 	var pointed := _notice_t > 0.0 and is_instance_valid(_notice_target) and _notice_target.is_visible_in_tree()
 	if pointed:
 		step = [_notice, _notice_target, Place.ABOVE]
-	visible = not step.is_empty() or _notice_t > 0.0
+	visible = not step.is_empty()
 	if not visible:
 		_light(null)
 		return
 	_t += delta
 	var bob := roundf(sin(_t * 6.0) * 3.0)
-	_label.visible = not step.is_empty()
-	if step.is_empty():
-		_light(null)
-		_arrow = false
-		_place_story(_notice, Place.ABOVE, 0.0, true)
-		queue_redraw()
-		return
 	var target: Control = step[1]
 	var place: Place = step[2]
 	var lit: Control = step[3] if step.size() > 3 else target
@@ -207,12 +194,11 @@ func _process(delta: float) -> void:
 		if clear >= MARGIN and clear <= right - MARGIN - _label.size.x:
 			x = clear
 	_label.position = Vector2(x, at.y).round()
-	var told := _notice_t > 0.0 and _notice_target == null
-	_place_story(_notice if told else _story_for(step[0]), place, _label.position.y + bob, told)
+	_place_story(_story_for(step[0]), place, _label.position.y + bob)
 	queue_redraw()
 
 
-func _place_story(text: String, place: Place, action_top: float, forced := false) -> void:
+func _place_story(text: String, place: Place, action_top: float) -> void:
 	_story.text = text
 	_story.visible = not text.is_empty()
 	if not _story.visible:
@@ -227,7 +213,7 @@ func _place_story(text: String, place: Place, action_top: float, forced := false
 		y = minf(top + (action_top - top - _story.size.y) / 2.0, action_top - STORY_GAP - _story.size.y)
 	_story.position = Vector2((right - _story.size.x) / 2.0, y).round()
 	var gap_end := line.global_position.y - global_position.y
-	_story.visible = forced or (y >= top and _story.position.y + _story.size.y <= gap_end - STORY_GAP)
+	_story.visible = y >= top and _story.position.y + _story.size.y <= gap_end - STORY_GAP
 
 
 func _draw() -> void:

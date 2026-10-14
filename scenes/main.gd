@@ -32,7 +32,6 @@ const FLYERS_Z := 1
 const TEXT_Z := 2
 const OVERLAY_Z := 3
 const ASSEMBLY_WINDOW := 4.0
-const CRATE_HINT := 600.0
 
 @onready var _layout: Control = $Layout
 @onready var _lines: VBoxContainer = %Lines
@@ -61,8 +60,6 @@ var _assemblies := -1
 var _assembly_log: Array[Vector2] = []
 var _starved := false
 var _tapped := false
-var _guide: IntroGuide
-var _told_tomorrow := false
 
 
 func _ready() -> void:
@@ -110,7 +107,6 @@ func _ready() -> void:
 	_badge.add_theme_color_override("font_color", Pal.WHITE)
 	_upgrades.add_child(_badge)
 	var guide := IntroGuide.new()
-	_guide = guide
 	guide.name = "IntroGuide"
 	guide.pile = _scrapyard.pile()
 	guide.rail = %Rail
@@ -151,9 +147,6 @@ func _process(delta: float) -> void:
 	if title != _title:
 		_title = title
 		DisplayServer.window_set_title(title)
-	if not _told_tomorrow and GameState.run_time >= CRATE_HINT and GameState.revealed() and not GameState.crate_due and not GameState.run_over:
-		_told_tomorrow = true
-		_guide.notice(CrateCard.TOMORROW)
 	_badge.reset_size()
 	_badge.position = (Vector2(_upgrades.size.x - _badge.size.x - BADGE_INSET, (_upgrades.size.y - _badge.size.y) / 2.0)).round()
 	if _unlock_slot.visible:
