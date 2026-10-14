@@ -859,6 +859,21 @@ func m8() -> void:
 	GameState.advance(60.0)
 	await t.frames(2)
 	t.check(GameState.mechs_per_min == 0 and hud_rate.text == "0/MIN", "rate covers the last minute")
+
+	var credits_rate: Label = main.find_child("CreditsRate", true, false)
+	GameState.credits_rate = 0.0
+	GameState.purchased.emit()
+	await t.frames(2)
+	t.check(is_equal_approx(credits_rate.scale.x, 1.0) and credits_rate.modulate == Hud.RATE_COLOR, "a buy that lifts nothing leaves the credits rate alone")
+	GameState.credits_rate = 50.0
+	await t.frames(2)
+	t.check(credits_rate.scale.x > 1.0 and credits_rate.modulate == Hud.RATE_UP and credits_rate.text == "+50/S",
+			"a buy that lifts the rate pops the new rate (%s, %.1fx)" % [credits_rate.text, credits_rate.scale.x])
+	await t.wait(0.8)
+	t.check(is_equal_approx(credits_rate.scale.x, 1.0) and credits_rate.modulate == Hud.RATE_COLOR, "the pop settles back")
+	GameState.credits_rate = 70.0
+	await t.frames(2)
+	t.check(is_equal_approx(credits_rate.scale.x, 1.0), "a rate that climbs on its own does not pop")
 	GameState.field.pop_back()
 	await t.frames(2)
 	t.check(hud_mechs.text == str(GameState.field.size()), "HUD counts mechs on the field, not built")

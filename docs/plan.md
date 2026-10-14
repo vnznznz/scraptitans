@@ -527,7 +527,7 @@ Measure:
 First minute:
 - [x] Cold open: a new war starts with line 1 built (its three stations, bars empty, no crew) and a free pre-assembled mech walking out at 0 s, every war; wave 1 sized to die at about 20 s with its bounty burst; first buy at about 30 s; pile and station taps come in as the next guide steps (station taps taught on mech two); the staged start shows the line from the start. `tune`: something new at least every 10 s in the first 90 s; the first-minute checks move to the new start
 - [x] Guide: first line on the field, `TAP THE DRONES` (the cannon), until 3 field taps; then the pile. Credits in the HUD from the start, since cannon taps pay
-- [ ] Rate in the HUD: credits per second beside the credits (`+38/S`, average of the last 5 s); a buy that lifts it pops the new rate
+- [x] Rate in the HUD: credits per second beside the credits (`+38/S`, average of the last 5 s; there since M13); a buy that lifts it pops the new rate
 
 Losing and coming back:
 - [x] The gate is breached instead of falling: the mechs on the field are destroyed, the wave walks back to its post with full health; banner `THE GATE WAS BREACHED`, the war goes on. The gate is repaired only to half and heals the rest while mechs hold the field, so a breach keeps a cost; no TRY AGAIN card, no restart from the pile. `gate_fell` consumers move over: the `gate` scenario, the lost card, `Analytics` (its `gate` event fires on a breach), the SDK gameplay flag (a breach is not game over)

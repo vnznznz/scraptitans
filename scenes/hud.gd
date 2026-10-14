@@ -15,6 +15,9 @@ const RATE_Y := 26.0
 const RATE_COLOR := Color(1, 1, 1, 0.7)
 const STARVED := Pal.RED
 const BOOSTED := Pal.GREEN
+const RATE_UP := Pal.GREEN
+const RATE_POP := 1.5
+const RATE_WATCH := 4.0
 
 var _icons: Array[TextureRect] = []
 var _credits: Label
@@ -30,6 +33,8 @@ var _won := 0
 var _mute: Button
 var _late: Array[CanvasItem] = []
 var _late_k := 0.0
+var _rate_watch := 0.0
+var _rate_before := 0.0
 
 
 func _ready() -> void:
@@ -56,6 +61,7 @@ func _ready() -> void:
 	_wars_icon = _icons.pop_back()
 	_show_wars()
 	GameState.mech_deployed.connect(_on_deployed)
+	GameState.purchased.connect(_on_purchased)
 	_late = [_icons[Flyers.Kind.CREDITS], _credits, _credits_rate, _mech_icon, _mechs, _mechs_rate]
 	_late_k = Reveal.step(0.0, GameState.revealed(), INF)
 	_fade_late()
@@ -74,6 +80,11 @@ func _process(delta: float) -> void:
 		_fade_late()
 	_credits.text = Fmt.num(GameState.credits)
 	_credits_rate.text = Fmt.rate(GameState.credits_rate)
+	if _rate_watch > 0.0:
+		_rate_watch -= delta
+		if GameState.credits_rate > _rate_before:
+			_rate_watch = 0.0
+			_pop_rate()
 	_scrap.text = Fmt.num(GameState.scrap)
 	if GameState.scrap_boost_t > 0.0:
 		_scrap_rate.text = "X%d %s" % [GameState.scrap_boost(), Fmt.clock(GameState.scrap_boost_t)]
@@ -146,9 +157,22 @@ func _on_deployed(_m: MechState) -> void:
 	_bump(_mech_icon, 1.4)
 
 
-func _bump(icon: TextureRect, from: float) -> void:
-	icon.scale = Vector2(from, from)
-	icon.create_tween().tween_property(icon, "scale", Vector2.ONE, 0.15)
+func _on_purchased() -> void:
+	if _rate_watch <= 0.0:
+		_rate_before = GameState.credits_rate
+	_rate_watch = RATE_WATCH
+
+
+func _pop_rate() -> void:
+	_credits_rate.pivot_offset = Vector2(0, _credits_rate.size.y / 2.0)
+	_bump(_credits_rate, RATE_POP)
+	_credits_rate.modulate = RATE_UP
+	_credits_rate.create_tween().tween_property(_credits_rate, "modulate", RATE_COLOR, 0.5).set_delay(0.15)
+
+
+func _bump(c: Control, from: float) -> void:
+	c.scale = Vector2(from, from)
+	c.create_tween().tween_property(c, "scale", Vector2.ONE, 0.15)
 
 
 func _amount(icon_tex: Texture2D, x: float, color: Color) -> Label:
