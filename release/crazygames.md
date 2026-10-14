@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (result 2026-10-14: enabled on mobile and tablet, below requirements on desktop) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m24` ([M24](../docs/plan.md)), not uploaded yet; the live build is `0.2.0-m22+134.c750d9e` (`build/crazygames/`), uploaded 2026-10-09 (bugfix update of the same day's `+128.145e523`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
+Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (result 2026-10-14: enabled on mobile and tablet, below requirements on desktop) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m24+178.5df8e2f` ([M24](../docs/plan.md)), exported to `build/crazygames/` and not uploaded yet; the live build is `0.2.0-m22+134.c750d9e` (`build/crazygames/`), uploaded 2026-10-09 (bugfix update of the same day's `+128.145e523`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
 
 ## Why CrazyGames
 
@@ -18,8 +18,8 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
   - Live since 2026-10-08 with the m20 no-ads build (preset "CrazyGames"): https://www.crazygames.com/game/scrap-titans ← current stage
   - 2026-10-09: update to `0.2.0-m22+128.145e523` (still no ads) after the first day's numbers ([feedback.md](../docs/feedback.md)): faster start, battlefield from the first frame, the gate can fall, mission in the guide, away card (M21), pile tap particles, gate sounds, wake lock; saves load unchanged. Numbers before this date are the m20 build's
   - 2026-10-09, later: bugfix update to `0.2.0-m22+134.c750d9e` after the QA pass (`--scenario qa`, [plan.md](../docs/plan.md) M23): the gate falls once on a long frame, the missile once in the MAXED list, `YOUR 1 WAR WON STAYS` on the lost card, the field hint ends at wave 5 and stays off the gate's bar; saves load unchanged
-  - 2026-10-14: `0.2.0-m24` built after the Basic Launch result ([plan.md](../docs/plan.md) M24): the cold open (line 1 built, a free mech at 0 s, wave 1 dead at about 20 s), the guide from the drones to the pile, the daily supply crate, away up to 8 h with a capped payout, X1 / MAX hires and hold-to-hire, unaffordable buttons filling, a colour per tier, the fitted missile announced, a roaming crew, desktop hold and SPACE, the anonymous funnel. m22 saves load (the new keys default). Not uploaded yet
-  - Art for the update, uploaded separately in the Art tab: new landscape cover, both videos, screenshots (`release/marketing/`)
+  - 2026-10-14: `0.2.0-m24+178.5df8e2f` built after the Basic Launch result ([plan.md](../docs/plan.md) M24): the cold open (line 1 built, a free mech at 0 s, wave 1 dead at about 20 s), the guide from the drones to the pile, the daily supply crate, away up to 8 h with a capped payout, X1 / MAX hires and hold-to-hire, unaffordable buttons filling, a colour per tier, the fitted missile announced, a roaming crew, desktop hold and SPACE, the anonymous funnel. m22 saves load (the new keys default). Not uploaded yet
+  - Art for the update, uploaded separately in the Art tab: all three covers (one big duel, readable at thumbnail size), both videos (they lead with the fight, then the cold open), screenshots (`release/marketing/`)
   - Real players from here on: every update has to load their saves
   - Ends at 7 days live and 500 plays, else after 21 days (2026-10-28); updates any time, approved automatically; tracked without the SDK ([basic launch metrics](https://docs.crazygames.com/resources/basic-launch-metrics/), read 2026-10-09)
   - Judged on: average playtime per session (10+ min), day 1 return (10–15 %), conversion = players who play at least one minute after starting (top games 80 %+) → [M22](../docs/plan.md)
@@ -77,10 +77,10 @@ Asks the two things the numbers can't answer; the first one gates M26's desktop 
   - Rules: title on each, same look across the three; no borders, no other text, no icons or store logos; not a plain screenshot; not blurry or pixelated
   - Upload form: no title or important element in the top left (labels cover it; marked about 40 % × 20 % on landscape, 40 % × 10 % on portrait) → titles moved below it
   - Pixel art at ×8: crisp, but their "pixelated" rule is a judgement call → look at them before submitting
-- [x] Preview videos (the form requires both): `release/marketing/videos/landscape.mp4` 1920×1080, 17.9 s, 11 MB and `portrait.mp4` 1080×1620, 18.6 s, 12 MB, from `tools/make_videos.py`
+- [x] Preview videos (the form requires both): `release/marketing/videos/landscape.mp4` 1920×1080, 16.9 s, 9.8 MB and `portrait.mp4` 1080×1620, 18.4 s, 12 MB, from `tools/make_videos.py`
   - Rules: 15–20 s (longer is cut), ≤ 50 MB, MP4 / MOV, 1080p landscape 16:9 and portrait 2:3, opens on the cover; no sound, cursor, black bars, black screen or logo transition, promo text, app icons; no fast-forwarding (they speed it up a little themselves)
-  - Recorded play at 1× speed with cuts between stages: pile → first line and mech → a wave destroyed → three lines against a boss → nuke. Portrait = the whole screen; landscape = zoomed bands of it (the game itself is pillarboxed there) → their call whether that counts as representative
-  - The in-game guide lines (TAP THE SCRAP PILE…) are in the first clips: game text, not promo text
+  - Recorded play at 1× speed with cuts between stages, the fight first so a thumbnail viewer sees it at once: a mid-game fight → the cold open and the pile → the line to its first mech → an army against a boss → nuke. Portrait = the whole screen; landscape = zoomed bands of it (the game itself is pillarboxed there) → their call whether that counts as representative
+  - The in-game guide lines (TAP THE SCRAP PILE…) are in the cold-open clips: game text, not promo text
 
 ## Submission form
 
@@ -130,7 +130,7 @@ Asks the two things the numbers can't answer; the first one gates M26's desktop 
 
 ## Already fine
 
-- Size: release build 15 MB, 9 files (wasm 13.0 MB, pck 1.9 MB). Limits: initial download ≤ 50 MB (≤ 20 MB for the mobile homepage), total ≤ 250 MB (50 MB without SDK), ≤ 1500 files
+- Size: release build 15 MB, 9 files (wasm 13.0 MB, pck 2.2 MB). Limits: initial download ≤ 50 MB (≤ 20 MB for the mobile homepage), total ≤ 250 MB (50 MB without SDK), ≤ 1500 files
 - No threads → no cross-origin isolation headers needed in their iframe
 - Relative paths only
 - English; no external links (credits URLs are plain text), ads, login, cross-promotion, custom fullscreen button
