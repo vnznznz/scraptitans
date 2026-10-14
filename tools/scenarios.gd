@@ -397,7 +397,10 @@ func m5() -> void:
 	t.check(hire.visible and not hire.disabled and crew.text == "LINE CREW 0/9", "one hire button per line, crew 0/9")
 	var pause: Control = line.get_node("Pause")
 	t.check(hire.position.y == 1.0 and hire.get_rect().end.y == LineView.CREW_H and is_equal_approx(hire.get_rect().end.x, line.size.x + 1.0), "hire sits in the crew bar at the right, on its bottom edge, its right border under the rail seam")
-	t.check(is_equal_approx(pause.position.y, LineView.CREW_H) and crew.position.x >= pause.size.x and line.segment_view(0).position.y >= LineView.CREW_H, "crew bar on top, pause strip below it at the left: an L")
+	var yard_crew: Label = (t.node("Scrapyard") as Control).get_node("Crew")
+	t.check(is_equal_approx(pause.position.y, LineView.CREW_H) and line.segment_view(0).position.y >= LineView.CREW_H, "crew bar on top, pause strip below it at the left: an L")
+	t.check(crew.position.x == yard_crew.position.x and crew.position.x < pause.size.x,
+			"line crew and pile crew text start at the same inset, over the strip's column (%d and %d)" % [crew.position.x, yard_crew.position.x])
 	for i in 9:
 		await t.click(hire)
 	await t.frames(1)
@@ -2197,12 +2200,16 @@ func stations() -> void:
 	GameState.advance(GameState.stat("worker_interval") / GameState.lines[0].workers + 0.1)
 	GameState.lines[0].paused = false
 	t.check(GameState.lines[0].segments[3].chunks > 0, "and that is where the chunks land (%d)" % GameState.lines[0].segments[3].chunks)
+	var mate: Sprite2D = main.line_view(0).get_node("Roamer1")
 	var peak := standing
-	for k in 10:
+	var apart := false
+	for k in 14:
 		await t.wait(LineView.WORK_JUMP_TIME / 8.0)
 		peak = minf(peak, roamer.position.y)
-	t.check(standing - peak > LineView.ROAM_HOP and standing - peak <= LineView.WORK_JUMP,
+		apart = apart or roamer.position.y != mate.position.y
+	t.check(standing - peak > LineView.ROAM_HOP and standing - peak <= LineView.WORK_JUMP * (1.0 + LineView.JUMP_VARY),
 			"the chunk makes it jump, higher than its running bob (%d px over %d)" % [standing - peak, LineView.ROAM_HOP])
+	t.check(apart, "two of them never jump as one: the second is staggered behind the first")
 	for seg_i in 4:
 		GameState.lines[0].segments[seg_i].work = 0.0
 	t.check(wheel.visible and wheel.frame < 2 and worker.visible and worker.texture == SegmentView.WORKER_TEX[1], "Lighter work: small flywheel; Faster crews: drills")

@@ -25,6 +25,8 @@ const ROAM_FPS := 14.0
 const ROAM_HOP := 1.0
 const WORK_JUMP := 7.0
 const WORK_JUMP_TIME := 0.22
+const JUMP_STAGGER := 0.07
+const JUMP_VARY := 0.3
 const ROAM_GAP := 9.0
 const ROAM_TEX := [preload("res://art/line/worker_walk_0.png"), preload("res://art/line/worker_walk_1.png"), preload("res://art/line/worker_walk_2.png")]
 
@@ -55,7 +57,8 @@ var _roamers: Array[Sprite2D] = []
 var _roam_at := 0
 var _roam_x := -1.0
 var _roam_right := false
-var _jump_t := 0.0
+var _jump_t: Array[float] = []
+var _jump_h: Array[float] = []
 var _chunks_at := -1
 
 
@@ -290,6 +293,8 @@ func _step_roamers(delta: float) -> void:
 		w.centered = false
 		add_child(w)
 		_roamers.append(w)
+		_jump_t.append(0.0)
+		_jump_h.append(WORK_JUMP)
 	if _roam_at >= segs.size() or not segs[_roam_at].built:
 		_roam_at = line.last_built()
 	var target := _center(_roam_at) - SegmentView.WORKER_W / 2.0
@@ -304,17 +309,21 @@ func _step_roamers(delta: float) -> void:
 	if running:
 		_roam_right = _roam_x > before
 	elif chunks != _chunks_at and _chunks_at >= 0:
-		_jump_t = WORK_JUMP_TIME
+		for i in _roamers.size():
+			_jump_t[i] = WORK_JUMP_TIME + i * JUMP_STAGGER + randf() * JUMP_STAGGER
+			_jump_h[i] = WORK_JUMP * randf_range(1.0 - JUMP_VARY, 1.0 + JUMP_VARY)
 	_chunks_at = chunks
-	_jump_t = maxf(0.0, _jump_t - delta)
+	for i in _jump_t.size():
+		_jump_t[i] = maxf(0.0, _jump_t[i] - delta)
 	for i in _roamers.size():
 		var w := _roamers[i]
 		w.visible = i < n
 		w.texture = ROAM_TEX[gear]
 		w.frame = (int(step) + i) % 2 if running else 0
 		w.flip_h = _roam_right
+		var jumping: float = minf(_jump_t[i], WORK_JUMP_TIME)
 		var lift := -roundf(absf(sin((step + i) * PI / 2.0)) * ROAM_HOP) if running \
-				else -roundf(sin(PI * (1.0 - _jump_t / WORK_JUMP_TIME)) * WORK_JUMP) if _jump_t > 0.0 else 0.0
+				else -roundf(sin(PI * (1.0 - jumping / WORK_JUMP_TIME)) * _jump_h[i]) if jumping > 0.0 else 0.0
 		w.position = Vector2(roundf(_roam_x + i * ROAM_GAP), _top + SegmentView.MACHINE_Y + SegmentView.WORKERS_Y + lift)
 
 
