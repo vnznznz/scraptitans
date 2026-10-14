@@ -1629,8 +1629,17 @@ func ui() -> void:
 	t.check(not GameState.max_buy and lead.text.is_empty() and (line_hire.get_node("Price/Lead") as Control).visible,
 			"one at a time again: the hire reads one price with its hire glyph")
 	var hired := GameState.lines[0].workers
+	var guide: IntroGuide = main.get_node("IntroGuide")
+	IntroGuide._hold_told = false
+	IntroGuide._quick.clear()
 	await t.click(line_hire)
-	t.check(GameState.lines[0].workers == hired + 1, "a tap on X1 hires once (%d)" % GameState.lines[0].workers)
+	t.check(GameState.lines[0].workers == hired + 1, "a tap hires once (%d)" % GameState.lines[0].workers)
+	t.check(guide.story() != IntroGuide.HOLD_HINT, "one tap says nothing")
+	for k in IntroGuide.QUICK_PRESSES - 1:
+		await t.click(line_hire)
+	await t.frames(2)
+	t.check(guide.story() == IntroGuide.HOLD_HINT, "%d quick taps on a hire: the plate says to hold it (%s)" % [IntroGuide.QUICK_PRESSES, guide.story()])
+	hired = GameState.lines[0].workers
 	hired = GameState.lines[0].workers
 	t.press(line_hire, true)
 	await t.wait(Hold.FIRST * 0.5)

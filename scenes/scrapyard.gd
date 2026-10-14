@@ -178,7 +178,7 @@ func _process(delta: float) -> void:
 	var cost := GameState.yard_worker_cost()
 	_hire.visible = _bar_k > 0.0 and n < slots
 	if _hire_hold.step(_hire.visible and _hire.button_pressed and not _hire.disabled, delta):
-		_on_hire()
+		_buy_hire()
 	var batch := GameState.yard_hires_affordable() if GameState.max_buy else []
 	if batch.size() and int(batch[0]) > 1:
 		Price.show(_hire, Fmt.num(batch[1]), true, "+%d" % batch[0])
@@ -236,6 +236,11 @@ func _squash(y_scale: float, shake: float, rest: float) -> void:
 
 
 func _on_hire() -> void:
+	IntroGuide.quick_buy(get_tree())
+	_buy_hire()
+
+
+func _buy_hire() -> void:
 	if GameState.max_buy:
 		var done := GameState.hire_yard_workers()
 		if int(done[0]) > 0:

@@ -536,7 +536,7 @@ Losing and coming back:
 
 Buying:
 - [x] `×1 / MAX` toggle: built, then parked in review — a new player cannot tell what it does and holding a hire button covers it. The bulk hires stay in the sim behind DBG → MAX BUY for M25: on MAX every hire button (line crews, pile crew) hires as many as affordable up to the slots and reads count and total (`+4 · 1.2K`); the toggle saved with the settings
-- [x] Hold a hire button to repeat it (first after 0.4 s, then every 0.15 s)
+- [x] Hold a hire button to repeat it (first after 0.4 s, then every 0.15 s); three quick taps on one say `HOLD IT TO KEEP BUYING` (review)
 - [x] Buy every affordable upgrade with one button, shown from 6 affordable rows (review)
 - [x] Unaffordable hire buttons fill from the left with credits ÷ price, so the next buy shows its distance; not the fit buttons (review: scrap goes up and down, so the bar jittered)
 

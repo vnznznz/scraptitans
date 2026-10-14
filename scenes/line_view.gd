@@ -210,6 +210,11 @@ func hire_button() -> Button:
 
 
 func _on_hire() -> void:
+	IntroGuide.quick_buy(get_tree())
+	_buy_hire()
+
+
+func _buy_hire() -> void:
 	if GameState.max_buy:
 		var done := GameState.hire_workers(line_index)
 		if int(done[0]) > 0:
@@ -341,7 +346,7 @@ func _process(delta: float) -> void:
 		else:
 			Price.show(_hire, Fmt.num(cost), GameState.credits >= cost, "", GameState.credits / cost)
 	if _hire_hold.step(_hire.visible and _hire.button_pressed and not _hire.disabled, delta):
-		_on_hire()
+		_buy_hire()
 	var paused := line.paused
 	var mode := _pause.get_draw_mode()
 	var sunk := paused or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED

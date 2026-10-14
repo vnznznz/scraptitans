@@ -27,6 +27,9 @@ const NO_SCRAP := "OUT OF SCRAP: TAP THE PILE"
 const STATIONS := "TAP STATIONS TO BUILD A MECH"
 const DEFEND := "BUILD MECHS TO DEFEND IT"
 const MISSION := "DRONES MARCH ON THE GATE\nBUILD A MECH ARMY\nTO DEFEND YOURSELF"
+const HOLD_HINT := "HOLD IT TO KEEP BUYING"
+const QUICK_PRESSES := 3
+const QUICK_WINDOW := 1.5
 const STORIES := {DRONES: MISSION, PILE: "MECHS ARE BUILT FROM SCRAP",
 		STATIONS: "MECHS PUSH THE DRONES BACK", DEFEND: "THE GATE IS UNDER ATTACK"}
 
@@ -46,12 +49,15 @@ var _t := 0.0
 var _touched := false
 var _touch := Vector2.ZERO
 var _lit: CanvasItem
+static var _quick: Array[float] = []
+static var _hold_told := false
 var _notice := ""
 var _notice_t := 0.0
 var _frame := Rect2()
 
 
 func _ready() -> void:
+	add_to_group("intro_guide")
 	mouse_filter = MOUSE_FILTER_IGNORE
 	_label = Label.new()
 	_label.name = "Text"
@@ -121,6 +127,19 @@ func _light(target: Control) -> void:
 		lit.self_modulate = Color.WHITE.lerp(LIT, 0.5 + 0.5 * sin(_t * 6.0))
 
 
+static func quick_buy(tree: SceneTree) -> void:
+	if _hold_told:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	_quick.append(now)
+	while _quick.size() > QUICK_PRESSES:
+		_quick.pop_front()
+	if _quick.size() == QUICK_PRESSES and now - _quick[0] <= QUICK_WINDOW:
+		_hold_told = true
+		_quick.clear()
+		tree.call_group("intro_guide", "notice", HOLD_HINT)
+
+
 func notice(text: String, seconds := 8.0) -> void:
 	_notice = text
 	_notice_t = seconds
@@ -139,7 +158,7 @@ func _process(delta: float) -> void:
 	if step.is_empty():
 		_light(null)
 		_arrow = false
-		_place_story(_notice, Place.ABOVE, 0.0)
+		_place_story(_notice, Place.ABOVE, 0.0, true)
 		queue_redraw()
 		return
 	var target: Control = step[1]
@@ -174,11 +193,11 @@ func _process(delta: float) -> void:
 		if clear >= MARGIN and clear <= right - MARGIN - _label.size.x:
 			x = clear
 	_label.position = Vector2(x, at.y).round()
-	_place_story(_notice if _notice_t > 0.0 else _story_for(step[0]), place, _label.position.y + bob)
+	_place_story(_notice if _notice_t > 0.0 else _story_for(step[0]), place, _label.position.y + bob, _notice_t > 0.0)
 	queue_redraw()
 
 
-func _place_story(text: String, place: Place, action_top: float) -> void:
+func _place_story(text: String, place: Place, action_top: float, forced := false) -> void:
 	_story.text = text
 	_story.visible = not text.is_empty()
 	if not _story.visible:
@@ -193,7 +212,7 @@ func _place_story(text: String, place: Place, action_top: float) -> void:
 		y = minf(top + (action_top - top - _story.size.y) / 2.0, action_top - STORY_GAP - _story.size.y)
 	_story.position = Vector2((right - _story.size.x) / 2.0, y).round()
 	var gap_end := line.global_position.y - global_position.y
-	_story.visible = y >= top and _story.position.y + _story.size.y <= gap_end - STORY_GAP
+	_story.visible = forced or (y >= top and _story.position.y + _story.size.y <= gap_end - STORY_GAP)
 
 
 func _draw() -> void:
