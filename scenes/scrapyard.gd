@@ -35,6 +35,7 @@ var _squash_depth := 0.0
 var _squash_at := -1.0
 var _clock := 0.0
 var _collapsed := false
+var _hire_hold := Hold.new()
 
 
 func _ready() -> void:
@@ -176,6 +177,8 @@ func _process(delta: float) -> void:
 	_crew.text = "PILE CREW %d/%d" % [n, slots]
 	var cost := GameState.yard_worker_cost()
 	_hire.visible = _bar_k > 0.0 and n < slots
+	if _hire_hold.step(_hire.visible and _hire.button_pressed and not _hire.disabled, delta):
+		_on_hire()
 	var batch := GameState.yard_hires_affordable() if GameState.max_buy else []
 	if batch.size() and int(batch[0]) > 1:
 		Price.show(_hire, Fmt.num(batch[1]), true, "+%d" % batch[0])

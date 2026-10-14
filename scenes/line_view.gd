@@ -40,6 +40,7 @@ var _views := {}
 var _states := {}
 var _belt_offset := 0.0
 var _collapsed := false
+var _hire_hold := Hold.new()
 
 
 func _ready() -> void:
@@ -265,6 +266,8 @@ func _process(delta: float) -> void:
 			Price.show(_hire, Fmt.num(batch[1]), true, "+%d" % batch[0])
 		else:
 			Price.show(_hire, Fmt.num(cost), GameState.credits >= cost, "", GameState.credits / cost)
+	if _hire_hold.step(_hire.visible and _hire.button_pressed and not _hire.disabled, delta):
+		_on_hire()
 	var paused := line.paused
 	var mode := _pause.get_draw_mode()
 	var sunk := paused or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED

@@ -76,6 +76,15 @@ func tap(pos: Vector2) -> void:
 		get_viewport().push_input(ev, true)
 
 
+func press(target: Control, down: bool) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = down
+	ev.position = target.get_global_rect().get_center()
+	ev.global_position = ev.position
+	get_viewport().push_input(ev, true)
+
+
 func touch(target: Control, index: int, pressed: bool) -> void:
 	var ev := InputEventScreenTouch.new()
 	ev.index = index

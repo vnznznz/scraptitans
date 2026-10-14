@@ -1638,6 +1638,21 @@ func ui() -> void:
 	await t.frames(2)
 	t.check(not GameState.max_buy and toggle.text == "X1" and lead.text.is_empty() and (line_hire.get_node("Price/Lead") as Control).visible,
 			"back on X1 the hire reads one price with its hire glyph again")
+	var hired := GameState.lines[0].workers
+	await t.click(line_hire)
+	t.check(GameState.lines[0].workers == hired + 1, "a tap on X1 hires once (%d)" % GameState.lines[0].workers)
+	hired = GameState.lines[0].workers
+	t.press(line_hire, true)
+	await t.wait(Hold.FIRST * 0.5)
+	t.check(GameState.lines[0].workers == hired, "held down: nothing before the first repeat is due")
+	await t.wait(Hold.FIRST + Hold.EVERY * 2.5)
+	var held := GameState.lines[0].workers
+	t.check(held >= hired + 3, "holding it keeps hiring, first after %.1f s then every %.2f s (%d more)" % [Hold.FIRST, Hold.EVERY, held - hired])
+	t.press(line_hire, false)
+	await t.frames(2)
+	var let_go := GameState.lines[0].workers
+	await t.wait(Hold.EVERY * 4.0)
+	t.check(GameState.lines[0].workers == let_go, "let go: it stops")
 	GameState.credits = purse
 	var build: Button = main.line_view(1).segment_view(0).get_node("Build")
 	var pad: Control = main.line_view(1).segment_view(0).get_node("Pad")
