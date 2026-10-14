@@ -28,6 +28,8 @@ const BLOCKED_DELAY := 3.0
 const WORK_FPS := 11.0
 const FIT_FLASH := 0.12
 const FLASH := Color(3, 3, 3)
+const UP_S := preload("res://art/ui/up_s.png")
+const MISSILE_S := preload("res://art/ui/missile_s.png")
 
 var line_index := 0
 var seg_index := 0
@@ -40,6 +42,7 @@ var _pad: TextureRect
 var _build: Button
 var _bar: TextureProgressBar
 var _stall: TextureRect
+var _missile: TextureRect
 var _tap: TapArea
 var _apply: Button
 var _workers: Array[TextureRect] = []
@@ -75,6 +78,13 @@ func _ready() -> void:
 	_name.text = str(Data.segment_type(type_id).name).to_upper()
 	_name.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
 	header.add_child(_name)
+	_missile = TextureRect.new()
+	_missile.name = "Missile"
+	_missile.texture = preload("res://art/ui/missile.png")
+	_missile.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	_missile.custom_minimum_size = Vector2(16, 20)
+	_missile.visible = false
+	header.add_child(_missile)
 	var stat := TextureRect.new()
 	stat.name = "Stat"
 	stat.texture = STAT_ICONS[_stat_key(type_id)]
@@ -152,7 +162,7 @@ func _ready() -> void:
 
 	_apply = Button.new()
 	_apply.name = "Apply"
-	_apply.icon = preload("res://art/ui/up_s.png")
+	_apply.icon = UP_S
 	_apply.add_theme_constant_override("h_separation", 2)
 	_apply.position = Vector2(0, -1)
 	_apply.size = Vector2(WIDTH, NAME_H + 2)
@@ -180,12 +190,14 @@ func _process(delta: float) -> void:
 	_pad.visible = not built
 	_build.visible = not built
 	if not built:
+		_missile.visible = false
 		_apply.visible = false
 		_header.visible = true
 		var cost := GameState.build_cost(line_index, seg_index)
 		Price.show(_build, Fmt.num(cost), GameState.scrap >= cost)
 		_stall.visible = false
 		return
+	_missile.visible = s.is_final()
 	_update_apply()
 	_update_workers(s)
 	_machine.frame = s.tier
@@ -259,6 +271,7 @@ func _update_apply() -> void:
 	if fit:
 		var cost := GameState.tier_apply_cost(line_index, seg_index)
 		var target := GameState.apply_target(line_index, seg_index)
+		(_apply.get_node("Price/Lead") as TextureRect).texture = MISSILE_S if Data.tier(_state().type_id, target).get("final", false) else UP_S
 		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost, "", GameState.scrap / cost, Pal.tier(target))
 
 

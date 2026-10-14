@@ -27,6 +27,10 @@ func scrap_cost() -> float:
 	return float(tier_data().scrap_per_mech) * GameState.stat("scrap_mult") * GameState.war_scale()
 
 
+func is_final() -> bool:
+	return built and tier_data().get("final", false)
+
+
 func bar_full() -> bool:
 	return work >= bar_size()
 

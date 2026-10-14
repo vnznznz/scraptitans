@@ -2083,6 +2083,7 @@ func stations() -> void:
 	await t.wait(0.5)
 	await t.shot("station_tiers")
 
+
 	for i in 2:
 		GameState.buy_upgrade("tier_frame")
 	await t.frames(2)
@@ -2192,6 +2193,38 @@ func stations() -> void:
 	t.check(GameState.tap_scrap() > 50.0 and GameState.tap_power() == 0.0 and first.amount == int(Fx.BITS.x), "5 wars won, first tap: %s scrap but the smallest burst (%d bits)" % [Fmt.num(GameState.tap_scrap()), first.amount])
 	GameState.prestige = 0
 	GameState.new_game()
+
+	main = t.get_tree().current_scene
+	GameState.credits = 1e12
+	GameState.scrap = 1e9
+	var arms := GameState.lines[0].segments[2]
+	var arms_view: SegmentView = main.line_view(0).segment_view(2)
+	var missile: Control = arms_view.get_node("Header/Missile")
+	var nuke_line: Label = main.line_view(0).get_node("NukeFitted")
+	t.check(not missile.visible and not nuke_line.visible, "no missile on the station before it is fitted")
+	for row: Dictionary in Data.upgrade_list:
+		if row.get("kind", "") == "tier":
+			while not GameState.upgrade_maxed(row.id):
+				GameState.buy_upgrade(row.id)
+	GameState.buy_upgrade("final_arms")
+	for part: SegmentState in GameState.lines[0].segments:
+		part.built = true
+		part.tier = GameState.top_tier(part.type_id)
+	arms.tier = Data.segment_type("arms").tiers.size() - 1
+	await t.frames(3)
+	t.check(arms.is_final() and missile.visible and nuke_line.visible and nuke_line.text == LineView.NUKE_TEXT,
+			"missile fitted: the icon on the station and the line over it (%s)" % nuke_line.text)
+	t.check(nuke_line.get_global_rect().size.x <= main.line_view(0).size.x and main.get_global_rect().encloses(nuke_line.get_global_rect())
+			and absf(nuke_line.get_global_rect().get_center().x - arms_view.get_global_rect().get_center().x) <= nuke_line.size.x / 2.0,
+			"the line fits the pane, centred on the Arms station as far as it can (%s)" % nuke_line.get_global_rect())
+	await t.wait(0.4)
+	await t.shot("station_missile")
+	arms.tier = GameState.top_tier("arms")
+	await t.frames(2)
+	t.check(not missile.visible and not nuke_line.visible, "fitted away again: both gone")
+	var fit_lead: TextureRect = arms_view.get_node("Apply/Price/Lead")
+	t.check(arms_view.get_node("Apply").visible and GameState.line_maxed(0) and fit_lead.texture == SegmentView.MISSILE_S,
+			"the fit row offering the missile shows it instead of the arrow")
 
 
 func prestige() -> void:

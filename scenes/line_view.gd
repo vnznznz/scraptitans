@@ -18,6 +18,8 @@ const PAUSE_TEX := preload("res://art/ui/pause.png")
 const PLAY_TEX := preload("res://art/ui/play.png")
 const TAG := Vector2(16, 20)
 const TAG_GAP := 4.0
+const NUKE_TEXT := "NEXT MECH LAUNCHES THE NUKE"
+const NUKE_Y := SegmentView.MACHINE_Y + 30.0
 
 var line_index := 0
 
@@ -41,6 +43,7 @@ var _states := {}
 var _belt_offset := 0.0
 var _collapsed := false
 var _hire_hold := Hold.new()
+var _nuke: Label
 
 
 func _ready() -> void:
@@ -115,6 +118,22 @@ func _ready() -> void:
 	add_child(_mechs)
 	_fx = Node2D.new()
 	add_child(_fx)
+
+	_nuke = Label.new()
+	_nuke.name = "NukeFitted"
+	_nuke.text = NUKE_TEXT
+	_nuke.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	_nuke.add_theme_color_override("font_color", Pal.YELLOW)
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = Pal.INK
+	plate.border_color = Pal.ORANGE
+	plate.set_border_width_all(1)
+	plate.content_margin_left = 4
+	plate.content_margin_right = 4
+	_nuke.add_theme_stylebox_override("normal", plate)
+	_nuke.mouse_filter = MOUSE_FILTER_IGNORE
+	_nuke.visible = false
+	add_child(_nuke)
 	_strip_k = Reveal.step(0.0, GameState.pause_shown(), INF)
 	_bar_k = Reveal.step(0.0, GameState.shown("crew"), INF)
 	_tagged = GameState.lines.size() > 1
@@ -253,6 +272,7 @@ func _process(delta: float) -> void:
 		_tagged = tagged
 		_layout()
 	var line := _line()
+	var segs_now := line.segments
 	var slots := line.worker_slots()
 	_crew.text = "LINE CREW %d/%d" % [line.workers, slots]
 	_crew.visible = _bar_k > 0.0
@@ -282,11 +302,20 @@ func _process(delta: float) -> void:
 	_usage.position = Vector2(METER.position.x, METER.end.y - h)
 	_usage.size = Vector2(METER.size.x, h)
 	_usage.color = Hud.STARVED if _line().starved() else (USAGE_COLOR * Color(1, 1, 1, 0.5) if paused else USAGE_COLOR)
+	var armed := -1
+	for i in segs_now.size():
+		if segs_now[i].is_final():
+			armed = i
+	_nuke.visible = armed >= 0
+	if _nuke.visible:
+		_nuke.reset_size()
+		var center := _center(armed) - _nuke.size.x / 2.0
+		_nuke.position = Vector2(clampf(center, 0.0, size.x - _nuke.size.x), _top + NUKE_Y).round()
 	var belt_y := _top + SegmentView.BELT_Y
 	var belt_time := Data.econ("belt_time")
 	var moving := false
 	var seen := {}
-	var segs := _line().segments
+	var segs := segs_now
 	for i in segs.size():
 		var m := segs[i].mech
 		if m == null:

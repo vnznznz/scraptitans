@@ -15,8 +15,6 @@ Feedback on the live build (https://www.crazygames.com/game/scrap-titans), newes
 
 | Date | Build | Source | Kind | What | Notes | Status |
 |---|---|---|---|---|---|---|
-| 2026-10-14 | live 2026-10-14 | direct | confusing | The missile launch comes as a surprise when it happens | Fitted like any other part; nothing on the station says the next mech ends the war → M24 missile icon and launch line | planned (M24) |
-| 2026-10-08 | live 2026-10-08 | direct: corvus | balance | Late-game upgrades to stations cost too much scrap | Probably the fits (arrow button) of the last tiers: `apply_cost` 10K / 40K per station and line. Not asked: which tier, how many lines, how many wars won | planned (M24) |
 
 ## Numbers
 
@@ -36,3 +34,5 @@ Entries with status `done` or `no` move here.
 
 | Date | Build | Source | Kind | What | Notes | Status |
 |---|---|---|---|---|---|---|
+| 2026-10-14 | live 2026-10-14 | direct | confusing | The missile launch comes as a surprise when it happens | Fitted like any other part; nothing on the station says the next mech ends the war → M24 missile icon and launch line | done (M24: a missile icon in the Arms header and `NEXT MECH LAUNCHES THE NUKE` over the line while it is fitted, and the missile on the fit row that offers it) |
+| 2026-10-08 | live 2026-10-08 | direct: corvus | balance | Late-game upgrades to stations cost too much scrap | Probably the fits (arrow button) of the last tiers: `apply_cost` 10K / 40K per station and line. Not asked: which tier, how many lines, how many wars won | done (M24: tier 5 and 6 `unlock_cost` and `apply_cost` cut to about a quarter, the Atomic Missile untouched) |
