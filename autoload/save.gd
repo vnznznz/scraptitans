@@ -11,6 +11,7 @@ var _requested := false
 
 
 func _ready() -> void:
+	GameState.max_buy = load_settings().get("max_buy", false)
 	if not load_game():
 		GameState.new_game()
 	GameState.purchased.connect(request_save)

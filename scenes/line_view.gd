@@ -105,7 +105,7 @@ func _ready() -> void:
 	_hire.name = "Hire"
 	_hire.icon = preload("res://art/ui/worker.png")
 	_hire.mouse_filter = MOUSE_FILTER_PASS
-	Price.setup(_hire, Flyers.Kind.CREDITS, true)
+	Price.setup(_hire, Flyers.Kind.CREDITS, true, true)
 	_hire.set_meta(&"silent", true)
 	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
@@ -180,6 +180,12 @@ func hire_button() -> Button:
 
 
 func _on_hire() -> void:
+	if GameState.max_buy:
+		var done := GameState.hire_workers(line_index)
+		if int(done[0]) > 0:
+			Flyers.pay(Flyers.Kind.CREDITS, _hire, done[1])
+			Sound.play(&"hire")
+		return
 	var cost := GameState.worker_cost(line_index)
 	if GameState.hire_worker(line_index):
 		Flyers.pay(Flyers.Kind.CREDITS, _hire, cost)
@@ -254,7 +260,11 @@ func _process(delta: float) -> void:
 	_hire.visible = _bar_k > 0.0 and line.workers < slots
 	if _hire.visible:
 		var cost := GameState.worker_cost(line_index)
-		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost, "", GameState.credits / cost)
+		var batch := GameState.hires_affordable(line_index) if GameState.max_buy else []
+		if batch.size() and int(batch[0]) > 1:
+			Price.show(_hire, Fmt.num(batch[1]), true, "+%d" % batch[0])
+		else:
+			Price.show(_hire, Fmt.num(cost), GameState.credits >= cost, "", GameState.credits / cost)
 	var paused := line.paused
 	var mode := _pause.get_draw_mode()
 	var sunk := paused or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED

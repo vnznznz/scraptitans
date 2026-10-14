@@ -39,6 +39,8 @@ static func setup(b: Button, kind: Flyers.Kind, row := false, lead_text := false
 		var lead := Label.new()
 		lead.name = "LeadText"
 		lead.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		if row:
+			lead.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
 		box.add_child(lead)
 	var cost := HBoxContainer.new()
 	cost.name = "Cost"
@@ -74,12 +76,14 @@ static func show(b: Button, value: String, affordable: bool, lead := "", share :
 	label.add_theme_color_override("font_color", color)
 	(box.get_node("Cost/Icon") as TextureRect).modulate = Color.WHITE if affordable else DIM
 	var lead_icon: TextureRect = box.get_node_or_null("Lead")
-	if lead_icon:
-		lead_icon.modulate = Color.WHITE if affordable else DIM
 	var lead_label: Label = box.get_node_or_null("LeadText")
 	if lead_label:
 		lead_label.text = lead
+		lead_label.visible = not lead.is_empty()
 		lead_label.add_theme_color_override("font_color", color)
+	if lead_icon:
+		lead_icon.modulate = Color.WHITE if affordable else DIM
+		lead_icon.visible = lead_label == null or lead.is_empty()
 	var mode := b.get_draw_mode()
 	box.position.y = 1.0 if mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED else 0.0
 	b.disabled = not affordable

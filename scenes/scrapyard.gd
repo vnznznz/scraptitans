@@ -86,7 +86,7 @@ func _ready() -> void:
 	_hire.name = "HireYard"
 	_hire.icon = preload("res://art/ui/worker.png")
 	_hire.mouse_filter = MOUSE_FILTER_PASS
-	Price.setup(_hire, Flyers.Kind.CREDITS, true)
+	Price.setup(_hire, Flyers.Kind.CREDITS, true, true)
 	_hire.set_meta(&"silent", true)
 	_hire.pressed.connect(_on_hire)
 	add_child(_hire)
@@ -176,7 +176,11 @@ func _process(delta: float) -> void:
 	_crew.text = "PILE CREW %d/%d" % [n, slots]
 	var cost := GameState.yard_worker_cost()
 	_hire.visible = _bar_k > 0.0 and n < slots
-	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost, "", GameState.credits / cost)
+	var batch := GameState.yard_hires_affordable() if GameState.max_buy else []
+	if batch.size() and int(batch[0]) > 1:
+		Price.show(_hire, Fmt.num(batch[1]), true, "+%d" % batch[0])
+	else:
+		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost, "", GameState.credits / cost)
 
 
 func _home(i: int) -> Vector2:
@@ -229,6 +233,12 @@ func _squash(y_scale: float, shake: float, rest: float) -> void:
 
 
 func _on_hire() -> void:
+	if GameState.max_buy:
+		var done := GameState.hire_yard_workers()
+		if int(done[0]) > 0:
+			Flyers.pay(Flyers.Kind.CREDITS, _hire, done[1])
+			Sound.play(&"hire")
+		return
 	var cost := GameState.yard_worker_cost()
 	if GameState.hire_yard_worker():
 		Flyers.pay(Flyers.Kind.CREDITS, _hire, cost)

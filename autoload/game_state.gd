@@ -16,7 +16,7 @@ const MAX_FRAME_DELTA := 0.25
 const RATE_WINDOW := 5
 const MECH_WINDOW := 60
 const AWAY_WINDOW := 60
-const REVEALS := ["factory", "crew", "yard_crew", "upgrades", "unlock"]
+const REVEALS := ["factory", "crew", "yard_crew", "upgrades", "unlock", "max_buy"]
 
 var scrap := 0.0
 var credits := 0.0
@@ -51,6 +51,7 @@ var scrap_gain_rate := 0.0
 var tap_dps := 0.0
 var mechs_per_min := 0
 var time_scale := 1.0
+var max_buy := false
 var yard_chunks := 0
 
 var _stats := {}
@@ -242,6 +243,8 @@ func _update_seen() -> void:
 		seen.upgrades = true
 	if not seen.has("unlock") and credits >= upgrade_cost("lines"):
 		seen.unlock = true
+	if not seen.has("max_buy") and hires_at_once() >= 2:
+		seen.max_buy = true
 
 
 func aging() -> float:
@@ -291,8 +294,8 @@ func build_segment(line_index: int, seg_index: int) -> bool:
 	return true
 
 
-func worker_cost(line_index: int) -> float:
-	return Data.econ("worker_base") * pow(Data.econ("worker_growth"), lines[line_index].workers) * war_scale()
+func worker_cost(line_index: int, extra := 0) -> float:
+	return Data.econ("worker_base") * pow(Data.econ("worker_growth"), lines[line_index].workers + extra) * war_scale()
 
 
 func hire_worker(line_index: int) -> bool:
@@ -304,6 +307,23 @@ func hire_worker(line_index: int) -> bool:
 	line.workers += 1
 	purchased.emit()
 	return true
+
+
+func hires_affordable(line_index: int) -> Array:
+	var line := lines[line_index]
+	var n := 0
+	var total := 0.0
+	while line.workers + n < line.worker_slots() and total + worker_cost(line_index, n) <= credits:
+		total += worker_cost(line_index, n)
+		n += 1
+	return [n, total]
+
+
+func hire_workers(line_index: int) -> Array:
+	var wanted := hires_affordable(line_index)
+	for i in int(wanted[0]):
+		hire_worker(line_index)
+	return wanted
 
 
 func yard_slots() -> int:
@@ -318,8 +338,36 @@ func yard_rate() -> float:
 	return yard_workers * yard_chunk() / stat("worker_interval")
 
 
-func yard_worker_cost() -> float:
-	return Data.econ("yard_worker_base") * pow(Data.econ("yard_worker_growth"), yard_workers) * war_scale()
+func yard_worker_cost(extra := 0) -> float:
+	return Data.econ("yard_worker_base") * pow(Data.econ("yard_worker_growth"), yard_workers + extra) * war_scale()
+
+
+func yard_hires_affordable() -> Array:
+	var n := 0
+	var total := 0.0
+	while yard_workers + n < yard_slots() and total + yard_worker_cost(n) <= credits:
+		total += yard_worker_cost(n)
+		n += 1
+	return [n, total]
+
+
+func hire_yard_workers() -> Array:
+	var wanted := yard_hires_affordable()
+	for i in int(wanted[0]):
+		hire_yard_worker()
+	return wanted
+
+
+func hires_at_once() -> int:
+	var n := int(yard_hires_affordable()[0])
+	for i in lines.size():
+		n += int(hires_affordable(i)[0])
+	return n
+
+
+func set_max_buy(on: bool) -> void:
+	max_buy = on
+	Save.store_settings({"max_buy": on})
 
 
 func hire_yard_worker() -> bool:

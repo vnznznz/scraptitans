@@ -535,7 +535,7 @@ Losing and coming back:
 - [x] Away: `away_max` 1 h → 8 h; credits capped at 3× the price of the cheapest purchase the player can't afford (M23 QA note: one capped hour paid for the missile); `tune` and the idler `qa` profile again
 
 Buying:
-- [ ] `×1 / MAX` toggle (44×44, left of UPGRADES, shown once two hires are affordable at once): on MAX every hire button (line crews, pile crew) hires as many as affordable up to the slots and reads count and total (`+4 · 1.2K`); the toggle saved with the settings
+- [x] `×1 / MAX` toggle (44×44, left of UPGRADES, shown once two hires are affordable at once; reads `X1` / `MAX`: the font has no `×`): on MAX every hire button (line crews, pile crew) hires as many as affordable up to the slots and reads count and total (`+4 · 1.2K`); the toggle saved with the settings
 - [ ] Hold a hire button to repeat it (first after 0.4 s, then every 0.15 s)
 - [x] Unaffordable hire and fit buttons fill from the left with credits (or scrap) ÷ price, so the next buy shows its distance
 
