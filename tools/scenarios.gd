@@ -2088,6 +2088,9 @@ func stations() -> void:
 	await t.frames(2)
 	var seg: SegmentView = main.line_view(0).segment_view(0)
 	var machine: Sprite2D = seg.get_node("Machine")
+	var arrow: TextureRect = seg.get_node("Apply/Price/Lead")
+	t.check(GameState.apply_target(0, 0) == 2 and arrow.modulate == Pal.tier(2),
+			"the fit arrow in the colour of the tier it would fit (%s vs %s)" % [arrow.modulate, Pal.tier(2)])
 	await t.click(seg.get_node("Apply"))
 	t.check(GameState.lines[0].segments[0].tier == 2 and machine.frame == 2 and machine.modulate == SegmentView.FLASH, "fit: the station flashes and shows the new tier's cell")
 	await t.wait(0.3)
