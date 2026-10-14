@@ -63,6 +63,13 @@ func _ready() -> void:
 		h.add_child(value)
 		_rows[row[0]] = h
 		_values[row[0]] = value
+	var tomorrow := Label.new()
+	tomorrow.name = "Tomorrow"
+	tomorrow.text = CrateCard.TOMORROW
+	tomorrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tomorrow.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	tomorrow.add_theme_color_override("font_color", Pal.ORANGE)
+	box.add_child(tomorrow)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 4)
 	box.add_child(buttons)

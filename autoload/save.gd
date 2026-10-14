@@ -11,7 +11,10 @@ var _requested := false
 
 
 func _ready() -> void:
-	GameState.max_buy = load_settings().get("max_buy", false)
+	var settings := load_settings()
+	GameState.max_buy = settings.get("max_buy", false)
+	GameState.crate_day = settings.get("crate_day", "")
+	GameState.crate_streak = int(settings.get("crate_streak", 0))
 	if not load_game():
 		GameState.new_game()
 	GameState.purchased.connect(request_save)

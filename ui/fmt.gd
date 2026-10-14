@@ -33,6 +33,11 @@ static func rate(x: float) -> String:
 	return "%s%s/S" % [sign, short(x)]
 
 
+static func mult(x: float) -> String:
+	var v := snappedf(x, 1.0) if x >= 10.0 else snappedf(x, 0.01)
+	return "X" + (str(int(v)) if is_equal_approx(v, roundf(v)) else str(v))
+
+
 static func clock(seconds: float) -> String:
 	var s := ceili(seconds)
 	return "%d:%02d" % [s / 60, s % 60]

@@ -2014,6 +2014,23 @@ def ui():
     outline(img)
     save(img, "ui/up_s.png")
 
+    for k in range(3):
+        img, d = new(32, 32)
+        lid_y = {0: 10, 1: 2, 2: 0}[k]
+        if k == 2:
+            for x, y, c in ((8, 12, GOLD), (14, 10, STEEL_L), (20, 12, CYAN), (11, 8, YELLOW), (18, 7, WHITE)):
+                sbox(d, x, y, x + 4, y + 5, (SLATE_D, c, WHITE))
+        sbox(d, 4, 14, 27, 29, R_BROWN)
+        for x in (9, 16, 23):
+            rect(d, x, 15, x + 1, 28, BROWN_K)
+        hazard(d, 6, 22, 25, 25)
+        if k < 2:
+            sbox(d, 3, lid_y, 28, lid_y + 5, R_GOLD)
+            rect(d, 4, lid_y + 1, 27, lid_y + 1, YELLOW)
+        else:
+            sbox(d, 3, 27, 28, 31, R_GOLD)
+        save(img, f"ui/crate_{k}.png")
+
     img, d = new(8, 12)
     rect(d, 3, 0, 4, 0, PINK)
     rect(d, 3, 1, 4, 2, RED)

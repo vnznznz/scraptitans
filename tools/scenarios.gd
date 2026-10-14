@@ -3802,7 +3802,10 @@ func away() -> void:
 	await t.wait(0.3)
 	t.check(card.visible and not ad.is_visible_in_tree() and collect.size.x == time.size.x, "no video ads (Basic Launch, own site, ad blocker): COLLECT alone, full width (%d)" % collect.size.x)
 	t.check(time.text == "THE CREWS WORKED 8 H (MAX)" and not card._rows[Flyers.Kind.CREDITS].visible and card._rows[Flyers.Kind.SCRAP].visible, "the cap is named, no credits row without credits (%s)" % time.text)
-	t.check(absf(panel.get_global_rect().get_center().y - screen.get_center().y) <= 1.0 and panel.size.y < 150.0, "a shorter card is still centered (%s)" % panel.get_global_rect())
+	t.check(absf(panel.get_global_rect().get_center().y - screen.get_center().y) <= 1.0 and panel.size.y < 220.0, "a shorter card is still centered (%s)" % panel.get_global_rect())
+	var tomorrow: Label = card.find_child("Tomorrow", true, false)
+	t.check(tomorrow.is_visible_in_tree() and tomorrow.text == CrateCard.TOMORROW and panel.get_global_rect().encloses(tomorrow.get_global_rect()),
+			"the card points at tomorrow's supply crate (%s)" % tomorrow.text.replace("\n", " / "))
 	await t.shot("away_card")
 	t.get_tree().reload_current_scene()
 	await t.frames(4)
@@ -3816,6 +3819,93 @@ func away() -> void:
 	GameState.new_game()
 	t.check(GameState.away_t == 0.0, "a new war starts without a reward")
 	CrazyGames.use_none()
+
+
+func crate() -> void:
+	await _fresh()
+	var main := t.get_tree().current_scene
+	var card: CrateCard = main.get_node("CrateCard")
+	var panel: Control = card.get_node("Card")
+	var collect: Button = card.find_child("Collect", true, false)
+	var minutes := Data.econ("crate_minutes")
+	var step := Data.econ("crate_streak_mult")
+	var cap := int(Data.econ("crate_streak_max"))
+	GameState.crate_day = ""
+	GameState.crate_streak = 0
+	GameState.mechs_built = 0
+	GameState.check_crate()
+	t.check(not GameState.crate_due and GameState.crate_day.is_empty(), "nothing before the first mech")
+	_reveal_all()
+	GameState.check_crate()
+	t.check(not GameState.crate_due and GameState.crate_day == GameState.today(), "the first visit starts the count without a crate")
+	GameState.check_crate()
+	t.check(not GameState.crate_due, "same day again: still no crate")
+
+	GameState._credits_history.assign([20.0])
+	GameState._scrap_history.assign([5.0])
+	GameState._scrap_gain_history.assign([8.0])
+	GameState.crate_day = GameState.yesterday()
+	GameState.check_crate()
+	await t.frames(2)
+	await t.wait(0.4)
+	var amounts := GameState.crate_amounts()
+	t.check(GameState.crate_due and card.visible and GameState.crate_streak_next() == 1,
+			"a new day after playing: the crate card opens on day 1")
+	t.check(is_equal_approx(amounts[Flyers.Kind.CREDITS], 20.0 * minutes * 60.0) and is_equal_approx(amounts[Flyers.Kind.SCRAP], 5.0 * minutes * 60.0),
+			"%d min of the factory's output (%.0f scrap, %.0f credits)" % [minutes, amounts[Flyers.Kind.SCRAP], amounts[Flyers.Kind.CREDITS]])
+	var screen := (main as Control).get_global_rect()
+	t.check(panel.size.x == 288.0 and screen.encloses(panel.get_global_rect()) and absf(panel.get_global_rect().get_center().y - screen.get_center().y) <= 1.0,
+			"card 288 wide, in the middle of the screen (%s)" % panel.get_global_rect())
+	t.check((card.find_child("Streak", true, false) as Label).text == "DAY 1 IN A ROW", "day 1 reads plainly (%s)" % (card.find_child("Streak", true, false) as Label).text)
+	t.check((card.find_child("Crate", true, false) as TextureRect).texture == CrateCard.CRATE[2], "the crate ends up open")
+	await t.shot("crate_card")
+	var scrap := GameState.scrap
+	var credits := GameState.credits
+	await t.click(collect)
+	t.check(is_equal_approx(GameState.scrap, scrap + amounts[Flyers.Kind.SCRAP]) and is_equal_approx(GameState.credits, credits + amounts[Flyers.Kind.CREDITS])
+			and not card.visible and not GameState.crate_due and GameState.crate_day == GameState.today() and GameState.crate_streak == 1,
+			"COLLECT pays, closes and counts the day")
+	t.check(int(Save.load_settings().get("crate_streak", -1)) == 1 and Save.load_settings().get("crate_day") == GameState.today(), "the streak is saved with the settings, not the run")
+	GameState.check_crate()
+	await t.frames(2)
+	t.check(not GameState.crate_due and not card.visible, "no second crate the same day")
+
+	GameState.crate_day = GameState.yesterday()
+	GameState.check_crate()
+	await t.frames(2)
+	t.check(GameState.crate_streak_next() == 2 and is_equal_approx(GameState.crate_amounts()[Flyers.Kind.CREDITS], 20.0 * minutes * 60.0 * step)
+			and (card.find_child("Streak", true, false) as Label).text.ends_with(Fmt.mult(step)),
+			"a day in a row: %s and the day counted (%s)" % [Fmt.mult(step), (card.find_child("Streak", true, false) as Label).text])
+	await t.shot("crate_streak")
+	GameState.crate_streak = cap
+	t.check(GameState.crate_streak_next() == cap, "the streak stops at %d days" % cap)
+	GameState.crate_day = "2020-01-01"
+	t.check(GameState.crate_streak_next() == 1, "a day missed: back to day 1")
+
+	GameState.add_away(600.0, 10.0, 5.0, 8.0)
+	await t.frames(2)
+	t.check(not card.visible and (t.node("Away") as Control).visible, "the away card comes first")
+	var tomorrow: Label = t.node("Away").find_child("Tomorrow", true, false)
+	t.check(tomorrow.is_visible_in_tree() and tomorrow.text == CrateCard.TOMORROW, "the away card says to come back tomorrow")
+	GameState.claim_away()
+	await t.frames(2)
+	await t.wait(0.4)
+	t.check(card.visible, "collected: the crate card is next")
+	GameState.run_over = true
+	await t.frames(2)
+	t.check(not card.visible, "nothing while the war is over")
+	GameState.run_over = false
+
+	var guide: IntroGuide = main.get_node("IntroGuide")
+	GameState.crate_due = false
+	GameState.crate_day = GameState.today()
+	GameState.run_time = Main.CRATE_HINT
+	await t.frames(3)
+	t.check(guide.visible and guide.story() == CrateCard.TOMORROW, "after %d min of play the mission plate says it once (%s)" % [Main.CRATE_HINT / 60.0, guide.story()])
+	await t.shot("crate_notice")
+	GameState.crate_day = ""
+	GameState.crate_streak = 0
+	Save.store_settings({"crate_day": "", "crate_streak": 0})
 
 
 func gate() -> void:

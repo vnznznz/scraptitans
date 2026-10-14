@@ -46,6 +46,8 @@ var _t := 0.0
 var _touched := false
 var _touch := Vector2.ZERO
 var _lit: CanvasItem
+var _notice := ""
+var _notice_t := 0.0
 var _frame := Rect2()
 
 
@@ -119,14 +121,27 @@ func _light(target: Control) -> void:
 		lit.self_modulate = Color.WHITE.lerp(LIT, 0.5 + 0.5 * sin(_t * 6.0))
 
 
+func notice(text: String, seconds := 8.0) -> void:
+	_notice = text
+	_notice_t = seconds
+
+
 func _process(delta: float) -> void:
+	_notice_t = maxf(0.0, _notice_t - delta)
 	var step := _step()
-	visible = not step.is_empty()
+	visible = not step.is_empty() or _notice_t > 0.0
 	if not visible:
 		_light(null)
 		return
 	_t += delta
 	var bob := roundf(sin(_t * 6.0) * 3.0)
+	_label.visible = not step.is_empty()
+	if step.is_empty():
+		_light(null)
+		_arrow = false
+		_place_story(_notice, Place.ABOVE, 0.0)
+		queue_redraw()
+		return
 	var target: Control = step[1]
 	var place: Place = step[2]
 	var lit: Control = step[3] if step.size() > 3 else target
@@ -159,19 +174,26 @@ func _process(delta: float) -> void:
 		if clear >= MARGIN and clear <= right - MARGIN - _label.size.x:
 			x = clear
 	_label.position = Vector2(x, at.y).round()
-	_story.text = _story_for(step[0])
-	_story.visible = not _story.text.is_empty()
-	if _story.visible:
-		_story.reset_size()
-		var top := battlefield.get_global_rect().end.y - global_position.y if battlefield else 0.0
-		var action_top := _label.position.y + bob
-		var y := top + STORY_GAP
-		if place == Place.ABOVE and action_top > top:
-			y = minf(top + (action_top - top - _story.size.y) / 2.0, action_top - STORY_GAP - _story.size.y)
-		_story.position = Vector2((right - _story.size.x) / 2.0, y).round()
-		var gap_end := line.global_position.y - global_position.y
-		_story.visible = y >= top and _story.position.y + _story.size.y <= gap_end - STORY_GAP
+	_place_story(_notice if _notice_t > 0.0 else _story_for(step[0]), place, _label.position.y + bob)
 	queue_redraw()
+
+
+func _place_story(text: String, place: Place, action_top: float) -> void:
+	_story.text = text
+	_story.visible = not text.is_empty()
+	if not _story.visible:
+		return
+	_story.reset_size()
+	var right := size.x
+	if rail and rail.is_visible_in_tree():
+		right = rail.global_position.x - global_position.x
+	var top := battlefield.get_global_rect().end.y - global_position.y if battlefield else 0.0
+	var y := top + STORY_GAP
+	if place == Place.ABOVE and action_top > top:
+		y = minf(top + (action_top - top - _story.size.y) / 2.0, action_top - STORY_GAP - _story.size.y)
+	_story.position = Vector2((right - _story.size.x) / 2.0, y).round()
+	var gap_end := line.global_position.y - global_position.y
+	_story.visible = y >= top and _story.position.y + _story.size.y <= gap_end - STORY_GAP
 
 
 func _draw() -> void:

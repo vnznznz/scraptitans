@@ -34,6 +34,7 @@ const FLYERS_Z := 1
 const TEXT_Z := 2
 const OVERLAY_Z := 3
 const ASSEMBLY_WINDOW := 4.0
+const CRATE_HINT := 600.0
 
 @onready var _layout: Control = $Layout
 @onready var _lines: VBoxContainer = %Lines
@@ -49,6 +50,7 @@ const ASSEMBLY_WINDOW := 4.0
 @onready var _spacer: Control = %YardSpacer
 
 var _unlock: Button
+var _crate: CrateCard
 var _unlock_slot: Control
 var _factory_k := 0.0
 var _bar_k := 0.0
@@ -62,9 +64,14 @@ var _assemblies := -1
 var _assembly_log: Array[Vector2] = []
 var _starved := false
 var _tapped := false
+var _guide: IntroGuide
+var _told_tomorrow := false
 
 
 func _ready() -> void:
+	_crate = CrateCard.new()
+	_crate.name = "CrateCard"
+	add_child(_crate)
 	get_window().size_changed.connect(_fit_window, CONNECT_DEFERRED)
 	_fit_window()
 	if OS.has_feature("web"):
@@ -106,6 +113,7 @@ func _ready() -> void:
 	_badge.add_theme_color_override("font_color", Pal.WHITE)
 	_upgrades.add_child(_badge)
 	var guide := IntroGuide.new()
+	_guide = guide
 	guide.name = "IntroGuide"
 	guide.pile = _scrapyard.pile()
 	guide.rail = %Rail
@@ -119,7 +127,7 @@ func _ready() -> void:
 	guide.z_index = OVERLAY_Z
 	_flyers.z_index = FLYERS_Z
 	_menu.z_index = TEXT_Z
-	for overlay: Control in [%Debug, %Settings, %Away, %Nuke]:
+	for overlay: Control in [%Debug, %Settings, %Away, %Nuke, _crate]:
 		overlay.z_index = OVERLAY_Z + 1
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.set_meta(&"silent", true)
@@ -144,7 +152,7 @@ func _process(delta: float) -> void:
 	_reveal(delta)
 	_update_sound()
 	CrazyGames.loading_stop()
-	CrazyGames.gameplay(_tapped and not (_menu.visible or _settings.visible or _away.visible or GameState.run_over or CrazyGames.ad_open))
+	CrazyGames.gameplay(_tapped and not (_menu.visible or _settings.visible or _away.visible or _crate.visible or GameState.run_over or CrazyGames.ad_open))
 	_upgrades.text = "CLOSE" if _menu.visible else "UPGRADES"
 	var affordable := GameState.affordable_upgrades()
 	_badge.visible = not _menu.visible and affordable > 0
@@ -159,6 +167,9 @@ func _process(delta: float) -> void:
 	var left := BAR_INSET + (MAX_W + MAX_GAP if _max.visible else 0.0)
 	if _upgrades.offset_left != left:
 		_upgrades.offset_left = left
+	if not _told_tomorrow and GameState.run_time >= CRATE_HINT and GameState.revealed() and not GameState.crate_due and not GameState.run_over:
+		_told_tomorrow = true
+		_guide.notice(CrateCard.TOMORROW)
 	_badge.reset_size()
 	_badge.position = (Vector2(_upgrades.size.x - _badge.size.x - BADGE_INSET, (_upgrades.size.y - _badge.size.y) / 2.0)).round()
 	if _unlock_slot.visible:
@@ -199,6 +210,8 @@ func set_safe_area(top: float, bottom: float) -> void:
 	_settings.offset_bottom = -bottom
 	_away.offset_top = top
 	_away.offset_bottom = -bottom
+	_crate.offset_top = top
+	_crate.offset_bottom = -bottom
 
 
 func _reveal(delta: float) -> void:

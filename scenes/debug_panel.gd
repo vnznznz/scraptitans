@@ -59,6 +59,15 @@ func _ready() -> void:
 	box.add_child(away)
 	_button(away, "10 MIN AWAY", GameState.away.bind(600.0))
 	_button(away, "2 H AWAY", GameState.away.bind(7200.0))
+	var crate := HBoxContainer.new()
+	box.add_child(crate)
+	_button(crate, "SUPPLY CRATE", func() -> void:
+		GameState.crate_day = GameState.yesterday()
+		GameState.crate_due = true)
+	_button(crate, "CRATE DAY 7", func() -> void:
+		GameState.crate_day = GameState.yesterday()
+		GameState.crate_streak = int(Data.econ("crate_streak_max"))
+		GameState.crate_due = true)
 	var gate := HBoxContainer.new()
 	box.add_child(gate)
 	_button(gate, "GATE 20 S LEFT", func() -> void:

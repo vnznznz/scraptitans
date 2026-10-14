@@ -16,6 +16,7 @@ const MAX_FRAME_DELTA := 0.25
 const RATE_WINDOW := 5
 const MECH_WINDOW := 60
 const AWAY_WINDOW := 60
+const CRATE_CHECK := 5.0
 const REVEALS := ["factory", "crew", "yard_crew", "upgrades", "unlock", "max_buy"]
 
 var scrap := 0.0
@@ -52,6 +53,9 @@ var tap_dps := 0.0
 var mechs_per_min := 0
 var time_scale := 1.0
 var max_buy := false
+var crate_day := ""
+var crate_streak := 0
+var crate_due := false
 var yard_chunks := 0
 
 var _stats := {}
@@ -70,6 +74,7 @@ var _mech_bucket := 0
 var _mech_history: Array[int] = []
 var _wave_list: Array[Dictionary] = []
 var _wave_listed := -1
+var _crate_t := 0.0
 
 
 func _process(delta: float) -> void:
@@ -80,6 +85,10 @@ func _process(delta: float) -> void:
 	if run_over:
 		return
 	_update_seen()
+	_crate_t += delta
+	if _crate_t >= CRATE_CHECK:
+		_crate_t = 0.0
+		check_crate()
 	_acc += minf(delta, MAX_FRAME_DELTA) * time_scale
 	while _acc >= TICK and not run_over:
 		_acc -= TICK
@@ -478,6 +487,56 @@ func away_cap() -> float:
 		if cost > credits:
 			cheapest = minf(cheapest, cost)
 	return cheapest * Data.econ("away_credits_cap")
+
+
+static func today() -> String:
+	return Time.get_date_string_from_system()
+
+
+static func yesterday() -> String:
+	var now := Time.get_unix_time_from_datetime_dict(Time.get_datetime_dict_from_system())
+	return Time.get_date_string_from_unix_time(int(now - 86400.0))
+
+
+func check_crate() -> void:
+	if not revealed() or run_over or crate_due:
+		return
+	var day := today()
+	if crate_day.is_empty():
+		crate_day = day
+		Save.store_settings({"crate_day": crate_day, "crate_streak": crate_streak})
+	elif day != crate_day:
+		crate_due = true
+
+
+func crate_streak_next() -> int:
+	if crate_day != yesterday():
+		return 1
+	return mini(crate_streak + 1, int(Data.econ("crate_streak_max")))
+
+
+func crate_amounts() -> Array[float]:
+	var rates := away_rates()
+	var seconds := Data.econ("crate_minutes") * 60.0
+	var mult := pow(Data.econ("crate_streak_mult"), crate_streak_next() - 1)
+	var scrap_floor := maxf(rates[2] * Data.econ("away_scrap_floor"), tap_scrap() * Data.econ("away_taps"))
+	var amounts: Array[float] = []
+	amounts.resize(2)
+	amounts[Flyers.Kind.CREDITS] = maxf(rates[0], 0.0) * seconds * mult
+	amounts[Flyers.Kind.SCRAP] = maxf(rates[1], scrap_floor) * seconds * mult
+	return amounts
+
+
+func claim_crate() -> void:
+	var amounts := crate_amounts()
+	scrap += amounts[Flyers.Kind.SCRAP]
+	credits += amounts[Flyers.Kind.CREDITS]
+	credits_earned += amounts[Flyers.Kind.CREDITS]
+	crate_streak = crate_streak_next()
+	crate_day = today()
+	crate_due = false
+	Save.store_settings({"crate_day": crate_day, "crate_streak": crate_streak})
+	purchased.emit()
 
 
 func away_rates() -> Array[float]:
