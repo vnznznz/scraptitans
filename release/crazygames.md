@@ -1,6 +1,6 @@
 # CrazyGames release
 
-Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (expires 2026-10-28) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m22` ([M22](../docs/plan.md)); the live build is its no-ads one, `0.2.0-m22+134.c750d9e` (`build/crazygames/`), uploaded 2026-10-09 (bugfix update of the same day's `+128.145e523`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
+Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2026-10-07 (result 2026-10-14: enabled on mobile and tablet, below requirements on desktop) at https://www.crazygames.com/game/scrap-titans. Requirements read from their docs on 2026-10-05; re-check before submitting. Game state: `0.2.0-m22` ([M22](../docs/plan.md)); the live build is its no-ads one, `0.2.0-m22+134.c750d9e` (`build/crazygames/`), uploaded 2026-10-09 (bugfix update of the same day's `+128.145e523`). Browser checks done except Android; the ads side of the SDK only against a fake backend.
 
 ## Why CrazyGames
 
@@ -23,13 +23,15 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
   - Ends at 7 days live and 500 plays, else after 21 days (2026-10-28); updates any time, approved automatically; tracked without the SDK ([basic launch metrics](https://docs.crazygames.com/resources/basic-launch-metrics/), read 2026-10-09)
   - Judged on: average playtime per session (10+ min), day 1 return (10–15 %), conversion = players who play at least one minute after starting (top games 80 %+) → [M22](../docs/plan.md)
   - Scored in the developer portal, desktop and mobile/tablet apart: three metrics, 15 points in all, 9 needed per device (below: "below requirements" on desktop, not enabled on mobile and tablet); benchmarks Jul–Sep 2026
-    - 2026-10-11, 423 plays: 8/15 on both (playtime 3, day 1 return 3, conversion 2); friends of the first days are in these totals, so playtime and conversion drift down as strangers add up
+    - Scored over the last 7 days of Basic Launch against games of the category Clicker; their team reviews the results by hand before deciding; 9–10 = "will be enabled, improvements recommended"
+    - 2026-10-11, 423 plays: 8/15 on both
+    - Result 2026-10-14 (period 2026-10-08 to 13, 776 plays): desktop 8/15, below requirements; mobile and tablet 9/15, will be enabled ([feedback.md](../docs/feedback.md))
 
-    | Next point at | Desktop | Ours | Mobile and tablet | Ours |
-    |---|---|---|---|---|
-    | Playtime, score 4 | 12m28s | 12m26s | 8m49s | 7m09s |
-    | Day 1 return, score 4 | 5.91 % | 3.13 % | 4.71 % | 2.27 % |
-    | Conversion, score 3 | 58.06 % | 50.72 % | 34.72 % | 32.31 % |
+    | 2026-10-14 | Desktop | Score | Next point at | Mobile and tablet | Score | Next point at |
+    |---|---|---|---|---|---|---|
+    | Playtime | 12m23s | 3 | 12m28s | 9m00s | 4 | 12m51s |
+    | Day 1 return | 3.50 % | 3 | 5.91 % | 3.91 % | 3 | 4.71 % |
+    | Conversion | 51.51 % | 2 | 58.06 % | 32.47 % | 2 | 34.72 % |
 - Full Launch: second QA pass; SDK required, ads on
 
 ## Blockers for Basic Launch
