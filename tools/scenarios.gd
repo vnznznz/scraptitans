@@ -1211,7 +1211,7 @@ func tune() -> void:
 	for key: String in runs:
 		var r: Dictionary = runs[key]
 		var shortest := 1200.0 if PROFILES[key].has("prestige") or PROFILES[key].has("ads") else 1500.0
-		t.check(r.over and r.breaches == 0 and r.time >= shortest and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
+		t.check(r.over and not r.lost and r.time >= shortest and r.time <= 3600.0, "%s: nuke at %.1f min" % [key, r.time / 60.0])
 		t.check(r.gate <= (1.0 if key == "field" else GATE_SAFE) * Data.econ("gate_time"), "%s: the gate took %.0f s of attack at most" % [key, r.gate])
 	if not runs.has("baseline"):
 		GameState.new_game()
@@ -1279,14 +1279,11 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		r.waves.append(GameState.run_time)
 	var on_died := func(_m: MechState, s: float) -> void: r.scrap.salvage += s
 	var on_kill := func(_i: int, s: float) -> void: r.scrap.kill += s
-	var breaches := [0]
-	var on_breach := func() -> void: breaches[0] += 1
 	GameState.mech_deployed.connect(on_deploy)
 	GameState.mech_income.connect(on_income)
 	GameState.wave_cleared.connect(on_bounty)
 	GameState.mech_died.connect(on_died)
 	GameState.enemy_killed.connect(on_kill)
-	GameState.gate_breached.connect(on_breach)
 	var taps := 0.0
 	var peak_dps := 0.0
 	var peak_gate := 0.0
@@ -1325,7 +1322,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 				GameState.field.size(), GameState.lines.size(),
 				Data.line_slots().map(func(k: String) -> int: return GameState.unlocked_tier(k) + 1)])
 	for c: Array in [[GameState.mech_deployed, on_deploy], [GameState.mech_income, on_income], [GameState.wave_cleared, on_bounty],
-			[GameState.mech_died, on_died], [GameState.enemy_killed, on_kill], [GameState.gate_breached, on_breach]]:
+			[GameState.mech_died, on_died], [GameState.enemy_killed, on_kill]]:
 		(c[0] as Signal).disconnect(c[1])
 	var end := GameState.run_time
 	if verbose:
@@ -1394,7 +1391,7 @@ func _tune_run(p: Dictionary, verbose: bool) -> Dictionary:
 		"quiet": quiet,
 		"open": open_gap,
 		"mid_gap": mid_gap,
-		"breaches": breaches[0],
+		"lost": GameState.lost,
 		"gate": peak_gate,
 		"first_worker": hires[0][0] if hires.size() else INF,
 		"final_wait": final_wait,
@@ -4012,10 +4009,10 @@ func gate() -> void:
 	var time := Data.econ("gate_time")
 	var fell := [0]
 	var on_fell := func() -> void: fell[0] += 1
-	GameState.gate_breached.connect(on_fell)
+	GameState.gate_fell.connect(on_fell)
 	var alerts := int(Sound.plays.get(&"gate_alert", 0))
 	var hits := int(Sound.plays.get(&"gate_hit", 0))
-	var breach_before := int(Sound.plays.get(&"gate_breach", 0))
+	var lost_before := int(Sound.plays.get(&"gate_lost", 0))
 	var fanfares := int(Sound.plays.get(&"run_card", 0))
 	t.check(field.visible and field.size.y == Battlefield.HEIGHT and field.enemy_count() > 0 and t.node("Rail").visible,
 			"new game: battlefield with the first wave and the scroll bar on screen")
@@ -4076,47 +4073,37 @@ func gate() -> void:
 	GameState.prestige = 2
 	GameState.advance(2.0)
 	await t.frames(2)
-	t.check(not GameState.run_over and fell[0] == 1 and GameState.prestige == 2,
-			"after %d s of attack the gate is breached: the war goes on, the wars won untouched" % time)
-	t.check(GameState.breached and is_equal_approx(GameState.gate_damage, time * Data.econ("gate_breach_left")) and is_equal_approx(GameState.wave_hp, GameState.wave_max_hp()),
-			"the gate is repaired to half, the wave back at full health (%.0f of %.0f s)" % [GameState.gate_damage, time])
-	t.check(int(Sound.plays.get(&"gate_breach", 0)) == breach_before + 1 and int(Sound.plays.get(&"run_card", 0)) == fanfares, "a falling tune, not the victory fanfare")
-	var breach: Label = field.get_node("GateBreach")
-	t.check(breach.visible and breach.text == "THE GATE WAS BREACHED" and not alarm.visible and field.get_global_rect().encloses(breach.get_global_rect()),
-			"banner on the field instead of the attack one")
-	t.check((field.get_node("World/Gate") as Gate).smashed, "the shutter is smashed while the gate is damaged")
-	await t.shot("gate_breached")
-	var fell_back := GameState.siege
-	GameState.advance(1.0)
-	t.check(GameState.gate_hold > 0.0 and GameState.siege < fell_back and is_equal_approx(GameState.gate_damage, time * Data.econ("gate_breach_left")),
-			"the wave walks back to its post, the gate takes no damage while it does (siege %.2f)" % GameState.siege)
-	GameState.advance(Data.econ("gate_retreat"))
-	t.check(fell[0] == 1 and GameState.gate_damage > 0.0 and not GameState.gate_attacked(), "it is not breached twice: the approach starts over")
-	_spawn_mechs(3)
-	var dead := [0]
-	var on_dead := func(_m: MechState, salvage: float) -> void: dead[0] += 1 if salvage == 0.0 else 0
-	GameState.mech_died.connect(on_dead)
-	GameState._breach()
-	GameState.mech_died.disconnect(on_dead)
-	t.check(GameState.field.is_empty() and dead[0] == 3, "a breach takes the mechs on the field with it, without salvage (%d)" % dead[0])
-	_spawn_mechs(1)
-	GameState.gate_damage = 2.0
-	GameState.advance(Data.econ("gate_retreat") + 2.0 / Data.econ("gate_repair") + 1.0)
-	t.check(GameState.gate_health() == 1.0 and not GameState.breached, "mechs holding the field heal the rest of the damage")
-	GameState.gate_breached.disconnect(on_fell)
+	t.check(GameState.run_over and GameState.lost and fell[0] == 1, "after %d s of attack in total the gate falls" % time)
+	GameState.advance(5.0)
+	t.check(fell[0] == 1 and GameState.gate_health() == 0.0, "once")
+	var gate_node := field.get_node("World/Gate") as Gate
+	t.check(gate_node.smashed and gate_node.modulate == Battlefield.GATE_RUIN, "the shutter is smashed and the gate a ruin")
+	var lost: GateLost = main.get_node("GateLost")
+	t.check(lost.visible and not lost.card_visible(), "input blocked at once, the card waits for the blast")
+	await t.wait(GateLost.SHOW_DELAY + 0.6)
+	t.check(lost.card_visible() and not main.get_node("%Nuke").card_visible() and not t.node("Away").visible, "THE GATE HAS FALLEN card, no nuke card")
+	t.check(int(Sound.plays.get(&"gate_lost", 0)) == lost_before + 1 and int(Sound.plays.get(&"run_card", 0)) == fanfares and not alarm.visible, "a falling tune, not the victory fanfare; banner gone")
+	t.check(lost.get_node("Card").get_global_rect().size.x <= 360.0 and main.get_rect().encloses(lost.get_node("Card").get_global_rect()), "card inside the screen")
+	await t.shot("gate_lost")
+	t.get_tree().reload_current_scene()
+	await t.frames(3)
+	main = t.get_tree().current_scene
+	lost = main.get_node("GateLost")
+	t.check(lost.card_visible() and not main.get_node("%Nuke").card_visible(), "reload: the card again")
+	await t.click(lost.find_child("TryAgain", true, false))
+	await t.frames(3)
+	main = t.get_tree().current_scene
+	t.check(not GameState.run_over and not GameState.lost and GameState.prestige == 2 and GameState.mechs_built == 1 and GameState.scrap == 0.0,
+			"TRY AGAIN: the war starts over from the cold open, wars won kept")
+	t.check(GameState.siege == 0.0 and GameState.gate_health() == 1.0 and not main.get_node("GateLost").visible, "gate whole, column at its post")
+	GameState.gate_fell.disconnect(on_fell)
 
 	var old := GameState.to_dict()
-	for key: String in ["siege", "gate_damage", "gate_hold", "breached"]:
+	for key: String in ["lost", "siege", "gate_damage"]:
 		old.erase(key)
 	GameState.gate_damage = 50.0
 	GameState.from_dict(old)
-	t.check(GameState.gate_health() == 1.0 and GameState.siege == 0.0 and not GameState.breached, "old save: gate whole")
-	old = GameState.to_dict()
-	old.run_over = true
-	old.lost = true
-	GameState.from_dict(old)
-	t.check(not GameState.run_over and GameState.breached and is_equal_approx(GameState.gate_damage, time * Data.econ("gate_breach_left")),
-			"an m22 save of a lost run: the war goes on from a breach")
+	t.check(GameState.gate_health() == 1.0 and GameState.siege == 0.0 and not GameState.lost, "old save: gate whole")
 
 	var standing := [GameState.gate_damage, GameState.siege]
 	GameState.away(600.0)
@@ -4129,13 +4116,16 @@ func gate() -> void:
 	GameState.gate_damage = time - 0.05
 	var falls := [0]
 	var on_fall := func() -> void: falls[0] += 1
-	GameState.gate_breached.connect(on_fall)
+	GameState.gate_fell.connect(on_fall)
 	var scale := GameState.time_scale
 	GameState.time_scale = 1.0
 	GameState._process(0.25)
 	GameState.time_scale = scale
-	GameState.gate_breached.disconnect(on_fall)
-	t.check(falls[0] == 1 and GameState.prestige == 1, "a long frame at the end: one breach, the wars won untouched (%d)" % falls[0])
+	GameState.gate_fell.disconnect(on_fall)
+	t.check(GameState.lost and falls[0] == 1, "a long frame at the end: the gate still falls once (%d)" % falls[0])
+	await t.wait(GateLost.SHOW_DELAY + 0.6)
+	var kept: Label = t.get_tree().current_scene.get_node("GateLost").find_child("Next", true, false)
+	t.check(kept.text.ends_with("YOUR 1 WAR WON STAYS"), "one war won: singular on the card (%s)" % kept.text.replace("\n", " / "))
 	GameState.prestige = 0
 	GameState.new_game()
 
@@ -4251,7 +4241,7 @@ func qa() -> void:
 	var goal := int(_qa_arg("--wars", str(p.get("wars", 3))))
 	var speed := float(_qa_arg("--speed", "8"))
 	_qa = {"shots": 0, "issues": {}, "once": {}, "due": [], "presses": 0, "taps": 0, "tap_acc": 0.0, "field_acc": 0.0, "want": 0.0,
-			"managed": 0.0, "bought": 0.0, "progress": 0.0, "last_time": 0.0, "wars": [], "breaches": 0, "ads": 0,
+			"managed": 0.0, "bought": 0.0, "progress": 0.0, "last_time": 0.0, "wars": [], "losses": 0, "ads": 0,
 			"frame_n": 0, "frame_sum": 0.0, "frame_max": 0.0, "perf_at": 0.0, "size": p.size, "rng": RandomNumberGenerator.new()}
 	_qa.rng.seed = 3
 	t.get_window().size = p.size
@@ -4273,10 +4263,7 @@ func qa() -> void:
 		if GameState.wave + 1 in [10, 18, 24, 28]:
 			_qa_due("front_wave_%d" % (GameState.wave + 1), true))
 	GameState.line_added.connect(func(i: int) -> void: _qa_due("line_%d" % (i + 1), true))
-	GameState.gate_breached.connect(func() -> void:
-		_qa.breaches += 1
-		_qa_log("the gate was breached: %d mechs built, wave %d" % [GameState.mechs_built, GameState.wave + 1])
-		_qa_due("gate_breached", true))
+	GameState.gate_fell.connect(func() -> void: _qa_log("the gate fell"))
 	print("QA profile %s: %d wars, x%s, window %s, effects %d" % [key, goal, speed, p.size, Effects.level])
 	var began := Time.get_ticks_msec()
 	var last := [began]
@@ -4344,7 +4331,7 @@ func qa() -> void:
 	print("QA SUMMARY %s" % key)
 	for w: Dictionary in _qa.wars:
 		print("  war %d: %.1f min, %d mechs, wave %d, %d lines, %s credits" % [w.war, w.time / 60.0, w.mechs, w.wave, w.lines, Fmt.num(w.credits)])
-	print("  %d presses, %d taps, %d shots, %d breaches, %.0f s real" % [_qa.presses, _qa.taps, _qa.shots, _qa.breaches, (Time.get_ticks_msec() - began) / 1000.0])
+	print("  %d presses, %d taps, %d shots, %d gates lost, %.0f s real" % [_qa.presses, _qa.taps, _qa.shots, _qa.losses, (Time.get_ticks_msec() - began) / 1000.0])
 	print("  %d kinds of issues" % _qa.issues.size())
 	for issue: String in _qa.issues:
 		print("  ISSUE x%d %s" % [_qa.issues[issue], issue])
@@ -4737,6 +4724,27 @@ func _qa_overlays(main: Main, p: Dictionary) -> bool:
 		await t.wait(0.3)
 		await _qa_shot("away_collected")
 		return true
+	if GameState.lost:
+		var lost: GateLost = main.get_node("GateLost")
+		_qa.losses += 1
+		_qa_log("gate lost: %d mechs built, wave %d" % [GameState.mechs_built, GameState.wave + 1])
+		await t.wait(0.8)
+		await _qa_shot("gate_falling")
+		var began := Time.get_ticks_msec()
+		while not lost.card_visible() and Time.get_ticks_msec() - began < 8000:
+			await t.frames(1)
+		if not lost.card_visible():
+			_qa_issue("gate", "the lost card never showed")
+		await t.wait(0.8)
+		await _qa_shot("gate_lost_card")
+		var wars := GameState.prestige
+		await _qa_press(lost.find_child("TryAgain", true, false), "TRY AGAIN", func() -> bool: return GameState.lost)
+		await t.frames(10)
+		if GameState.prestige != wars or GameState.run_time > 5.0:
+			_qa_issue("gate", "TRY AGAIN left wars %d to %d, run time %.0f" % [wars, GameState.prestige, GameState.run_time])
+		_qa.progress = 0.0
+		await _qa_shot("after_try_again")
+		return true
 	if GameState.run_over:
 		await _qa_nuke(main)
 		return true
@@ -4781,10 +4789,10 @@ func _qa_nuke(main: Main) -> void:
 
 
 func _qa_lose(main: Main) -> bool:
-	if _qa.breaches > GameState.prestige:
+	if _qa.losses > GameState.prestige:
 		return false
 	if _qa_once("lose start"):
-		_qa_log("letting the gate be breached without ever building")
+		_qa_log("losing the gate without ever building")
 	if _qa.loops % 10 == 0:
 		await _qa_press((main.get_node("%Scrapyard") as Scrapyard).pile(), "tap the pile", func() -> float: return GameState.scrap)
 	return true

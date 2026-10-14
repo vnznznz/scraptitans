@@ -20,7 +20,6 @@
 	"gate_retreat": 4,
 	"gate_time": 150,
 	"gate_repair": 0.5,
-	"gate_breach_left": 0.5,
 	"start_credits": 0,
 	"scrap_per_tap": 1,
 	"tap_yard_share": 0.1,

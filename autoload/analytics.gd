@@ -21,7 +21,7 @@ func _ready() -> void:
 	GameState.wave_cleared.connect(func(_b: float) -> void:
 		if GameState.wave == 1:
 			event("wave1"))
-	GameState.gate_breached.connect(func() -> void: event("gate"))
+	GameState.gate_fell.connect(func() -> void: event("gate"))
 	GameState.nuke_launched.connect(func(_m: MechState) -> void: event("nuke"))
 	event("start")
 

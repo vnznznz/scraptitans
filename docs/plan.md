@@ -522,7 +522,7 @@ Build: one upload for the Basic Launch result ([crazygames.md](../release/crazyg
 
 Measure:
 - [ ] One support mail, sent first: is desktop ("below requirements") re-judged after updates or never; what Full Launch is judged on. The answer gates M26's desktop panels — drafted in [crazygames.md](../release/crazygames.md), Support mail; the user sends it
-- [x] Funnel ([ideas.md](ideas.md), Open): events first tap, first mech, wave 1 cleared, minute 1 / 3 / 5 / 10, gate (the breach below reuses it), nuke — game time, random session id, build, device class — sent fire-and-forget to a tiny endpoint on distco.de (one line per event, read by a script). Own analytics are within their rules (their docs recommend ByteBrew, a third-party service; checked 2026-10-14); only personal data beyond their SDK events needs a privacy notice → keep it anonymous: no IP kept, no fingerprinting. Built 2026-10-14 (`autoload/analytics.gd`, `tools/analytics/a.php`, `tools/funnel.py`), deploys with the next `deploy_web.py`; browser test below
+- [x] Funnel ([ideas.md](ideas.md), Open): events first tap, first mech, wave 1 cleared, minute 1 / 3 / 5 / 10, gate (the fall), nuke — game time, random session id, build, device class — sent fire-and-forget to a tiny endpoint on distco.de (one line per event, read by a script). Own analytics are within their rules (their docs recommend ByteBrew, a third-party service; checked 2026-10-14); only personal data beyond their SDK events needs a privacy notice → keep it anonymous: no IP kept, no fingerprinting. Built 2026-10-14 (`autoload/analytics.gd`, `tools/analytics/a.php`, `tools/funnel.py`), deploys with the next `deploy_web.py`; browser test below
 
 First minute:
 - [x] Cold open: a new war starts with line 1 built (its three stations, bars empty, no crew) and a free pre-assembled mech walking out at 0 s, every war; wave 1 sized to die at about 20 s with its bounty burst; first buy at about 30 s; pile and station taps come in as the next guide steps (station taps taught on mech two); the staged start shows the line from the start. `tune`: something new at least every 10 s in the first 90 s; the first-minute checks move to the new start
@@ -530,7 +530,7 @@ First minute:
 - [x] Rate in the HUD: credits per second beside the credits (`+38/S`, average of the last 5 s; there since M13); a buy that lifts it pops the new rate
 
 Losing and coming back:
-- [x] The gate is breached instead of falling: the mechs on the field are destroyed, the wave walks back to its post with full health; banner `THE GATE WAS BREACHED`, the war goes on. The gate is repaired only to half and heals the rest while mechs hold the field, so a breach keeps a cost; no TRY AGAIN card, no restart from the pile. `gate_fell` consumers move over: the `gate` scenario, the lost card, `Analytics` (its `gate` event fires on a breach), the SDK gameplay flag (a breach is not game over)
+- [ ] The gate is breached instead of falling — built, then reverted in review: the gate falls and ends the war as in M22 (`THE GATE HAS FALLEN`, TRY AGAIN). Kept from the attempt: the smashed shutter art, which now shows on a fallen gate
 - [x] Daily supply crate: the first visit on a new local day (from the second day on, after the first mech) opens a crate card: 10 min of the factory's current output in credits and scrap, ×1.25 per day in a row up to 7 days; COLLECT like the away card. `COME BACK TOMORROW FOR A SUPPLY CRATE` on the away card only (review: it was on the nuke card and the mission plate too, which was saying it everywhere)
 - [x] Away: `away_max` 1 h → 8 h; credits capped at ten minutes of the factory's output and never half the missile's price (M23 QA note: one capped hour paid for the missile; the first try, 3× the cheapest purchase out of reach, was far too little early); `tune` and the idler `qa` profile again
 
@@ -550,18 +550,18 @@ Desktop:
 - [x] Holding the mouse button on the pile, a station or the field taps there 3 times a second (5 felt too fast in review); Space taps under the cursor
 
 Sound and art:
-- [x] Sounds from the pack by measurement, then listening ([audio.md](audio.md)): crate drop and open, breach (the falling tune stays, shorter), MAX hire (one buy sound, more discs); hold-to-tap and hold-to-hire stay under the `soften` rule
-- [x] Art (`tools/gen_art.py`): supply crate (closed, lid flying, open with the goods), smashed gate shutter for the breach, button fill, tier color accents, the station missile icon, worker walk frames; the X1 / MAX toggle needs no art (the theme's sunken face marks MAX, like the pause key)
+- [x] Sounds from the pack by measurement, then listening ([audio.md](audio.md)): crate drop and open, MAX hire (one buy sound, more discs); the shorter falling tune for the breach went with the breach; hold-to-tap and hold-to-hire stay under the `soften` rule
+- [x] Art (`tools/gen_art.py`): supply crate (closed, lid flying, open with the goods), smashed gate shutter (now shown on a fallen gate), button fill, tier color accents, the station missile icon, worker walk frames; the X1 / MAX toggle needs no art (the theme's sunken face marks MAX, like the pause key)
 
 Rest:
-- [x] Build `0.2.0-m24` (`build/crazygames` and `build/web`), m22 saves load (a save mid-attack gets a whole gate; new keys default; a save of a run lost to the gate comes back as a breached, running war); docs: pitch (start, gate, away, crate, buying, late fits), `tech.md`, `crazygames.md`
+- [x] Build `0.2.0-m24` (`build/crazygames` and `build/web`), m22 saves load (a save mid-attack gets a whole gate; new keys default); docs: pitch (start, gate, away, crate, buying, late fits), `tech.md`, `crazygames.md`
 - [ ] Upload `build/crazygames`; a row in [feedback.md](feedback.md) 4–5 days later, read on the daily charts from the release marker and in the funnel
 - [ ] Covers a few days after the build, as their own Art tab step (no build, so the cover's CTR and conversion effect reads apart from the build's marker): landscape and portrait (CTR in their bottom 20 % on both), one big mech in a fight, readable at thumbnail size, `tools/gen_covers.py`; videos and screenshots again with the cold open (`tools/make_videos.py`)
 
 Test (browser):
 - New game on a phone: a mech walks out at once and fights the drones; wave 1 dies within about 20 s, a buy within about 30 s; the guide asks for the drones first, then the pile; no stretch in the first 90 s where nothing is new
 - HUD rate: rises with the first mechs, pops on a crew hire
-- New game left alone: the gate is breached, the field empties, the wave is back at its post, the war goes on with everything built; the gate sits at half until mechs hold the field again
+- New game left alone: the gate falls with its shutter smashed in, the card comes, TRY AGAIN opens the war again from its cold open
 - Change the device date to tomorrow (or DBG): the crate card on load; two days in a row: a bigger crate
 - DBG 2 H AWAY late in a war: credits capped, the missile not paid by one absence
 - MAX: one tap hires several, the count and total on the button; holding ×1 hires one after another
