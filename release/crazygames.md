@@ -34,6 +34,25 @@ Checklist for publishing on crazygames.com. Status: live in Basic Launch since 2
     | Conversion | 51.51 % | 2 | 58.06 % | 32.47 % | 2 | 34.72 % |
 - Full Launch: second QA pass; SDK required, ads on
 
+## Support mail (not sent yet)
+
+Asks the two things the numbers can't answer; the first one gates M26's desktop panels ([plan.md](../docs/plan.md), M24). Send it from the developer account, then write the answer here.
+
+> Subject: Scrap Titans: how is "below requirements" on desktop re-judged?
+>
+> Hello,
+>
+> Scrap Titans (https://www.crazygames.com/game/scrap-titans) finished Basic Launch on 2026-10-13: mobile and tablet 9/15 ("will be enabled"), desktop 8/15 ("below requirements").
+>
+> Two questions:
+>
+> 1. Desktop: is that verdict re-judged after I update the game, and if so how — automatically over a later 7-day window, on request, or not at all? I am shipping an update aimed at those numbers and would like to know whether desktop can still be enabled later, or whether the verdict is final.
+>
+> 2. Full Launch: which metrics is Full Launch judged on, over which period, and what are the thresholds? The Basic Launch metrics page covers the first stage only.
+>
+> Thanks,
+> Vinzenz
+
 ## Blockers for Basic Launch
 
 - [x] Desktop legibility
