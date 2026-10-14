@@ -1642,6 +1642,21 @@ func ui() -> void:
 		await t.click(line_hire)
 	await t.frames(2)
 	t.check(guide.story() == IntroGuide.HOLD_HINT, "%d quick taps on a hire: the plate says to hold it (%s)" % [IntroGuide.QUICK_PRESSES, guide.story()])
+	IntroGuide._hold_told = false
+	IntroGuide._quick.clear()
+	guide.notice("", 0.0)
+	GameState.lines[0].workers = GameState.lines[0].worker_slots() - 1
+	await t.frames(2)
+	for k in IntroGuide.QUICK_PRESSES:
+		await t.click(line_hire)
+	await t.frames(2)
+	t.check(not line_hire.visible and guide.story() != IntroGuide.HOLD_HINT,
+			"taps that fill the last slot: the button is gone, so no word about holding it (%s)" % guide.story())
+	GameState.lines[0].workers = 0
+	GameState.credits = 1e6
+	IntroGuide._hold_told = false
+	IntroGuide._quick.clear()
+	await t.frames(2)
 	hired = GameState.lines[0].workers
 	hired = GameState.lines[0].workers
 	t.press(line_hire, true)
@@ -1712,9 +1727,15 @@ func ui() -> void:
 	t.check(not buy_all.visible, "nothing affordable: no buy-all button")
 	GameState.credits = 1e6
 	await t.frames(2)
+	t.check(not buy_all.visible, "it never appears while the menu is open: nothing moves under the thumb")
+	menu.close()
+	menu.open()
+	await t.frames(2)
 	var ready := GameState.affordable_ids().size()
-	t.check(buy_all.visible and ready > UpgradeMenu.BUY_ALL_FROM and buy_all.text == "BUY %d UPGRADES" % ready and buy_all.get_global_rect().end.y < list.get_global_rect().position.y,
-			"%d upgrades affordable: the buy-all button above the list (%s)" % [ready, buy_all.text])
+	var buy_all_lead: Label = buy_all.get_node("Price/LeadText")
+	t.check(buy_all.visible and ready > UpgradeMenu.BUY_ALL_FROM and buy_all_lead.text == "BUY %d UPGRADES" % ready
+			and Price.text(buy_all) == Fmt.num(GameState.affordable_total()) and buy_all.get_global_rect().end.y < list.get_global_rect().position.y,
+			"%d upgrades affordable: the buy-all button above the list, with what they cost (%s %s)" % [ready, buy_all_lead.text, Price.text(buy_all)])
 	var levels := GameState.levels.duplicate()
 	await t.click(buy_all)
 	await t.frames(2)

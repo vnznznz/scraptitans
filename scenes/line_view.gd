@@ -207,8 +207,9 @@ func hire_button() -> Button:
 
 
 func _on_hire() -> void:
-	IntroGuide.quick_buy(get_tree())
 	_buy_hire()
+	var line := _line()
+	IntroGuide.quick_buy(get_tree(), line.workers < line.worker_slots() and GameState.credits >= GameState.worker_cost(line_index))
 
 
 func _buy_hire() -> void:

@@ -436,6 +436,13 @@ func affordable_ids() -> Array[String]:
 	return ids
 
 
+func affordable_total() -> float:
+	var total := 0.0
+	for id in affordable_ids():
+		total += upgrade_cost(id)
+	return total
+
+
 func buy_affordable() -> float:
 	var spent := 0.0
 	for id in affordable_ids():

@@ -127,8 +127,11 @@ func _light(target: Control) -> void:
 		lit.self_modulate = Color.WHITE.lerp(LIT, 0.5 + 0.5 * sin(_t * 6.0))
 
 
-static func quick_buy(tree: SceneTree) -> void:
+static func quick_buy(tree: SceneTree, can_repeat: bool) -> void:
 	if _hold_told:
+		return
+	if not can_repeat:
+		_quick.clear()
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	_quick.append(now)

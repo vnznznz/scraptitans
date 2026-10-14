@@ -32,6 +32,7 @@ var _ad_row: PanelContainer
 var _ad_effect: Label
 var _ad_watch: Button
 var _buy_all: Button
+var _buy_all_shown := false
 var _shown := []
 
 
@@ -86,10 +87,10 @@ func _ready() -> void:
 	_buy_all = Button.new()
 	_buy_all.name = "BuyAll"
 	_buy_all.custom_minimum_size = Vector2(0, 44)
-	_buy_all.theme_type_variation = &"LitButton"
 	_buy_all.visible = false
 	_buy_all.set_meta(&"silent", true)
 	_buy_all.pressed.connect(_on_buy_all)
+	Price.setup(_buy_all, Flyers.Kind.CREDITS, false, true)
 	column.add_child(_buy_all)
 	_scroll = ScrollContainer.new()
 	_scroll.name = "List"
@@ -135,6 +136,7 @@ func open() -> void:
 	_banner_size = _pick_banner() if CrazyGames.banner_due() else Vector2i.ZERO
 	_banner.visible = _banner_size != Vector2i.ZERO
 	_banner.custom_minimum_size.y = ceilf(_banner_size.y / _css_per_base()) + BANNER_GAP
+	_buy_all_shown = GameState.affordable_ids().size() > BUY_ALL_FROM
 	_refresh()
 
 
@@ -334,8 +336,11 @@ func _on_buy_all() -> void:
 func _refresh() -> void:
 	_refresh_ad_row()
 	var ready_to_buy := GameState.affordable_ids().size()
-	_buy_all.visible = ready_to_buy > BUY_ALL_FROM
-	_buy_all.text = "BUY %d UPGRADES" % ready_to_buy
+	if ready_to_buy == 0:
+		_buy_all_shown = false
+	_buy_all.visible = _buy_all_shown
+	if _buy_all.visible:
+		Price.show(_buy_all, Fmt.num(GameState.affordable_total()), true, "BUY %d UPGRADES" % ready_to_buy)
 	var offers: Array[String] = []
 	if CrazyGames.video_ads:
 		offers = GameState.ad_offers()
