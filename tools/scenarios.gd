@@ -1609,23 +1609,13 @@ func ui() -> void:
 	var crew: Label = main.line_view(1).get_node("Crew")
 	var crew_w := crew.get_theme_font("font").get_string_size("LINE CREW 99/99", HORIZONTAL_ALIGNMENT_LEFT, -1, crew.get_theme_font_size("font_size")).x
 	t.check(crew_w <= crew.size.x, "LINE CREW 99/99 fits a tagged line's crew bar (%d of %d)" % [crew_w, crew.size.x])
-	var toggle: Button = main.find_child("MaxBuy", true, false)
-	var up_rect := upgrades.get_global_rect()
-	t.check(toggle.visible and toggle.get_global_rect() == Rect2(6, 590, Main.MAX_W, 44)
-			and up_rect == Rect2(6.0 + Main.MAX_W + Main.MAX_GAP, 590, 348.0 - Main.MAX_W - Main.MAX_GAP, 44),
-			"the MAX toggle sits left of UPGRADES, which spans the rest (%s, %s)" % [toggle.get_global_rect(), up_rect])
+	t.check(main.find_child("MaxBuy", true, false) == null and upgrades.get_global_rect() == Rect2(6, 590, 348, 44),
+			"no MAX toggle in the bar, UPGRADES spans the bottom (%s)" % upgrades.get_global_rect())
 	var purse := GameState.credits
-	GameState.credits = 0.0
-	GameState.seen.erase("max_buy")
-	await t.frames(2)
-	t.check(not toggle.visible and upgrades.get_global_rect() == Rect2(6, 590, 348, 44),
-			"before two hires are affordable at once there is no toggle and UPGRADES spans the bottom (%s)" % upgrades.get_global_rect())
 	GameState.credits = 1e6
+	GameState.set_max_buy(true)
 	await t.frames(2)
-	t.check(toggle.visible and GameState.hires_at_once() >= 2 and toggle.text == "X1", "two hires affordable: the toggle appears, reading X1")
-	await t.click(toggle)
-	await t.frames(2)
-	t.check(GameState.max_buy and toggle.text == "MAX" and Save.load_settings().get("max_buy") == true, "tapped: MAX, saved with the settings")
+	t.check(GameState.max_buy and Save.load_settings().get("max_buy") == true, "MAX buying is saved with the settings (DBG only for now)")
 	var want := GameState.hires_affordable(0)
 	var lead: Label = line_hire.get_node("Price/LeadText")
 	t.check(int(want[0]) > 1 and Price.text(line_hire) == Fmt.num(want[1]) and lead.text == "+%d" % want[0] and not (line_hire.get_node("Price/Lead") as Control).visible,
@@ -1634,10 +1624,10 @@ func ui() -> void:
 	await t.frames(2)
 	t.check(GameState.lines[0].workers == GameState.lines[0].worker_slots(), "one tap hires every slot it can pay for (%d)" % GameState.lines[0].workers)
 	GameState.lines[0].workers = 0
-	await t.click(toggle)
+	GameState.set_max_buy(false)
 	await t.frames(2)
-	t.check(not GameState.max_buy and toggle.text == "X1" and lead.text.is_empty() and (line_hire.get_node("Price/Lead") as Control).visible,
-			"back on X1 the hire reads one price with its hire glyph again")
+	t.check(not GameState.max_buy and lead.text.is_empty() and (line_hire.get_node("Price/Lead") as Control).visible,
+			"one at a time again: the hire reads one price with its hire glyph")
 	var hired := GameState.lines[0].workers
 	await t.click(line_hire)
 	t.check(GameState.lines[0].workers == hired + 1, "a tap on X1 hires once (%d)" % GameState.lines[0].workers)
@@ -3235,8 +3225,7 @@ func desktop() -> void:
 		var scale := Main.window_scale(window.size)
 		t.check(window.size.y == frame.y, "%dx%d: window that high (got %s)" % [frame.x, frame.y, window.size])
 		t.check(main.size == Vector2(Main.BASE.x, Main.base_height(window.size)) and scale >= 1.0, "%dx%d: column %s at %.2fx" % [frame.x, frame.y, main.size, scale])
-		var bar_left := 6.0 + (Main.MAX_W + Main.MAX_GAP if main.find_child("MaxBuy", true, false).visible else 0.0)
-		t.check(upgrades.get_global_rect() == Rect2(bar_left, main.size.y - 50, 354.0 - bar_left, 44), "%dx%d: UPGRADES on the bottom edge (%s)" % [frame.x, frame.y, upgrades.get_global_rect()])
+		t.check(upgrades.get_global_rect() == Rect2(6, main.size.y - 50, 348, 44), "%dx%d: UPGRADES on the bottom edge (%s)" % [frame.x, frame.y, upgrades.get_global_rect()])
 		await t.shot("desktop_%dx%d" % [frame.x, frame.y])
 	window.size = Vector2i(821, 462)
 	await t.frames(10)
@@ -3295,8 +3284,7 @@ func desktop() -> void:
 	main.set_safe_area(44.0, 30.0)
 	await t.frames(3)
 	var hud: Control = main.get_node("%Hud")
-	var inset_left := 6.0 + (Main.MAX_W + Main.MAX_GAP if main.find_child("MaxBuy", true, false).visible else 0.0)
-	t.check(hud.get_global_rect().position.y == 44.0 and upgrades.get_global_rect() == Rect2(inset_left, 700, 354.0 - inset_left, 44),
+	t.check(hud.get_global_rect().position.y == 44.0 and upgrades.get_global_rect() == Rect2(6, 700, 348, 44),
 			"safe area 44 / 30: HUD below the top inset, UPGRADES above the bottom one (%s, %s)" % [hud.get_global_rect(), upgrades.get_global_rect()])
 	await t.shot("desktop_safe_area")
 	t.check(Main.window_scale(Vector2i(1170, 2532)) == 3.25 and Main.window_scale(Vector2i(907, 510)) == 1.0, "window scale: 3.25 on a 1170x2532 phone, 1 in a 907x510 frame")

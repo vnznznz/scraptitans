@@ -24,8 +24,6 @@ const WAKE_LOCK_JS := """(function () {
 const BADGE_ON := Pal.RED
 const BADGE_INSET := 8.0
 const BAR_H := 56.0
-const MAX_W := 44.0
-const MAX_GAP := 4.0
 const BAR_INSET := 6.0
 const UNLOCK_SMALL := Vector2(220, 36)
 const UNLOCK_BIG := Vector2(300, 44)
@@ -56,7 +54,6 @@ var _factory_k := 0.0
 var _bar_k := 0.0
 var _unlock_k := 0.0
 var _badge: Label
-var _max: Button
 var _badge_style: StyleBoxFlat
 var _title := ""
 var _app_name: String = ProjectSettings.get_setting("application/config/name")
@@ -132,13 +129,6 @@ func _ready() -> void:
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.set_meta(&"silent", true)
 	_upgrades.pressed.connect(_toggle_menu)
-	_max = Button.new()
-	_max.name = "MaxBuy"
-	_max.custom_minimum_size = Vector2(MAX_W, 44)
-	_max.position = Vector2(BAR_INSET, BAR_INSET)
-	_max.size = _max.custom_minimum_size
-	_max.pressed.connect(func() -> void: GameState.set_max_buy(not GameState.max_buy))
-	_bar.add_child(_max)
 	GameState.nuke_launched.connect(func(_m: MechState) -> void: CrazyGames.happytime())
 	_reveal(INF)
 
@@ -161,12 +151,6 @@ func _process(delta: float) -> void:
 	if title != _title:
 		_title = title
 		DisplayServer.window_set_title(title)
-	_max.visible = GameState.shown("max_buy")
-	_max.text = "MAX" if GameState.max_buy else "X1"
-	_max.theme_type_variation = &"PinnedButton" if GameState.max_buy else &""
-	var left := BAR_INSET + (MAX_W + MAX_GAP if _max.visible else 0.0)
-	if _upgrades.offset_left != left:
-		_upgrades.offset_left = left
 	if not _told_tomorrow and GameState.run_time >= CRATE_HINT and GameState.revealed() and not GameState.crate_due and not GameState.run_over:
 		_told_tomorrow = true
 		_guide.notice(CrateCard.TOMORROW)

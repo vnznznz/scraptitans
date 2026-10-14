@@ -17,7 +17,7 @@ const RATE_WINDOW := 5
 const MECH_WINDOW := 60
 const AWAY_WINDOW := 60
 const CRATE_CHECK := 5.0
-const REVEALS := ["factory", "crew", "yard_crew", "upgrades", "unlock", "max_buy"]
+const REVEALS := ["factory", "crew", "yard_crew", "upgrades", "unlock"]
 
 var scrap := 0.0
 var credits := 0.0
@@ -252,8 +252,6 @@ func _update_seen() -> void:
 		seen.upgrades = true
 	if not seen.has("unlock") and credits >= upgrade_cost("lines"):
 		seen.unlock = true
-	if not seen.has("max_buy") and hires_at_once() >= 2:
-		seen.max_buy = true
 
 
 func aging() -> float:
@@ -365,13 +363,6 @@ func hire_yard_workers() -> Array:
 	for i in int(wanted[0]):
 		hire_yard_worker()
 	return wanted
-
-
-func hires_at_once() -> int:
-	var n := int(yard_hires_affordable()[0])
-	for i in lines.size():
-		n += int(hires_affordable(i)[0])
-	return n
 
 
 func set_max_buy(on: bool) -> void:
