@@ -193,9 +193,9 @@ func _layout() -> void:
 	_pause.size = Vector2(PAUSE_W, SegmentView.BELT_Y + 8.0)
 	_face.position = Vector2(0, _pause.size.y - FACE_H)
 	_face.size = Vector2(PAUSE_W, FACE_H)
-	_tag.position = Vector2(_left() + TAG_GAP, bar_y + 3.0)
+	_tag.position = Vector2(TAG_GAP, bar_y + 3.0)
 	_tag.size = TAG
-	var crew_x := _left() + 6.0 + (TAG.x + TAG_GAP if _tagged else 0.0)
+	var crew_x := 6.0 + (TAG.x + TAG_GAP if _tagged else 0.0)
 	_crew.position = Vector2(crew_x, bar_y + 1.0)
 	_crew.size = Vector2(maxf(size.x - HIRE_W - crew_x, 0.0), CREW_H - 2.0)
 	_hire.position = Vector2(size.x - HIRE_W + 1.0, bar_y + 1.0)
@@ -211,7 +211,7 @@ func hire_button() -> Button:
 func _on_hire() -> void:
 	_buy_hire()
 	var line := _line()
-	IntroGuide.quick_buy(get_tree(), line.workers < line.worker_slots() and GameState.credits >= GameState.worker_cost(line_index))
+	IntroGuide.quick_buy(get_tree(), _hire, line.workers < line.worker_slots() and GameState.credits >= GameState.worker_cost(line_index))
 
 
 func _buy_hire() -> void:

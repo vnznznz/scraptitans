@@ -237,7 +237,7 @@ func _squash(y_scale: float, shake: float, rest: float) -> void:
 
 func _on_hire() -> void:
 	_buy_hire()
-	IntroGuide.quick_buy(get_tree(), GameState.yard_workers < GameState.yard_slots() and GameState.credits >= GameState.yard_worker_cost())
+	IntroGuide.quick_buy(get_tree(), _hire, GameState.yard_workers < GameState.yard_slots() and GameState.credits >= GameState.yard_worker_cost())
 
 
 func _buy_hire() -> void:

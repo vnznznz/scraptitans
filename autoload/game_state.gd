@@ -431,7 +431,11 @@ func affordable_ids() -> Array[String]:
 			rows.append([upgrade_cost(r.id), i, r.id])
 	rows.sort()
 	var ids: Array[String] = []
+	var total := 0.0
 	for row: Array in rows:
+		if total + float(row[0]) > credits:
+			break
+		total += float(row[0])
 		ids.append(row[2])
 	return ids
 

@@ -53,6 +53,7 @@ static var _quick: Array[float] = []
 static var _hold_told := false
 var _notice := ""
 var _notice_t := 0.0
+var _notice_target: Control
 var _frame := Rect2()
 
 
@@ -127,7 +128,7 @@ func _light(target: Control) -> void:
 		lit.self_modulate = Color.WHITE.lerp(LIT, 0.5 + 0.5 * sin(_t * 6.0))
 
 
-static func quick_buy(tree: SceneTree, can_repeat: bool) -> void:
+static func quick_buy(tree: SceneTree, button: Control, can_repeat: bool) -> void:
 	if _hold_told:
 		return
 	if not can_repeat:
@@ -140,10 +141,17 @@ static func quick_buy(tree: SceneTree, can_repeat: bool) -> void:
 	if _quick.size() == QUICK_PRESSES and now - _quick[0] <= QUICK_WINDOW:
 		_hold_told = true
 		_quick.clear()
-		tree.call_group("intro_guide", "notice", HOLD_HINT)
+		tree.call_group("intro_guide", "notice_at", button, HOLD_HINT)
 
 
 func notice(text: String, seconds := 8.0) -> void:
+	_notice_target = null
+	_notice = text
+	_notice_t = seconds
+
+
+func notice_at(target: Control, text: String, seconds := 5.0) -> void:
+	_notice_target = target
 	_notice = text
 	_notice_t = seconds
 
@@ -151,6 +159,9 @@ func notice(text: String, seconds := 8.0) -> void:
 func _process(delta: float) -> void:
 	_notice_t = maxf(0.0, _notice_t - delta)
 	var step := _step()
+	var pointed := _notice_t > 0.0 and is_instance_valid(_notice_target) and _notice_target.is_visible_in_tree()
+	if pointed:
+		step = [_notice, _notice_target, Place.ABOVE]
 	visible = not step.is_empty() or _notice_t > 0.0
 	if not visible:
 		_light(null)
@@ -196,7 +207,8 @@ func _process(delta: float) -> void:
 		if clear >= MARGIN and clear <= right - MARGIN - _label.size.x:
 			x = clear
 	_label.position = Vector2(x, at.y).round()
-	_place_story(_notice if _notice_t > 0.0 else _story_for(step[0]), place, _label.position.y + bob, _notice_t > 0.0)
+	var told := _notice_t > 0.0 and _notice_target == null
+	_place_story(_notice if told else _story_for(step[0]), place, _label.position.y + bob, told)
 	queue_redraw()
 
 

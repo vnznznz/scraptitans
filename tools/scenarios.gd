@@ -1637,11 +1637,19 @@ func ui() -> void:
 	IntroGuide._quick.clear()
 	await t.click(line_hire)
 	t.check(GameState.lines[0].workers == hired + 1, "a tap hires once (%d)" % GameState.lines[0].workers)
-	t.check(guide.story() != IntroGuide.HOLD_HINT, "one tap says nothing")
+	t.check(guide.text() != IntroGuide.HOLD_HINT, "one tap says nothing")
 	for k in IntroGuide.QUICK_PRESSES - 1:
 		await t.click(line_hire)
 	await t.frames(2)
-	t.check(guide.story() == IntroGuide.HOLD_HINT, "%d quick taps on a hire: the plate says to hold it (%s)" % [IntroGuide.QUICK_PRESSES, guide.story()])
+	var hint_label: Label = guide.get_node("Text")
+	t.check(guide.text() == IntroGuide.HOLD_HINT and hint_label.get_theme_color("font_color") == IntroGuide.COLOR,
+			"%d quick taps on a hire: the yellow plate says to hold it (%s)" % [IntroGuide.QUICK_PRESSES, guide.text()])
+	t.check(guide.get("_arrow") and guide.get("_down") and absf(guide.get("_tip").x + guide.global_position.x - line_hire.get_global_rect().get_center().x) < 1.0
+			and hint_label.get_global_rect().end.y <= line_hire.get_global_rect().position.y,
+			"over the button it is about, with the arrow on it (%s)" % hint_label.get_global_rect())
+	t.check(guide.get("_frame").has_area() and guide.get("_frame").grow(-IntroGuide.FRAME_GROW).encloses(line_hire.get_global_rect().grow(-1.0)),
+			"and that button framed, like the first steps of the game")
+	await t.shot("ui_hold_hint")
 	IntroGuide._hold_told = false
 	IntroGuide._quick.clear()
 	guide.notice("", 0.0)
@@ -1650,8 +1658,8 @@ func ui() -> void:
 	for k in IntroGuide.QUICK_PRESSES:
 		await t.click(line_hire)
 	await t.frames(2)
-	t.check(not line_hire.visible and guide.story() != IntroGuide.HOLD_HINT,
-			"taps that fill the last slot: the button is gone, so no word about holding it (%s)" % guide.story())
+	t.check(not line_hire.visible and guide.text() != IntroGuide.HOLD_HINT,
+			"taps that fill the last slot: the button is gone, so no word about holding it (%s)" % guide.text())
 	GameState.lines[0].workers = 0
 	GameState.credits = 1e6
 	IntroGuide._hold_told = false
@@ -1728,12 +1736,17 @@ func ui() -> void:
 	GameState.credits = 1e6
 	await t.frames(2)
 	t.check(not buy_all.visible, "it never appears while the menu is open: nothing moves under the thumb")
-	GameState.credits = GameState.affordable_total() - 1.0
+	var costs := GameState.affordable_ids().map(func(id: String) -> float: return GameState.upgrade_cost(id))
+	var purse_for := 0.0
+	for k in UpgradeMenu.BUY_ALL_FROM + 1:
+		purse_for += costs[k]
+	GameState.credits = purse_for
 	menu.close()
 	menu.open()
 	await t.frames(2)
-	t.check(not buy_all.visible and GameState.affordable_ids().size() > UpgradeMenu.BUY_ALL_FROM,
-			"not enough for all of them together: no button, however many rows are in reach one by one")
+	var offered := GameState.affordable_ids()
+	t.check(offered.size() == UpgradeMenu.BUY_ALL_FROM + 1 and GameState.affordable_total() <= GameState.credits and GameState.affordable_upgrades() > offered.size() and buy_all.visible,
+			"a purse for only the cheapest %d: that is what the button offers, of %d rows in reach one by one" % [offered.size(), GameState.affordable_upgrades()])
 	GameState.credits = 1e6
 	menu.close()
 	menu.open()

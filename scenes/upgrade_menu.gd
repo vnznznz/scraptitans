@@ -136,7 +136,7 @@ func open() -> void:
 	_banner_size = _pick_banner() if CrazyGames.banner_due() else Vector2i.ZERO
 	_banner.visible = _banner_size != Vector2i.ZERO
 	_banner.custom_minimum_size.y = ceilf(_banner_size.y / _css_per_base()) + BANNER_GAP
-	_buy_all_shown = GameState.affordable_ids().size() > BUY_ALL_FROM and GameState.affordable_total() <= GameState.credits
+	_buy_all_shown = GameState.affordable_ids().size() > BUY_ALL_FROM
 	_refresh()
 
 
