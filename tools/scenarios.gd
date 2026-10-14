@@ -232,9 +232,12 @@ func m3() -> void:
 	GameState.advance(0.6)
 	t.check(is_zero_approx(segs[0].work), "no chunk yet")
 	GameState.advance(0.1)
-	t.check(is_equal_approx(segs[0].work, 1.0) and is_zero_approx(segs[1].work), "3 workers: one chunk every 2/3 s, to the emptiest bar")
+	t.check(is_equal_approx(segs[0].work, 1.0) and is_zero_approx(segs[1].work), "3 workers: one chunk every 2/3 s, to the first station")
 	GameState.advance(2.0 / 3.0)
-	t.check(is_equal_approx(segs[1].work, 1.0), "the next chunk goes to the next emptiest bar")
+	t.check(is_equal_approx(segs[0].work, 2.0) and is_zero_approx(segs[1].work), "the next one goes to the same bar: the crew fills the line front to back")
+	segs[0].work = segs[0].bar_size()
+	GameState.advance(2.0 / 3.0)
+	t.check(is_equal_approx(segs[1].work, 1.0), "a full bar hands the crew on to the next station")
 	segs[0].work = segs[0].bar_size()
 	segs[1].work = segs[1].bar_size()
 	segs[2].work = 0.0
@@ -2131,14 +2134,21 @@ func stations() -> void:
 	t.check(GameState.lines[0].station_workers(0) == 1 and GameState.lines[0].roamers() == 2,
 			"6 hired on 4 stations: one parks at each, two roam (%d + %d)" % [GameState.lines[0].station_workers(0), GameState.lines[0].roamers()])
 	var roamer: Sprite2D = main.line_view(0).get_node("Roamer0")
+	for seg_i in 3:
+		GameState.lines[0].segments[seg_i].work = GameState.lines[0].segments[seg_i].bar_size()
+	await t.frames(2)
+	t.check(GameState.lines[0].work_target() == 3, "the crew works the first station that isn't full (%d)" % GameState.lines[0].work_target())
 	var walked: float = roamer.position.x
-	for k in LineView.ROAM_SWITCH:
-		GameState.lines[0].segments[3].chunks += 1
-		await t.frames(2)
 	await t.wait(1.0)
 	var toward: float = main.line_view(0).segment_view(3).position.x
 	t.check(roamer.visible and roamer.hframes == 2 and absf(roamer.position.x - toward) < absf(walked - toward),
-			"a couple of chunks landing at the last station: the roamer walks that way (%d to %d, station at %d)" % [walked, roamer.position.x, toward])
+			"the roamers walk to that station (%d to %d, station at %d)" % [walked, roamer.position.x, toward])
+	GameState.lines[0].paused = true
+	GameState.advance(GameState.stat("worker_interval") / GameState.lines[0].workers + 0.1)
+	GameState.lines[0].paused = false
+	t.check(GameState.lines[0].segments[3].chunks > 0, "and that is where the chunks land (%d)" % GameState.lines[0].segments[3].chunks)
+	for seg_i in 4:
+		GameState.lines[0].segments[seg_i].work = 0.0
 	t.check(wheel.visible and wheel.frame < 2 and worker.visible and worker.texture == SegmentView.WORKER_TEX[1], "Lighter work: small flywheel; Faster crews: drills")
 	await t.shot("station_upgrades")
 	for i in 5:

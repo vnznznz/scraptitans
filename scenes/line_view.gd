@@ -20,7 +20,6 @@ const TAG := Vector2(16, 20)
 const TAG_GAP := 4.0
 const NUKE_TEXT := "NEXT MECH LAUNCHES THE NUKE"
 const NUKE_Y := SegmentView.MACHINE_Y + 30.0
-const ROAM_SWITCH := 2
 const ROAM_SPEED := 36.0
 const ROAM_FPS := 7.0
 const ROAM_GAP := 9.0
@@ -51,9 +50,7 @@ var _hire_hold := Hold.new()
 var _nuke: Label
 var _roamers: Array[Sprite2D] = []
 var _roam_at := 0
-var _roam_votes := 0
 var _roam_x := -1.0
-var _chunks_seen: Array[int] = []
 
 
 func _ready() -> void:
@@ -272,21 +269,12 @@ func _burst(tex: Texture2D, pos: Vector2, amount: int, life: float) -> CPUPartic
 func _step_roamers(delta: float) -> void:
 	var line := _line()
 	var segs := line.segments
-	while _chunks_seen.size() < segs.size():
-		_chunks_seen.append(0)
-	for i in segs.size():
-		if segs[i].chunks > _chunks_seen[i] and segs[i].built:
-			if i == _roam_at:
-				_roam_votes = 0
-			else:
-				_roam_votes += 1
-				if _roam_votes >= ROAM_SWITCH:
-					_roam_at = i
-					_roam_votes = 0
-		_chunks_seen[i] = segs[i].chunks
 	var n := line.roamers()
 	if n == 0 and _roamers.is_empty():
 		return
+	var target_at := line.work_target()
+	if target_at >= 0:
+		_roam_at = target_at
 	while _roamers.size() < n:
 		var w := Sprite2D.new()
 		w.name = "Roamer%d" % _roamers.size()

@@ -61,7 +61,7 @@ func _ready() -> void:
 	_button(away, "2 H AWAY", GameState.away.bind(7200.0))
 	var buying := HBoxContainer.new()
 	box.add_child(buying)
-	_button(buying, "MAX BUY", func() -> void: GameState.set_max_buy(not GameState.max_buy))
+	_button(buying, "BULK BUY", func() -> void: GameState.set_max_buy(not GameState.max_buy))
 	var crate := HBoxContainer.new()
 	box.add_child(crate)
 	_button(crate, "SUPPLY CRATE", func() -> void:

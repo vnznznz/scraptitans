@@ -749,11 +749,9 @@ func _step_workers(line: LineState, dt: float) -> void:
 	line.worker_t += dt * line.workers
 	while line.worker_t >= interval:
 		line.worker_t -= interval
-		var target: SegmentState
-		for s in line.segments:
-			if s.built and not s.bar_full() and (target == null or s.work / s.bar_size() < target.work / target.bar_size()):
-				target = s
-		if target:
+		var at := line.work_target()
+		if at >= 0:
+			var target := line.segments[at]
 			target.work = minf(target.bar_size(), target.work + chunk)
 			target.chunks += 1
 

@@ -78,6 +78,13 @@ func free_slots(seg_index: int) -> int:
 	return floori(float(free) / n) + (1 if k < free % n else 0)
 
 
+func work_target() -> int:
+	for i in segments.size():
+		if segments[i].built and not segments[i].bar_full():
+			return i
+	return -1
+
+
 func last_built() -> int:
 	var last := segments.size() - 1
 	while last > 0 and not segments[last].built:
