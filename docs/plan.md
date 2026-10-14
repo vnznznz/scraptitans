@@ -522,34 +522,35 @@ Build: one upload for the Basic Launch result ([crazygames.md](../release/crazyg
 
 Measure:
 - [ ] One support mail, sent first: is desktop ("below requirements") re-judged after updates or never; what Full Launch is judged on. The answer gates M26's desktop panels
-- [ ] Funnel ([ideas.md](ideas.md), Open): events first tap, first mech, wave 1 cleared, minute 1 / 3 / 5 / 10, breach, nuke — game time, random session id, build, device class — sent fire-and-forget to a tiny endpoint on distco.de (one line per event, read by a script). Own analytics are within their rules (their docs recommend ByteBrew, a third-party service; checked 2026-10-14); only personal data beyond their SDK events needs a privacy notice → keep it anonymous: no IP kept, no fingerprinting
+- [x] Funnel ([ideas.md](ideas.md), Open): events first tap, first mech, wave 1 cleared, minute 1 / 3 / 5 / 10, gate (the breach below reuses it), nuke — game time, random session id, build, device class — sent fire-and-forget to a tiny endpoint on distco.de (one line per event, read by a script). Own analytics are within their rules (their docs recommend ByteBrew, a third-party service; checked 2026-10-14); only personal data beyond their SDK events needs a privacy notice → keep it anonymous: no IP kept, no fingerprinting. Built 2026-10-14 (`autoload/analytics.gd`, `tools/analytics/a.php`, `tools/funnel.py`), deploys with the next `deploy_web.py`; browser test below
 
 First minute:
-- [ ] Cold open: a new war starts with line 1 built and a mech walking out at 0 s; wave 1 sized to die at about 20 s with its bounty burst; first buy at about 30 s; pile and station taps come in as the next guide steps (station taps taught on mech two); the staged start shows the line from the start. `tune`: something new at least every 10 s in the first 90 s; the first-minute checks move to the new start
+- [ ] Cold open: a new war starts with line 1 built (its three stations, bars empty, no crew) and a free pre-assembled mech walking out at 0 s, every war; wave 1 sized to die at about 20 s with its bounty burst; first buy at about 30 s; pile and station taps come in as the next guide steps (station taps taught on mech two); the staged start shows the line from the start. `tune`: something new at least every 10 s in the first 90 s; the first-minute checks move to the new start
 - [ ] Guide: first line on the field, `TAP THE DRONES` (the cannon), until 3 field taps; then the pile. Credits in the HUD from the start, since cannon taps pay
 - [ ] Rate in the HUD: credits per second beside the credits (`+38/S`, average of the last 5 s); a buy that lifts it pops the new rate
 
 Losing and coming back:
-- [ ] The gate is breached instead of falling: the mechs on the field are destroyed, the wave walks back to its post with full health; banner `THE GATE WAS BREACHED`, the war goes on. The gate is repaired only to half and heals the rest while mechs hold the field, so a breach keeps a cost; no TRY AGAIN card, no restart from the pile
+- [ ] The gate is breached instead of falling: the mechs on the field are destroyed, the wave walks back to its post with full health; banner `THE GATE WAS BREACHED`, the war goes on. The gate is repaired only to half and heals the rest while mechs hold the field, so a breach keeps a cost; no TRY AGAIN card, no restart from the pile. `gate_fell` consumers move over: the `gate` scenario, the lost card, `Analytics` (its `gate` event fires on a breach), the SDK gameplay flag (a breach is not game over)
 - [ ] Daily supply crate: the first visit on a new local day (from the second day on, after the first mech) opens a crate card: 10 min of the factory's current output in credits and scrap, ×1.25 per day in a row up to 7 days; COLLECT like the away card. `COME BACK TOMORROW FOR A SUPPLY CRATE` on the away card, the nuke card and once on the mission plate after 10 min of play
 - [ ] Away: `away_max` 1 h → 8 h; credits capped at 3× the price of the cheapest purchase the player can't afford (M23 QA note: one capped hour paid for the missile); `tune` and the idler `qa` profile again
 
 Buying:
-- [ ] `×1 / MAX` toggle (44×44, left of UPGRADES, shown once two hires are affordable at once): on MAX every hire button (line crews, pile crew) hires as many as affordable up to the slots and reads count and total (`+4 · 1.2K`)
+- [ ] `×1 / MAX` toggle (44×44, left of UPGRADES, shown once two hires are affordable at once): on MAX every hire button (line crews, pile crew) hires as many as affordable up to the slots and reads count and total (`+4 · 1.2K`); the toggle saved with the settings
 - [ ] Hold a hire button to repeat it (first after 0.4 s, then every 0.15 s)
 - [ ] Unaffordable hire and fit buttons fill from the left with credits (or scrap) ÷ price, so the next buy shows its distance
 
 Stations:
-- [ ] Tiers told apart: every tier gets a color, on the station's sprite accent, the part name and the fit arrow, so a line reads its tiers at a glance
+- [ ] Tiers told apart: every tier gets a color (from the palette, `ui/pal.gd`; shots for the user to judge), on the station's sprite accent, the part name and the fit arrow, so a line reads its tiers at a glance
 - [ ] Fitted missile announced: a missile icon on the Arms station and `NEXT MECH LAUNCHES THE NUKE` over it, the icon on the fit row too (feedback: the launch comes as a surprise)
 - [ ] Late fits way cheaper (corvus, [feedback.md](feedback.md)): tier 5 and 6 `apply_cost` (10K / 40K) and `unlock_cost` cut to about a quarter; only the Atomic Missile keeps its 2.4M unlock and 40K fit as the war's end; `tune` and the `prestige` checks pass again
+- [ ] Roaming crew: per line, `floor(workers / built stations)` stand at each station and the remainder walks between them to where the chunks land (the sim already gives every chunk to the emptiest bar, `_step_workers`; the sprites park evenly and lie): a line-level sprite with hysteresis (moves after a couple of chunks land elsewhere, never per chunk), so the first hire visibly works the whole line and a roamer marks the bottleneck; `stations` checks updated
 
 Desktop:
 - [ ] Holding the mouse button on the pile, a station or the field taps there 5 times a second; Space taps under the cursor
 
 Sound and art:
 - [ ] Sounds from the pack by measurement, then listening ([audio.md](audio.md)): crate drop and open, breach (the falling tune stays, shorter), MAX hire (one buy sound, more discs); hold-to-tap and hold-to-hire stay under the `soften` rule
-- [ ] Art (`tools/gen_art.py`): supply crate (closed, lid flying, open with the goods), smashed gate shutter for the breach, the toggle's two states, button fill, tier color accents, the station missile icon
+- [ ] Art (`tools/gen_art.py`): supply crate (closed, lid flying, open with the goods), smashed gate shutter for the breach, the toggle's two states, button fill, tier color accents, the station missile icon, worker walk frames
 
 Rest:
 - [ ] Build `0.2.0-m24`, m22 saves load (a save mid-attack gets a whole gate; new keys default); docs: pitch (start, gate, away, crate, buying, late fits), `tech.md`, `crazygames.md`
@@ -566,9 +567,10 @@ Test (browser):
 - An unaffordable hire fills up as credits come in
 - Stations of different tiers read apart by color; with the missile fitted, the Arms station shows the icon and the launch line
 - Late in war one: tier 5 and 6 fits come from normal play, the missile still the long save
+- One worker hired: he walks between the stations and works where the bar is lowest; three workers: all stand; four: one roams
 - Desktop: holding the mouse on the pile taps it steadily; Space taps under the cursor
 - A live m22 save mid-war loads
-- The funnel endpoint logs a fresh session's events (own site build; on CrazyGames once allowed)
+- The funnel endpoint logs a fresh session's events (own site build and the CrazyGames build)
 
 ## M25 · Something every minute
 
