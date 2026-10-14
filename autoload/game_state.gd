@@ -9,7 +9,7 @@ signal enemy_killed(index: int, scrap: float)
 signal line_added(index: int)
 signal segment_added(line_index: int)
 signal nuke_launched(mech: MechState)
-signal gate_fell
+signal gate_breached
 
 const TICK := 1.0 / 30.0
 const MAX_FRAME_DELTA := 0.25
@@ -32,9 +32,10 @@ var yard_workers := 0
 var yard_t := 0.0
 var levels := {}
 var run_over := false
-var lost := false
 var siege := 0.0
 var gate_damage := 0.0
+var gate_hold := 0.0
+var breached := false
 var stalled_once := false
 var seen := {}
 var field_taps := 0
@@ -109,9 +110,10 @@ func new_game() -> void:
 	mechs_built = 0
 	credits_earned = 0.0
 	run_over = false
-	lost = false
 	siege = 0.0
 	gate_damage = 0.0
+	gate_hold = 0.0
+	breached = false
 	stalled_once = false
 	seen = {}
 	field_taps = 0
@@ -538,9 +540,10 @@ func to_dict() -> Dictionary:
 		"yard_t": yard_t,
 		"levels": levels.duplicate(),
 		"run_over": run_over,
-		"lost": lost,
 		"siege": siege,
 		"gate_damage": gate_damage,
+		"gate_hold": gate_hold,
+		"breached": breached,
 		"stalled_once": stalled_once,
 		"seen": seen.keys(),
 		"field_taps": field_taps,
@@ -577,9 +580,13 @@ func from_dict(d: Dictionary) -> void:
 	yard_workers = int(d.get("yard_workers", 0))
 	yard_t = float(d.get("yard_t", 0.0))
 	run_over = d.get("run_over", false)
-	lost = d.get("lost", false)
 	siege = float(d.get("siege", 0.0))
 	gate_damage = float(d.get("gate_damage", 0.0))
+	gate_hold = float(d.get("gate_hold", 0.0))
+	breached = d.get("breached", false)
+	if d.get("lost", false):
+		run_over = false
+		_breach_state()
 	stalled_once = d.get("stalled_once", false)
 	seen = {}
 	for key: String in d.get("seen", REVEALS if mechs_built > 0 else []):
@@ -750,7 +757,7 @@ func _step_field(dt: float) -> void:
 
 
 func gate_attacked() -> bool:
-	return siege >= 1.0 and field.is_empty() and not run_over
+	return siege >= 1.0 and gate_hold <= 0.0 and field.is_empty() and not run_over
 
 
 func gate_health() -> float:
@@ -758,20 +765,38 @@ func gate_health() -> float:
 
 
 func _step_gate(dt: float) -> void:
+	if gate_hold > 0.0:
+		gate_hold = maxf(0.0, gate_hold - dt)
+		siege = maxf(0.0, siege - dt / Data.econ("gate_retreat"))
+		return
 	if not field.is_empty():
 		siege = maxf(0.0, siege - dt / Data.econ("gate_retreat"))
 		gate_damage = maxf(0.0, gate_damage - dt * Data.econ("gate_repair"))
+		if gate_damage == 0.0:
+			breached = false
 		return
 	siege = minf(1.0, siege + dt / Data.econ("gate_approach"))
 	if siege < 1.0:
 		return
 	gate_damage += dt
 	if gate_damage >= Data.econ("gate_time"):
-		gate_damage = Data.econ("gate_time")
-		lost = true
-		run_over = true
-		purchased.emit()
-		gate_fell.emit()
+		_breach()
+
+
+func _breach() -> void:
+	for m: MechState in field.duplicate():
+		field.erase(m)
+		mech_died.emit(m, 0.0)
+	_breach_state()
+	purchased.emit()
+	gate_breached.emit()
+
+
+func _breach_state() -> void:
+	gate_damage = Data.econ("gate_time") * Data.econ("gate_breach_left")
+	gate_hold = Data.econ("gate_retreat")
+	breached = true
+	wave_hp = wave_max_hp()
 
 
 func tap_wave_damage() -> float:

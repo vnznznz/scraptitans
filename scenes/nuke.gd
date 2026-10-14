@@ -103,7 +103,7 @@ func _ready() -> void:
 	box.add_child(_again)
 
 	GameState.nuke_launched.connect(_play)
-	if GameState.run_over and not GameState.lost:
+	if GameState.run_over:
 		_collapse_all()
 		_show_card()
 

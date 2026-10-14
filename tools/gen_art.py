@@ -974,6 +974,25 @@ def gate():
     hazard(d, 0, h - 4, w - 1, h - 2)
     rect(d, 0, h - 1, w - 1, h - 1, INK)
     save(img, "battlefield/gate_door.png")
+
+    img, d = new(w, h)
+    rect(d, 0, 0, w - 1, h - 1, SLATE)
+    for y in range(0, h - 4, 3):
+        rect(d, 0, y, w - 1, y, STEEL)
+        rect(d, 0, y + 2, w - 1, y + 2, SLATE_D)
+    hazard(d, 0, h - 4, w - 1, h - 2)
+    rect(d, 0, h - 1, w - 1, h - 1, INK)
+    rnd = random.Random(24)
+    hole = [(4, h - 26), (w - 5, h - 20)]
+    for y in range(hole[0][1], hole[1][1] + 1):
+        bite = rnd.randint(0, 2)
+        rect(d, hole[0][0] + bite, y, hole[1][0] - rnd.randint(0, 2), y, CLEAR)
+    for y in (hole[0][1] - 1, hole[1][1] + 1):
+        for x in range(hole[0][0], hole[1][0] + 1, 2):
+            px(d, x + rnd.randint(0, 1), y, INK)
+    for x, y, dy in ((5, h - 34, 3), (w - 7, h - 31, 4), (w // 2, h - 14, 3)):
+        rect(d, x, y, x + 1, y + dy, INK)
+    save(img, "battlefield/gate_door_smashed.png")
     gate_cannon()
 
 

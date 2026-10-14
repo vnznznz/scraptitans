@@ -6,6 +6,7 @@ signal arrived(m: MechState)
 
 const WALL := preload("res://art/battlefield/gate_wall.png")
 const DOOR := preload("res://art/battlefield/gate_door.png")
+const DOOR_SMASHED := preload("res://art/battlefield/gate_door_smashed.png")
 const X := -9.0
 const BOTTOM := 160.0
 const DOOR_POS := Vector2(3, 14)
@@ -17,6 +18,7 @@ const FLOW_QUEUE := 8
 const HIT_FLASH := 0.1
 
 var health := 1.0
+var smashed := false
 
 var _open := 0.0
 var _lift := 0.0
@@ -26,6 +28,7 @@ var _walkers := []
 var _gap := 0.0
 var _bar_px := -1
 var _flash := 0.0
+var _smashed_shown := false
 
 
 func _ready() -> void:
@@ -73,9 +76,10 @@ func _process(delta: float) -> void:
 	var bar_px := -1 if health >= 1.0 else ceili((Battlefield.GATE_BAR.size.x - 2.0) * maxf(health, 0.0))
 	var flashing := _flash > 0.0
 	_flash = maxf(0.0, _flash - delta)
-	if shown != _shown or bar_px != _bar_px or flashing or moving or not _walkers.is_empty():
+	if shown != _shown or bar_px != _bar_px or smashed != _smashed_shown or flashing or moving or not _walkers.is_empty():
 		_shown = shown
 		_bar_px = bar_px
+		_smashed_shown = smashed
 		queue_redraw()
 
 
@@ -83,8 +87,9 @@ func _draw() -> void:
 	var top := Vector2(X, BOTTOM - WALL.get_height())
 	var tint := Color(2, 1.4, 1.4) if _flash > 0.0 else Color.WHITE
 	draw_texture(WALL, top, tint)
-	var door := Vector2(DOOR.get_width(), _shown)
-	draw_texture_rect_region(DOOR, Rect2(top + DOOR_POS, door), Rect2(Vector2(0, DOOR.get_height() - _shown), door), tint)
+	var tex := DOOR_SMASHED if _smashed_shown else DOOR
+	var door := Vector2(tex.get_width(), _shown)
+	draw_texture_rect_region(tex, Rect2(top + DOOR_POS, door), Rect2(Vector2(0, tex.get_height() - _shown), door), tint)
 	if _bar_px >= 0:
 		var bar := Battlefield.GATE_BAR
 		draw_rect(bar, Pal.INK)

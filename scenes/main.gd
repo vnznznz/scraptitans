@@ -46,7 +46,6 @@ const ASSEMBLY_WINDOW := 4.0
 @onready var _spacer: Control = %YardSpacer
 
 var _unlock: Button
-var _lost: GateLost
 var _unlock_slot: Control
 var _factory_k := 0.0
 var _bar_k := 0.0
@@ -62,9 +61,6 @@ var _tapped := false
 
 
 func _ready() -> void:
-	_lost = GateLost.new()
-	_lost.name = "GateLost"
-	add_child(_lost)
 	get_window().size_changed.connect(_fit_window, CONNECT_DEFERRED)
 	_fit_window()
 	if OS.has_feature("web"):
@@ -119,7 +115,7 @@ func _ready() -> void:
 	guide.z_index = OVERLAY_Z
 	_flyers.z_index = FLYERS_Z
 	_menu.z_index = TEXT_Z
-	for overlay: Control in [%Debug, %Settings, %Away, %Nuke, _lost]:
+	for overlay: Control in [%Debug, %Settings, %Away, %Nuke]:
 		overlay.z_index = OVERLAY_Z + 1
 	%Hud.settings_pressed.connect(_settings.open)
 	_upgrades.set_meta(&"silent", true)
@@ -186,8 +182,6 @@ func set_safe_area(top: float, bottom: float) -> void:
 	_settings.offset_bottom = -bottom
 	_away.offset_top = top
 	_away.offset_bottom = -bottom
-	_lost.offset_top = top
-	_lost.offset_bottom = -bottom
 
 
 func _reveal(delta: float) -> void:

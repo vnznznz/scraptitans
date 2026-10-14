@@ -55,7 +55,7 @@ const GATE_BLINK := 0.4
 const GATE_ALARM_Y := 46.0
 const GATE_FRAME := 3
 const GATE_ALERTS := 4
-const GATE_RUIN := Color(0.4, 0.34, 0.4)
+const BREACH_BANNER := 3.0
 const SKY_TINT := [[0.0, Color(1, 1, 1)], [0.3, Color(1.0, 0.86, 0.8)], [0.6, Color(0.62, 0.66, 0.92)], [1.0, Color(1.0, 0.62, 0.58)]]
 
 var _world: Node2D
@@ -89,6 +89,8 @@ var _gate_label: Label
 var _alarm: Label
 var _alarm_plate: StyleBoxFlat
 var _alarm_frame: Panel
+var _breach: Label
+var _breach_t := 0.0
 var _marching := false
 var _alert := 0
 var shells := 0
@@ -232,16 +234,27 @@ func _ready() -> void:
 	_alarm.mouse_filter = MOUSE_FILTER_IGNORE
 	_alarm.visible = false
 	add_child(_alarm)
+	var breach_plate: StyleBoxFlat = _alarm_plate.duplicate()
+	breach_plate.bg_color = Pal.RED
+	_breach = Label.new()
+	_breach.name = "GateBreach"
+	_breach.text = "THE GATE WAS BREACHED"
+	_breach.add_theme_stylebox_override("normal", breach_plate)
+	_breach.add_theme_color_override("font_color", Pal.WHITE)
+	_breach.z_index = Main.TEXT_Z
+	_breach.mouse_filter = MOUSE_FILTER_IGNORE
+	_breach.visible = false
+	add_child(_breach)
 	_on_resized()
 
 	GameState.mech_deployed.connect(_on_deployed)
-	GameState.gate_fell.connect(_on_gate_fell)
+	GameState.gate_breached.connect(_on_gate_breached)
 	GameState.mech_income.connect(_on_income)
 	GameState.mech_died.connect(_on_died)
 	GameState.wave_cleared.connect(_on_wave_cleared)
 	GameState.enemy_killed.connect(_on_enemy_killed)
 	_update_front(0.0)
-	if GameState.run_over and not GameState.lost:
+	if GameState.run_over:
 		scorch()
 		return
 	_sync_views()
@@ -249,8 +262,6 @@ func _ready() -> void:
 		_views[id].position = _slot_pos(_slots[id])
 	_show_wave(false)
 	_update_siege()
-	if GameState.lost:
-		_ruin_gate()
 
 
 static func front_offset(wave: int) -> float:
@@ -422,7 +433,13 @@ func _update_siege() -> void:
 	_marching = x != _enemy_layer.position.x
 	_enemy_layer.position.x = x
 	_gate.health = GameState.gate_health()
+	_gate.smashed = GameState.breached
 	_gate_label.visible = GameState.gate_damage > 0.0
+	_breach_t = maxf(0.0, _breach_t - get_process_delta_time())
+	_breach.visible = _breach_t > 0.0
+	if _breach.visible:
+		_breach.reset_size()
+		_breach.position = Vector2(roundf((size.x - _breach.size.x) / 2.0), GATE_ALARM_Y + _world.position.y)
 	var attacked := GameState.gate_attacked()
 	_alarm.visible = attacked
 	_alarm_frame.visible = attacked
@@ -457,23 +474,16 @@ func _fire_at_gate(e: Sprite2D) -> void:
 		bullet.queue_free())
 
 
-func _on_gate_fell() -> void:
-	_update_siege()
+func _on_gate_breached() -> void:
 	Sound.play(&"collapse")
 	Sound.play(&"enemy_pop_big")
+	Sound.play(&"gate_lost")
 	for k in 5:
 		Fx.explosion(_mechs, GATE_TARGET.position + Vector2(randf(), randf()) * GATE_TARGET.size, k % 2 == 0, randf_range(0.4, 0.8))
 	Fx.debris(_mechs, GATE_TARGET.get_center(), 16, true)
 	shake(4.0, 8)
-	_ruin_gate()
-
-
-func _ruin_gate() -> void:
-	_gate.modulate = GATE_RUIN
-	_cannon.visible = false
-	_gate_label.visible = false
-	_alarm.visible = false
-	_alarm_frame.visible = false
+	_breach_t = BREACH_BANNER
+	_update_siege()
 
 
 func _enemy_fire(e: Sprite2D) -> void:
