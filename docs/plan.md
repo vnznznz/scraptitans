@@ -553,7 +553,7 @@ Sound and art:
 - [x] Art (`tools/gen_art.py`): supply crate (closed, lid flying, open with the goods), smashed gate shutter for the breach, button fill, tier color accents, the station missile icon, worker walk frames; the X1 / MAX toggle needs no art (the theme's sunken face marks MAX, like the pause key)
 
 Rest:
-- [ ] Build `0.2.0-m24`, m22 saves load (a save mid-attack gets a whole gate; new keys default); docs: pitch (start, gate, away, crate, buying, late fits), `tech.md`, `crazygames.md`
+- [x] Build `0.2.0-m24` (`build/crazygames` and `build/web`), m22 saves load (a save mid-attack gets a whole gate; new keys default; a save of a run lost to the gate comes back as a breached, running war); docs: pitch (start, gate, away, crate, buying, late fits), `tech.md`, `crazygames.md`
 - [ ] Upload `build/crazygames`; a row in [feedback.md](feedback.md) 4–5 days later, read on the daily charts from the release marker and in the funnel
 - [ ] Covers a few days after the build, as their own Art tab step (no build, so the cover's CTR and conversion effect reads apart from the build's marker): landscape and portrait (CTR in their bottom 20 % on both), one big mech in a fight, readable at thumbnail size, `tools/gen_covers.py`; videos and screenshots again with the cold open (`tools/make_videos.py`)
 
@@ -595,7 +595,7 @@ Test (browser):
 
 Build: the economy milestone, one retune starting from M24's cheaper late fits: the first nuke inside one session, a boss to beat every few minutes, kills feeding the pile. [ideas.md](ideas.md), Bigger. Desktop panels only on a yes from M24's support mail; else they stay in ideas.md.
 
-- [ ] War one in 10–15 min (now 30–40): economy retuned so `active` fits the missile at about 12 min, `casual` within 20; later wars keep their shape (`prestige` checks); the missile row shows what the next war brings before it's bought
+- [ ] War one in 10–15 min (now 31 after M24's cheaper fits): economy retuned so `active` fits the missile at about 12 min, `casual` within 20; later wars keep their shape (`prestige` checks); the missile row shows what the next war brings before it's bought
 - [ ] Kills feed the pile (moved from the M25 set so one retune covers it): enemy scrap from wave 1 on (now a late upgrade, which becomes its level rows); popped enemies drop wrecks that fly to the pile and arrive as scrap; `tune` keeps the scrap-tight mid game
 - [ ] Boss every fifth wave: banner `BOSS`, a 60 s timer bar under the wave bar; beaten in time = a bigger bounty; not = back to the wave before
 - [ ] Abilities in thumb reach (above UPGRADES, unlocked in the menu): AIRSTRIKE (a big hit on the wave), OVERDRIVE (every station ×3 for 10 s); cooldowns 60–120 s, game time, saved
