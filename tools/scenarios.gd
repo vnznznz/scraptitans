@@ -3426,12 +3426,16 @@ func video() -> void:
 	(t.node("Debug") as Control).hide()
 	var pile: Control = (t.node("Scrapyard") as Scrapyard).pile()
 	var line: LineView = main.line_view(0)
+	var field: Battlefield = t.node("Battlefield")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	await t.wait(0.5)
+	await t.wait(0.2)
 
 	t.record("pile")
 	await t.wait(0.3)
+	for i in 3:
+		t.tap(field.get_global_rect().position + Vector2(rng.randi_range(260, 320), rng.randi_range(60, 110)))
+		await t.wait(0.35)
 	for i in 10:
 		t.tap(pile.get_global_rect().get_center() + Vector2(rng.randi_range(-14, 14), rng.randi_range(-4, 8)))
 		await t.wait(0.13)
@@ -3442,9 +3446,6 @@ func video() -> void:
 	await t.wait(0.5)
 	t.record("build")
 	await t.wait(0.2)
-	for i in 3:
-		await t.click(_build_button(line, i))
-		await t.wait(0.2)
 	for i in 3:
 		var station: Control = line.segment_view(i).get_node("Tap")
 		for k in ceili(GameState.lines[0].segments[i].bar_size()):
@@ -3477,7 +3478,6 @@ func video() -> void:
 	GameState.scrap = 420.0
 	GameState.credits = 365.0
 	await t.wait(7.0)
-	var field: Battlefield = t.node("Battlefield")
 	GameState.wave_hp = GameState.wave_dps() * 2.8
 	t.record("mid")
 	await t.wait(0.5)
