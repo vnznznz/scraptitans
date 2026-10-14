@@ -1597,6 +1597,15 @@ func ui() -> void:
 		var room := b.size.x - b.get_theme_stylebox("normal").get_minimum_size().x
 		t.check(b.is_visible_in_tree() and need <= room, "%s: widest price %s fits (%d of %d)" % [b.name, w[1], need, room])
 	t.check(yard_hire.size == line_hire.size and yard_hire.get_meta("row", false), "yard hire is a crew bar button like the line hire (%s)" % yard_hire.size)
+	Price.show(line_hire, "100", false, "", 0.4)
+	var fill: ColorRect = line_hire.get_node("Fill")
+	t.check(fill.visible and absf(fill.size.x - (line_hire.size.x - 2.0 * Price.FILL_INSET.x) * 0.4) < 1.0 and fill.position == Price.FILL_INSET
+			and fill.get_index() < (line_hire.get_node("Price") as Control).get_index() and fill.size.y == line_hire.size.y - 2.0 * Price.FILL_INSET.y,
+			"an unaffordable hire fills from the left by what the player has, behind the price (%s)" % fill.size)
+	Price.show(line_hire, "100", false, "", 2.0)
+	t.check(absf(fill.size.x - (line_hire.size.x - 2.0 * Price.FILL_INSET.x)) < 0.01, "the fill stops at full")
+	Price.show(line_hire, "100", true, "", 2.0)
+	t.check(not fill.visible, "affordable: no fill, the lit face says it")
 	var crew: Label = main.line_view(1).get_node("Crew")
 	var crew_w := crew.get_theme_font("font").get_string_size("LINE CREW 99/99", HORIZONTAL_ALIGNMENT_LEFT, -1, crew.get_theme_font_size("font_size")).x
 	t.check(crew_w <= crew.size.x, "LINE CREW 99/99 fits a tagged line's crew bar (%d of %d)" % [crew_w, crew.size.x])

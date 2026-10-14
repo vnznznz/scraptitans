@@ -176,7 +176,7 @@ func _process(delta: float) -> void:
 	_crew.text = "PILE CREW %d/%d" % [n, slots]
 	var cost := GameState.yard_worker_cost()
 	_hire.visible = _bar_k > 0.0 and n < slots
-	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
+	Price.show(_hire, Fmt.num(cost), GameState.credits >= cost, "", GameState.credits / cost)
 
 
 func _home(i: int) -> Vector2:

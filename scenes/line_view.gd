@@ -254,7 +254,7 @@ func _process(delta: float) -> void:
 	_hire.visible = _bar_k > 0.0 and line.workers < slots
 	if _hire.visible:
 		var cost := GameState.worker_cost(line_index)
-		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost)
+		Price.show(_hire, Fmt.num(cost), GameState.credits >= cost, "", GameState.credits / cost)
 	var paused := line.paused
 	var mode := _pause.get_draw_mode()
 	var sunk := paused or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED

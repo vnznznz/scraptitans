@@ -89,6 +89,7 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**, cheapest first. Everything here costs credits. Rows the player can't afford are greyed.
 
 - **The guide follows the cold open:** the drones on the field first (the gate cannon pays and teaches tapping), then the pile, then the stations — the station lesson runs while the player builds mech two.
+- **An unaffordable hire or fit fills from the left** with what the player has over its price, so the next buy shows how far off it is.
 - **Tiers:** unlock the next tier of each station type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
 - **Crew per station:** more workers per station on every line.
 - **Faster crews, Lighter work:** shorter chunk interval, lighter work bars (all stations).

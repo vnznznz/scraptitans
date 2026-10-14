@@ -256,7 +256,7 @@ func _update_apply() -> void:
 	_header.visible = not fit
 	if fit:
 		var cost := GameState.tier_apply_cost(line_index, seg_index)
-		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost)
+		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost, "", GameState.scrap / cost)
 
 
 func free_slots() -> int:
