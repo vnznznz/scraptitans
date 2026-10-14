@@ -280,6 +280,8 @@ func _step_roamers(delta: float) -> void:
 					_roam_votes = 0
 		_chunks_seen[i] = segs[i].chunks
 	var n := line.roamers()
+	if n == 0 and _roamers.is_empty():
+		return
 	while _roamers.size() < n:
 		var w := Sprite2D.new()
 		w.name = "Roamer%d" % _roamers.size()
