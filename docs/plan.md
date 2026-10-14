@@ -546,7 +546,7 @@ Stations:
 - [ ] Roaming crew: per line, `floor(workers / built stations)` stand at each station and the remainder walks between them to where the chunks land (the sim already gives every chunk to the emptiest bar, `_step_workers`; the sprites park evenly and lie): a line-level sprite with hysteresis (moves after a couple of chunks land elsewhere, never per chunk), so the first hire visibly works the whole line and a roamer marks the bottleneck; `stations` checks updated
 
 Desktop:
-- [ ] Holding the mouse button on the pile, a station or the field taps there 5 times a second; Space taps under the cursor
+- [x] Holding the mouse button on the pile, a station or the field taps there 5 times a second; Space taps under the cursor
 
 Sound and art:
 - [ ] Sounds from the pack by measurement, then listening ([audio.md](audio.md)): crate drop and open, breach (the falling tune stays, shorter), MAX hire (one buy sound, more discs); hold-to-tap and hold-to-hire stay under the `soften` rule

@@ -85,6 +85,21 @@ func press(target: Control, down: bool) -> void:
 	get_viewport().push_input(ev, true)
 
 
+func hover(target: Control) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.position = target.get_global_rect().get_center()
+	ev.global_position = ev.position
+	get_viewport().push_input(ev, true)
+
+
+func key(code: Key, down: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = code
+	ev.physical_keycode = code
+	ev.pressed = down
+	get_viewport().push_input(ev, true)
+
+
 func touch(target: Control, index: int, pressed: bool) -> void:
 	var ev := InputEventScreenTouch.new()
 	ev.index = index

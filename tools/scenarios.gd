@@ -3132,6 +3132,28 @@ func audio() -> void:
 func desktop() -> void:
 	await _fresh()
 	_reveal_all()
+	var pile: TapArea = t.get_tree().current_scene.find_child("Pile", true, false)
+	GameState.scrap = 0.0
+	t.hover(pile)
+	await t.frames(2)
+	t.press(pile, true)
+	t.check(GameState.scrap > 0.0, "mouse down on the pile taps it once")
+	var taps := GameState.scrap / GameState.tap_scrap()
+	await t.wait(1.0)
+	var rate := GameState.scrap / GameState.tap_scrap() - taps
+	t.press(pile, false)
+	t.check(absf(rate - TapArea.HOLD_RATE) <= 1.0, "holding it taps %.0f times a second (%.0f)" % [TapArea.HOLD_RATE, rate])
+	await t.wait(0.5)
+	t.check(is_equal_approx(GameState.scrap / GameState.tap_scrap(), taps + rate), "let go of the mouse: it stops")
+	GameState.scrap = 0.0
+	t.key(KEY_SPACE, true)
+	t.check(GameState.scrap > 0.0, "space taps what the cursor is on")
+	await t.wait(0.5)
+	t.key(KEY_SPACE, false)
+	var spaced := GameState.scrap
+	t.check(spaced > GameState.tap_scrap() * 2.0, "holding space keeps tapping (%.0f taps)" % (spaced / GameState.tap_scrap()))
+	await t.wait(0.5)
+	t.check(GameState.scrap == spaced, "let go of space: it stops")
 	var window := t.get_window()
 	var start := window.size
 	var upgrades: Control = t.node("Upgrades")

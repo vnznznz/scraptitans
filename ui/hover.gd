@@ -16,6 +16,7 @@ static func add(control: Control, target: CanvasItem) -> void:
 
 
 static func button(b: BaseButton) -> void:
+	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.mouse_entered.connect(func() -> void:
 		b.mouse_default_cursor_shape = Control.CURSOR_ARROW if b.disabled else Control.CURSOR_POINTING_HAND)
