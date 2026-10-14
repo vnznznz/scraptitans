@@ -438,9 +438,9 @@ func affordable_ids() -> Array[String]:
 	return ids
 
 
-func affordable_total() -> float:
+func affordable_total(ids: Array[String] = []) -> float:
 	var total := 0.0
-	for id in affordable_ids():
+	for id in (ids if not ids.is_empty() else affordable_ids()):
 		total += upgrade_cost(id)
 	return total
 

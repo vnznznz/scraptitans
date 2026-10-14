@@ -335,12 +335,12 @@ func _on_buy_all() -> void:
 
 func _refresh() -> void:
 	_refresh_ad_row()
-	var ready_to_buy := GameState.affordable_ids().size()
-	if ready_to_buy == 0:
+	var offer := GameState.affordable_ids()
+	if offer.is_empty():
 		_buy_all_shown = false
 	_buy_all.visible = _buy_all_shown
 	if _buy_all.visible:
-		Price.show(_buy_all, Fmt.num(GameState.affordable_total()), true, "BUY %d UPGRADES" % ready_to_buy)
+		Price.show(_buy_all, Fmt.num(GameState.affordable_total(offer)), true, "BUY %d UPGRADES" % offer.size())
 	var offers: Array[String] = []
 	if CrazyGames.video_ads:
 		offers = GameState.ad_offers()
