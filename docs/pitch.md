@@ -92,7 +92,7 @@ A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**
 - **The guide follows the cold open:** the drones on the field first (the gate cannon pays and teaches tapping), then the pile, then the stations — the station lesson runs while the player builds mech two.
 - **Desktop: hold the mouse** on the pile, a station or the field to tap it 3 times a second; SPACE taps whatever the cursor is on.
 - **Holding a crew button keeps hiring** (the first repeat after 0.4 s, then every 0.15 s), so a full crew is one hold instead of twelve taps.
-- **An unaffordable hire or fit fills from the left** with what the player has over its price, so the next buy shows how far off it is.
+- **An unaffordable crew hire fills from the left** with the credits over its price, so the next buy shows how far off it is.
 - **The crew spreads and roams:** an even share stands at every station, and the rest walk the line to wherever the work is landing, so one hire works the whole line and a roamer marks the bottleneck.
 - **A fitted Atomic Missile announces itself:** the missile icon in the station's header and `NEXT MECH LAUNCHES THE NUKE` across the line, so the end of the war is never a surprise.
 - **A colour per tier** (rust, iron, steel, blue, gold, atomic green): on the machine's accent band, the station's name, the fit arrow and the part's name in the menu, so a line reads its tiers at a glance.

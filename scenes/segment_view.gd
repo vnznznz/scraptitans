@@ -272,7 +272,7 @@ func _update_apply() -> void:
 		var cost := GameState.tier_apply_cost(line_index, seg_index)
 		var target := GameState.apply_target(line_index, seg_index)
 		(_apply.get_node("Price/Lead") as TextureRect).texture = MISSILE_S if Data.tier(_state().type_id, target).get("final", false) else UP_S
-		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost, "", GameState.scrap / cost, Pal.tier(target))
+		Price.show(_apply, Fmt.num(cost), GameState.scrap >= cost, "", -1.0, Pal.tier(target))
 
 
 func free_slots() -> int:
