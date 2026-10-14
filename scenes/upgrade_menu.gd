@@ -10,6 +10,7 @@ const BUY_W := 104.0
 const AD_W := 30.0
 const ROW_GAP := 4.0
 const BANNER_GAP := 8
+const BUY_ALL_FROM := 5
 const VIDEO := preload("res://art/ui/video.png")
 const TIER_STATS := {
 	"lifetime": "LIFE %s » %s S",
@@ -30,6 +31,7 @@ var _open_t := 0.0
 var _ad_row: PanelContainer
 var _ad_effect: Label
 var _ad_watch: Button
+var _buy_all: Button
 var _shown := []
 
 
@@ -81,6 +83,14 @@ func _ready() -> void:
 	_banner.visible = false
 	column.add_child(_banner)
 	_add_ad_row(column)
+	_buy_all = Button.new()
+	_buy_all.name = "BuyAll"
+	_buy_all.custom_minimum_size = Vector2(0, 44)
+	_buy_all.theme_type_variation = &"LitButton"
+	_buy_all.visible = false
+	_buy_all.set_meta(&"silent", true)
+	_buy_all.pressed.connect(_on_buy_all)
+	column.add_child(_buy_all)
 	_scroll = ScrollContainer.new()
 	_scroll.name = "List"
 	_scroll.size_flags_vertical = SIZE_EXPAND_FILL
@@ -312,8 +322,20 @@ func _on_buy(id: String) -> void:
 		Sound.play(&"unlock_line" if id == "lines" else &"buy_tier" if kind in ["tier", "final"] else &"buy_upgrade")
 
 
+func _on_buy_all() -> void:
+	var count := GameState.affordable_ids().size()
+	var spent := GameState.buy_affordable()
+	if spent <= 0.0:
+		return
+	Flyers.pay(Flyers.Kind.CREDITS, _buy_all, spent)
+	Sound.play(&"buy_tier" if count > BUY_ALL_FROM else &"buy_upgrade")
+
+
 func _refresh() -> void:
 	_refresh_ad_row()
+	var ready_to_buy := GameState.affordable_ids().size()
+	_buy_all.visible = ready_to_buy > BUY_ALL_FROM
+	_buy_all.text = "BUY %d UPGRADES" % ready_to_buy
 	var offers: Array[String] = []
 	if CrazyGames.video_ads:
 		offers = GameState.ad_offers()

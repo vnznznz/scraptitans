@@ -1694,6 +1694,24 @@ func ui() -> void:
 	var groove := menu.track()
 	t.check(menu.thumb().has_area() and menu.thumb().position.y == groove.position.y and groove.end.x < menu.size.x and groove.position.x > list.get_rect().end.x,
 			"list scrolls: thumb at the top of the right margin (%s)" % menu.thumb())
+	var buy_all: Button = menu.get_node("%BuyAll") if menu.has_node("%BuyAll") else menu.find_child("BuyAll", true, false)
+	GameState.credits = 0.0
+	await t.frames(2)
+	t.check(not buy_all.visible, "nothing affordable: no buy-all button")
+	GameState.credits = 1e6
+	await t.frames(2)
+	var ready := GameState.affordable_ids().size()
+	t.check(buy_all.visible and ready > UpgradeMenu.BUY_ALL_FROM and buy_all.text == "BUY %d UPGRADES" % ready and buy_all.get_global_rect().end.y < list.get_global_rect().position.y,
+			"%d upgrades affordable: the buy-all button above the list (%s)" % [ready, buy_all.text])
+	var levels := GameState.levels.duplicate()
+	await t.click(buy_all)
+	await t.frames(2)
+	var bought := 0
+	for id: String in GameState.levels:
+		bought += GameState.level(id) - int(levels.get(id, 0))
+	t.check(bought == ready and GameState.level("final_arms") == 0 and GameState.credits < 1e6,
+			"one tap buys every affordable upgrade and never the missile (%d of %d)" % [bought, ready])
+	t.check(not buy_all.visible or GameState.affordable_ids().size() > UpgradeMenu.BUY_ALL_FROM, "it goes away once the cheap rows are gone")
 	await t.shot("ui_menu")
 	list.scroll_vertical = 100000
 	await t.frames(2)

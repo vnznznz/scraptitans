@@ -91,6 +91,7 @@ A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**
 
 - **The guide follows the cold open:** the drones on the field first (the gate cannon pays and teaches tapping), then the pile, then the stations — the station lesson runs while the player builds mech two.
 - **Desktop: hold the mouse** on the pile, a station or the field to tap it 3 times a second; SPACE taps whatever the cursor is on.
+- **BUY n UPGRADES** above the list once more than five rows are affordable: one tap takes them all, cheapest first, never the Atomic Missile.
 - **Holding a crew button keeps hiring** (the first repeat after 0.4 s, then every 0.15 s), so a full crew is one hold instead of twelve taps.
 - **An unaffordable crew hire fills from the left** with the credits over its price, so the next buy shows how far off it is.
 - **The crew spreads and roams:** an even share stands at every station, and the rest walk the line to wherever the work is landing, so one hire works the whole line and a roamer marks the bottleneck.

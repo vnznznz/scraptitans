@@ -423,6 +423,28 @@ func affordable_upgrades() -> int:
 	return n
 
 
+func affordable_ids() -> Array[String]:
+	var rows := []
+	for i in Data.upgrade_list.size():
+		var r: Dictionary = Data.upgrade_list[i]
+		if r.get("kind", "") != "final" and upgrade_visible(r.id) and not upgrade_maxed(r.id) and not upgrade_locked(r.id) and credits >= upgrade_cost(r.id):
+			rows.append([upgrade_cost(r.id), i, r.id])
+	rows.sort()
+	var ids: Array[String] = []
+	for row: Array in rows:
+		ids.append(row[2])
+	return ids
+
+
+func buy_affordable() -> float:
+	var spent := 0.0
+	for id in affordable_ids():
+		var cost := upgrade_cost(id)
+		if buy_upgrade(id):
+			spent += cost
+	return spent
+
+
 func scrap_boost() -> float:
 	return Data.econ("ad_scrap_mult") if scrap_boost_t > 0.0 else 1.0
 
