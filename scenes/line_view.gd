@@ -22,7 +22,9 @@ const NUKE_TEXT := "NEXT MECH LAUNCHES THE NUKE"
 const NUKE_Y := SegmentView.MACHINE_Y + 30.0
 const ROAM_SPEED := 110.0
 const ROAM_FPS := 14.0
-const ROAM_HOP := 3.0
+const ROAM_HOP := 1.0
+const WORK_JUMP := 7.0
+const WORK_JUMP_TIME := 0.22
 const ROAM_GAP := 9.0
 const ROAM_TEX := [preload("res://art/line/worker_walk_0.png"), preload("res://art/line/worker_walk_1.png"), preload("res://art/line/worker_walk_2.png")]
 
@@ -53,6 +55,8 @@ var _roamers: Array[Sprite2D] = []
 var _roam_at := 0
 var _roam_x := -1.0
 var _roam_right := false
+var _jump_t := 0.0
+var _chunks_at := -1
 
 
 func _ready() -> void:
@@ -289,6 +293,7 @@ func _step_roamers(delta: float) -> void:
 	if _roam_at >= segs.size() or not segs[_roam_at].built:
 		_roam_at = line.last_built()
 	var target := _center(_roam_at) - SegmentView.WORKER_W / 2.0
+	var chunks: int = segs[_roam_at].chunks if _roam_at < segs.size() else 0
 	if _roam_x < 0.0:
 		_roam_x = target
 	var before := _roam_x
@@ -298,14 +303,19 @@ func _step_roamers(delta: float) -> void:
 	var step := Time.get_ticks_msec() / 1000.0 * ROAM_FPS
 	if running:
 		_roam_right = _roam_x > before
+	elif chunks != _chunks_at and _chunks_at >= 0:
+		_jump_t = WORK_JUMP_TIME
+	_chunks_at = chunks
+	_jump_t = maxf(0.0, _jump_t - delta)
 	for i in _roamers.size():
 		var w := _roamers[i]
 		w.visible = i < n
 		w.texture = ROAM_TEX[gear]
 		w.frame = (int(step) + i) % 2 if running else 0
 		w.flip_h = _roam_right
-		var hop := -roundf(absf(sin((step + i) * PI / 2.0)) * ROAM_HOP) if running else 0.0
-		w.position = Vector2(roundf(_roam_x + i * ROAM_GAP), _top + SegmentView.MACHINE_Y + SegmentView.WORKERS_Y + hop)
+		var lift := -roundf(absf(sin((step + i) * PI / 2.0)) * ROAM_HOP) if running \
+				else -roundf(sin(PI * (1.0 - _jump_t / WORK_JUMP_TIME)) * WORK_JUMP) if _jump_t > 0.0 else 0.0
+		w.position = Vector2(roundf(_roam_x + i * ROAM_GAP), _top + SegmentView.MACHINE_Y + SegmentView.WORKERS_Y + lift)
 
 
 func segment_view(i: int) -> SegmentView:

@@ -2184,15 +2184,25 @@ func stations() -> void:
 	for k in 12:
 		await t.wait(0.05)
 		hops[roamer.position.y] = true
-	t.check(hops.size() > 1, "the runner hops while it goes (%d heights)" % hops.size())
+	var highest: float = hops.keys().min()
+	var ground: float = hops.keys().max()
+	t.check(hops.size() > 1 and ground - highest <= LineView.ROAM_HOP, "the runner bobs a pixel on its way (%d heights, %d px)" % [hops.size(), ground - highest])
 	await t.wait(1.0)
 	var toward: float = main.line_view(0).segment_view(3).position.x
 	t.check(roamer.visible and roamer.hframes == 2 and absf(roamer.position.x - toward) < absf(walked - toward),
 			"the roamers walk to that station (%d to %d, station at %d)" % [walked, roamer.position.x, toward])
+	await t.wait(2.5)
+	var standing: float = roamer.position.y
 	GameState.lines[0].paused = true
 	GameState.advance(GameState.stat("worker_interval") / GameState.lines[0].workers + 0.1)
 	GameState.lines[0].paused = false
 	t.check(GameState.lines[0].segments[3].chunks > 0, "and that is where the chunks land (%d)" % GameState.lines[0].segments[3].chunks)
+	var peak := standing
+	for k in 10:
+		await t.wait(LineView.WORK_JUMP_TIME / 8.0)
+		peak = minf(peak, roamer.position.y)
+	t.check(standing - peak > LineView.ROAM_HOP and standing - peak <= LineView.WORK_JUMP,
+			"the chunk makes it jump, higher than its running bob (%d px over %d)" % [standing - peak, LineView.ROAM_HOP])
 	for seg_i in 4:
 		GameState.lines[0].segments[seg_i].work = 0.0
 	t.check(wheel.visible and wheel.frame < 2 and worker.visible and worker.texture == SegmentView.WORKER_TEX[1], "Lighter work: small flywheel; Faster crews: drills")

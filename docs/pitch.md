@@ -94,7 +94,7 @@ A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**
 - **BUY n UPGRADES**, with what they cost together, above the list once the credits cover more than five of them together: one tap takes them all, cheapest first, never the Atomic Missile.
 - **Holding a crew button keeps hiring** (the first repeat after 0.4 s, then every 0.15 s), so a full crew is one hold instead of twelve taps. Tapping one three times in a row says so.
 - **An unaffordable crew hire fills from the left** with the credits over its price, so the next buy shows how far off it is.
-- **The crew fills the line front to back:** an even share of the workers stands at every station, the rest run over to the first station whose bar isn't full — which is exactly where their work goes.
+- **The crew fills the line front to back:** an even share of the workers stands at every station, the rest run over to the first station whose bar isn't full — which is exactly where their work goes. They run flat and jump when a load lands on the bar.
 - **A fitted Atomic Missile announces itself:** the missile icon in the station's header and `NEXT MECH LAUNCHES THE NUKE` across the line, so the end of the war is never a surprise.
 - **A colour per tier** (rust, iron, steel, blue, gold, atomic green): on the machine's accent band, the station's name, the fit arrow and the part's name in the menu, so a line reads its tiers at a glance.
 - **Tiers:** unlock the next tier of each station type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.

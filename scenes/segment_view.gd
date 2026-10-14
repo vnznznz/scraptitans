@@ -12,6 +12,7 @@ const WORKER_DX := 6.0
 const WORKER_LEFT := 11.0
 const WORKER_RIGHT := 59.0
 const WORKER_W := 10.0
+const WORK_JUMP := 7.0
 const STAT_ICONS := {
 	"lifetime": preload("res://art/ui/life.png"),
 	"credits_per_sec": preload("res://art/ui/credits_s.png"),
@@ -258,8 +259,8 @@ func _update_workers(s: SegmentState) -> void:
 		if n > 0:
 			var w := _workers[(s.chunks - 1) % n]
 			var tw := w.create_tween()
-			tw.tween_property(w, "position:y", WORKERS_Y - 4, 0.08)
-			tw.tween_property(w, "position:y", WORKERS_Y, 0.1)
+			tw.tween_property(w, "position:y", WORKERS_Y - WORK_JUMP, 0.07)
+			tw.tween_property(w, "position:y", WORKERS_Y, 0.11)
 		_bump_t = 0.06
 	_chunks_seen = s.chunks
 
