@@ -516,16 +516,110 @@ Test (browser):
 - A save from the live build mid-run: loads, everything seen is there
 - Developer portal, Art tab: the new landscape cover and video are the ones shown on desktop
 
+## M24 · Mobile first minute and return
+
+Build: one upload for the Basic Launch result ([crazygames.md](../release/crazygames.md), Launch stages; [ideas.md](ideas.md), Minimal plus the cold open from Bigger). Mobile is enabled at 9/15; its weakest scores are conversion (32.5 %, next point at 34.72 %) and day 1 return (3.9 %, next at 4.71 %). The M22 first-minute changes lifted mobile playtime but not conversion, and the charts can't say why: at about 55 mobile plays a day, a 4–5 day read is ±3 pp on conversion — so the funnel ships with the build. The cold open replaces the two-free-mechs idea (M25 would have thrown it away). Desktop gets cheap fixes only.
+
+Measure:
+- [ ] One support mail, sent first: is desktop ("below requirements") re-judged after updates or never; what Full Launch is judged on. The answer gates M26's desktop panels
+- [ ] Funnel ([ideas.md](ideas.md), Open): events first tap, first mech, wave 1 cleared, minute 1 / 3 / 5 / 10, breach, nuke — game time, random session id, build, device class — sent fire-and-forget to a tiny endpoint on distco.de (one line per event, read by a script). Own analytics are within their rules (their docs recommend ByteBrew, a third-party service; checked 2026-10-14); only personal data beyond their SDK events needs a privacy notice → keep it anonymous: no IP kept, no fingerprinting
+
+First minute:
+- [ ] Cold open: a new war starts with line 1 built and a mech walking out at 0 s; wave 1 sized to die at about 20 s with its bounty burst; first buy at about 30 s; pile and station taps come in as the next guide steps (station taps taught on mech two); the staged start shows the line from the start. `tune`: something new at least every 10 s in the first 90 s; the first-minute checks move to the new start
+- [ ] Guide: first line on the field, `TAP THE DRONES` (the cannon), until 3 field taps; then the pile. Credits in the HUD from the start, since cannon taps pay
+- [ ] Rate in the HUD: credits per second beside the credits (`+38/S`, average of the last 5 s); a buy that lifts it pops the new rate
+
+Losing and coming back:
+- [ ] The gate is breached instead of falling: the mechs on the field are destroyed, the wave walks back to its post with full health; banner `THE GATE WAS BREACHED`, the war goes on. The gate is repaired only to half and heals the rest while mechs hold the field, so a breach keeps a cost; no TRY AGAIN card, no restart from the pile
+- [ ] Daily supply crate: the first visit on a new local day (from the second day on, after the first mech) opens a crate card: 10 min of the factory's current output in credits and scrap, ×1.25 per day in a row up to 7 days; COLLECT like the away card. `COME BACK TOMORROW FOR A SUPPLY CRATE` on the away card, the nuke card and once on the mission plate after 10 min of play
+- [ ] Away: `away_max` 1 h → 8 h; credits capped at 3× the price of the cheapest purchase the player can't afford (M23 QA note: one capped hour paid for the missile); `tune` and the idler `qa` profile again
+
+Buying:
+- [ ] `×1 / MAX` toggle (44×44, left of UPGRADES, shown once two hires are affordable at once): on MAX every hire button (line crews, pile crew) hires as many as affordable up to the slots and reads count and total (`+4 · 1.2K`)
+- [ ] Hold a hire button to repeat it (first after 0.4 s, then every 0.15 s)
+- [ ] Unaffordable hire and fit buttons fill from the left with credits (or scrap) ÷ price, so the next buy shows its distance
+
+Stations:
+- [ ] Tiers told apart: every tier gets a color, on the station's sprite accent, the part name and the fit arrow, so a line reads its tiers at a glance
+- [ ] Fitted missile announced: a missile icon on the Arms station and `NEXT MECH LAUNCHES THE NUKE` over it, the icon on the fit row too (feedback: the launch comes as a surprise)
+- [ ] Late fits way cheaper (corvus, [feedback.md](feedback.md)): tier 5 and 6 `apply_cost` (10K / 40K) and `unlock_cost` cut to about a quarter; only the Atomic Missile keeps its 2.4M unlock and 40K fit as the war's end; `tune` and the `prestige` checks pass again
+
+Desktop:
+- [ ] Holding the mouse button on the pile, a station or the field taps there 5 times a second; Space taps under the cursor
+
+Sound and art:
+- [ ] Sounds from the pack by measurement, then listening ([audio.md](audio.md)): crate drop and open, breach (the falling tune stays, shorter), MAX hire (one buy sound, more discs); hold-to-tap and hold-to-hire stay under the `soften` rule
+- [ ] Art (`tools/gen_art.py`): supply crate (closed, lid flying, open with the goods), smashed gate shutter for the breach, the toggle's two states, button fill, tier color accents, the station missile icon
+
+Rest:
+- [ ] Build `0.2.0-m24`, m22 saves load (a save mid-attack gets a whole gate; new keys default); docs: pitch (start, gate, away, crate, buying, late fits), `tech.md`, `crazygames.md`
+- [ ] Upload `build/crazygames`; a row in [feedback.md](feedback.md) 4–5 days later, read on the daily charts from the release marker and in the funnel
+- [ ] Covers a few days after the build, as their own Art tab step (no build, so the cover's CTR and conversion effect reads apart from the build's marker): landscape and portrait (CTR in their bottom 20 % on both), one big mech in a fight, readable at thumbnail size, `tools/gen_covers.py`; videos and screenshots again with the cold open (`tools/make_videos.py`)
+
+Test (browser):
+- New game on a phone: a mech walks out at once and fights the drones; wave 1 dies within about 20 s, a buy within about 30 s; the guide asks for the drones first, then the pile; no stretch in the first 90 s where nothing is new
+- HUD rate: rises with the first mechs, pops on a crew hire
+- New game left alone: the gate is breached, the field empties, the wave is back at its post, the war goes on with everything built; the gate sits at half until mechs hold the field again
+- Change the device date to tomorrow (or DBG): the crate card on load; two days in a row: a bigger crate
+- DBG 2 H AWAY late in a war: credits capped, the missile not paid by one absence
+- MAX: one tap hires several, the count and total on the button; holding ×1 hires one after another
+- An unaffordable hire fills up as credits come in
+- Stations of different tiers read apart by color; with the missile fitted, the Arms station shows the icon and the launch line
+- Late in war one: tier 5 and 6 fits come from normal play, the missile still the long save
+- Desktop: holding the mouse on the pile taps it steadily; Space taps under the cursor
+- A live m22 save mid-war loads
+- The funnel endpoint logs a fresh session's events (own site build; on CrazyGames once allowed)
+
+## M25 · Something every minute
+
+Build: the upload after M24's read: the field brings events and goals, so the next thing to do is never a minute away. For mobile playtime (9m00s, next point at 12m51s) and conversion. [ideas.md](ideas.md), Bigger. The economy stays untouched here; wrecks and the shorter war are one retune in M26.
+
+- [ ] Decide the return answer first: what M24's funnel and day 1 return say about the crate; pick the big answer from ideas.md (Very big — fronts with perks, real idle) and plan it as M27+, or write down why not yet. The crate and the away card alone won't carry 3.9 % to 10 %
+- [ ] Supply drop: every 2–5 min (random) a crate parachutes onto the field; tapped within 10 s: a frenzy (×7 scrap for 30 s) or a free fit (the cheapest missing one); missed, it burns. Waits while the menu is open; the field pin blinks while the field is scrolled away
+- [ ] Missions: three goals in the gap under the field (`BUILD 10 MECHS`, `CLEAR WAVE 6`, `HIRE 5 CREW`), each with a reward scaled to the war; a done one flies its reward and is replaced; lists per stage of the war in `data/missions.json`
+- [ ] Hold to work on touch: holding on the pile or a station taps at a steady rate (4/s), raised by a menu row; M24's mouse hold the same rule
+- [ ] MAX for everything: with the M24 toggle on MAX a fit applies that station type's tier on every line that can afford it, menu rows buy as many levels as affordable (never the missile)
+- [ ] Sound: supply drop (engine pass, parachute, landing, open), frenzy (a sting and a brighter factory bed while it lasts), mission done; entries in [audio.md](audio.md)
+- [ ] Art: crate with parachute and burning, frenzy glow on the pile, mission strip, hold-to-work feedback (a ring filling on the held station)
+- [ ] Build `0.2.0-m25`, m24 saves load; docs: pitch, `tech.md`, `crazygames.md`; upload; feedback row 4–5 days later
+
+Test (browser):
+- 10 min of play: a crate drops a few times; tapped: frenzy or a free fit; ignored: it burns
+- Missions: one finishes within the first minutes, its reward flies, a new one appears
+- Holding a thumb on a station: its bar fills steadily
+- MAX on: one fit tap fits that station on every line
+
+## M26 · Shorter wars, bosses, kills feed the pile
+
+Build: the economy milestone, one retune starting from M24's cheaper late fits: the first nuke inside one session, a boss to beat every few minutes, kills feeding the pile. [ideas.md](ideas.md), Bigger. Desktop panels only on a yes from M24's support mail; else they stay in ideas.md.
+
+- [ ] War one in 10–15 min (now 30–40): economy retuned so `active` fits the missile at about 12 min, `casual` within 20; later wars keep their shape (`prestige` checks); the missile row shows what the next war brings before it's bought
+- [ ] Kills feed the pile (moved from the M25 set so one retune covers it): enemy scrap from wave 1 on (now a late upgrade, which becomes its level rows); popped enemies drop wrecks that fly to the pile and arrive as scrap; `tune` keeps the scrap-tight mid game
+- [ ] Boss every fifth wave: banner `BOSS`, a 60 s timer bar under the wave bar; beaten in time = a bigger bounty; not = back to the wave before
+- [ ] Abilities in thumb reach (above UPGRADES, unlocked in the menu): AIRSTRIKE (a big hit on the wave), OVERDRIVE (every station ×3 for 10 s); cooldowns 60–120 s, game time, saved
+- [ ] Desktop panels, only if desktop is re-judged: the upgrade list open in the right black bar, missions in the left one, the column stays the phone layout; `--scenario desktop` frame sizes
+- [ ] Sound: boss arrival (once, no loop), last 10 s of the timer (soft ticks), airstrike, overdrive, wrecks at the pile (thinned like income); a boss track or a sting from the pack, by the music rules (never nonstop)
+- [ ] Art: boss timer bar, ability buttons and cooldown fill, airstrike planes and blasts, overdrive glow on the machines, wrecks per enemy type; side panel frames if built
+- [ ] Build `0.2.0-m26`, m25 saves load (a war in progress keeps going on the new prices); docs; upload; feedback row
+
+Test (browser):
+- A new war played actively: the nuke within about 15 min
+- Wrecks fly to the pile from every popped enemy; scrap rises with them
+- Wave 5: boss banner and timer; beaten: a big bounty; failed: wave 4 again
+- Abilities: unlocked, used, cooling down, a reload keeps the cooldown
+- Desktop at 1280×720, if the panels are in: the upgrade list open on the right, missions on the left, the game column as before
+
 ## M23 · Phone heat
 
-Build: an iPhone 16e no longer gets warm while playing. After M22; heat can only be judged on the phone, so every step is a build the user tries.
+Build: an iPhone 16e no longer gets warm while playing. After M26; heat can only be judged on the phone, so every step is a build the user tries.
 
 - [ ] Measure on the phone: Safari Web Inspector timeline (CPU, GPU, frame rate) in a late run; canvas size in device pixels
 - [ ] Candidates, one at a time: canvas rendered at a whole multiple of the base size instead of the device's full pixel ratio (3× on the 16e: about 1170×2532 for a 360-wide pixel game), scaled up by the browser with nearest-neighbour; lower frame rate; particle and crowd counts on phones
+- [ ] Mobile gameplay crash 0.61 % (desktop 0; moved from M24 to keep that upload on gameplay): memory over a long `perf` run, WebGL context loss handling; the smaller canvas above is the first suspect on iOS
 - [ ] Keep what cools the phone without a visible loss; docs: `tech.md`
 
 To discuss (from the QA pass of 2026-10-09: seven bot profiles, 19 wars won through real clicks, `--scenario qa`; its bugs are fixed, these are open questions, nothing decided):
-- [ ] Away reward late in a war: one capped hour away around minute 25 paid 6.3M credits against a 2.4M missile, and the idler profile ended wars 2 and 3 about as fast as the active one. Lower `away_max` (20 to 30 min) or cap the credits at a multiple of the next purchase the player can't afford; then `tune` and the idler pass again
+- [ ] Away reward late in a war (→ M24: 8 h, credits capped at 3× the next unaffordable purchase): one capped hour away around minute 25 paid 6.3M credits against a 2.4M missile, and the idler profile ended wars 2 and 3 about as fast as the active one. Lower `away_max` (20 to 30 min) or cap the credits at a multiple of the next purchase the player can't afford; then `tune` and the idler pass again
 - [ ] Reset by stray taps: 80 random taps walked gear, RESET, RESET RUN / RESET SAVE, YES in two of six tries; the popup is the only guard. YES away from where the reset button just was, or a short hold on YES, RESET SAVE only
 - [ ] Save round trip: one of 12 save and load checks reported the mech list as different; probably a last-digit float, not confirmed. Compare `to_dict` at full precision on a late field
 - [ ] Ads UI before Full Launch: banner slot collapsed until a banner arrives (an empty dark box now), a gap or divider under the fixed SCRAP X2 row (scrolled rows are cut right under it), a line on the row after a failed or timed out ad (10 s of blocked input end without a word)
