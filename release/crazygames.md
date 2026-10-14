@@ -89,19 +89,23 @@ Asks the two things the numbers can't answer; the first one gates M26's desktop 
 - Description (no HTML; headings and lists through the editor):
 
   ```
-  Scrap Titans is a pixel-art idle clicker about turning a pile of scrap into an army of combat mechs. Tap the pile, build an assembly line and send your machines to the front. Every enemy wave you break pays for a bigger factory, until you can build the one weapon that ends the war.
+  Scrap Titans is a pixel-art idle clicker about turning a pile of scrap into an army of combat mechs. The war opens with your first mech already walking out of the gate. From there, every enemy wave you break pays for a bigger factory, until you can build the one weapon that ends the war.
 
   How to play
-  - Tap the scrap pile to dig up scrap and build the Frame, Core and Arms stations of your first line.
+  - The war starts with a free mech on the field. Tap the battlefield to fire the gate cannon and finish the wave off.
+  - Tap the scrap pile to dig up scrap: every mech part is built from it.
   - Tap a station to work on it, or hire a crew to do the work for you. A finished mech walks off the line and onto the battlefield.
   - Mechs shoot at the enemy wave and earn credits for every second they survive. A destroyed wave pays a bounty.
+  - Keep the mechs coming: when nothing holds the field, the drones march on your gate, and if it falls the war starts over.
   - Spend credits on crews, upgrades and up to five assembly lines. Spend scrap on better parts, from Scrap Frames and Pipe Guns to Titan Chassis and Railguns.
   - Unlock the Atomic Missile, fit it on a fully upgraded line and launch the nuke to win the war.
 
   Features
   - A whole factory and its battlefield on one screen
-  - Six tiers of parts that change how your mechs look and fight
+  - Six colour-coded tiers of parts that change how your mechs look and fight
   - Drones, tanks, brutes and a boss every fifth wave
+  - The factory pays you for the time you were away, up to eight hours of it
+  - A supply crate waits every day, and it grows for every day you come back in a row
   - A war takes 30 to 60 minutes, and every war you win starts a bigger one
   - Plays with one thumb on a phone or with the mouse on desktop
   ```
@@ -112,7 +116,9 @@ Asks the two things the numbers can't answer; the first one gates M26's desktop 
   - Left click or tap the scrap pile: dig up scrap
   - Left click or tap a station: work on its mech
   - Left click or tap the battlefield: hit the enemy wave
+  - Hold the left mouse button or SPACE (desktop): keep tapping what is under the cursor
   - Left click or tap the buttons: build stations, hire crews, fit better parts, buy upgrades
+  - Hold a hire button: keep hiring crew
   - Mouse wheel, swipe or the scroll bar on the right: move between the battlefield, the assembly lines and the pile
   - Pins at the ends of the scroll bar: keep the battlefield or the pile on screen
   ```
