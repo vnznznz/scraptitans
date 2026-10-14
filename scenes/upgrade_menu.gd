@@ -393,6 +393,7 @@ func _describe(r: Dictionary, title: Label, effect: Label, pips: Pips) -> void:
 			var unlocked := GameState.unlocked_tier(r.type)
 			var next: Dictionary = tiers[unlocked + 1]
 			title.text = str(next.part).to_upper()
+			title.add_theme_color_override("font_color", Pal.tier(unlocked + 1))
 			var plus := "+" if Data.segment_type(r.type).get("optional", false) else ""
 			for key: String in TIER_STATS:
 				if next.has(key):
@@ -402,9 +403,11 @@ func _describe(r: Dictionary, title: Label, effect: Label, pips: Pips) -> void:
 		"final":
 			var tiers: Array = Data.segment_type(r.type).tiers
 			title.text = str(tiers[-1].part).to_upper()
+			title.add_theme_color_override("font_color", Pal.tier(tiers.size() - 1))
 			effect.text = "NEEDS ALL PARTS" if GameState.upgrade_locked(id) else "ENDS THE WAR"
 		_:
 			title.text = str(r.name).to_upper()
+			title.remove_theme_color_override("font_color")
 			var value := GameState.stat(r.stat)
 			if r.stat == "lines":
 				effect.text = "LINE %d" % (int(value) + 1)

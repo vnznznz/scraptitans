@@ -161,6 +161,7 @@ func _ready() -> void:
 	_apply.set_meta(&"silent", true)
 	_apply.pressed.connect(_on_apply)
 	add_child(_apply)
+	_name.add_theme_color_override("font_color", Pal.tier(_state().tier))
 	_chunks_seen = _state().chunks
 	_assemblies_seen = _state().assemblies
 	_tier_seen = _state().tier
@@ -191,6 +192,7 @@ func _process(delta: float) -> void:
 	_flash_t = maxf(0.0, _flash_t - delta)
 	if s.tier != _tier_seen:
 		_tier_seen = s.tier
+		_name.add_theme_color_override("font_color", Pal.tier(s.tier))
 		_flash_t = FIT_FLASH
 		Fx.puff(self, Vector2(WIDTH / 2.0, MACHINE_Y + 28.0), 1.0, Color.WHITE)
 	_machine.modulate = FLASH if _flash_t > 0.0 else PAUSED if GameState.lines[line_index].paused else Color.WHITE

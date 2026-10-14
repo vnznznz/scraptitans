@@ -2065,6 +2065,21 @@ func stations() -> void:
 			if img.get_size() != Vector2i(480, 56) or cells.size() != 6:
 				same.append("%s_%d: %d" % [type, f, cells.size()])
 	t.check(same.is_empty(), "machine sheets: 6 different tier cells per type and frame %s" % [same])
+	var off_colour := []
+	for li in 3:
+		for si in 4:
+			var seg_name: Label = main.line_view(li).segment_view(si).get_node("Header/Name")
+			var want := Pal.tier(GameState.lines[li].segments[si].tier)
+			if seg_name.get_theme_color("font_color") != want:
+				off_colour.append([li, si, seg_name.get_theme_color("font_color")])
+	t.check(off_colour.is_empty() and Pal.TIERS.size() == 6, "every station's name in its tier's colour %s" % [off_colour])
+	var accents := []
+	for type: String in Data.line_slots():
+		var img := (load("res://art/line/machine_%s_0.png" % type) as Texture2D).get_image()
+		for tier in 6:
+			if img.get_pixel(tier * 80 + 40, 9) != Pal.tier(tier):
+				accents.append("%s %d" % [type, tier])
+	t.check(accents.is_empty(), "every machine cell carries its tier's accent band %s" % [accents])
 	await t.wait(0.5)
 	await t.shot("station_tiers")
 

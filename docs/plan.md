@@ -540,7 +540,7 @@ Buying:
 - [x] Unaffordable hire and fit buttons fill from the left with credits (or scrap) ÷ price, so the next buy shows its distance
 
 Stations:
-- [ ] Tiers told apart: every tier gets a color (from the palette, `ui/pal.gd`; shots for the user to judge), on the station's sprite accent, the part name and the fit arrow, so a line reads its tiers at a glance
+- [x] Tiers told apart: every tier gets a color (from the palette, `ui/pal.gd`; shots for the user to judge), on the station's sprite accent, the part name and the fit arrow, so a line reads its tiers at a glance
 - [ ] Fitted missile announced: a missile icon on the Arms station and `NEXT MECH LAUNCHES THE NUKE` over it, the icon on the fit row too (feedback: the launch comes as a surprise)
 - [x] Late fits way cheaper (corvus, [feedback.md](feedback.md)): tier 5 and 6 `apply_cost` (10K / 40K) and `unlock_cost` cut to about a quarter; only the Atomic Missile keeps its 2.4M unlock and 40K fit as the war's end; `tune` and the `prestige` checks pass again
 - [ ] Roaming crew: per line, `floor(workers / built stations)` stand at each station and the remainder walks between them to where the chunks land (the sim already gives every chunk to the emptiest bar, `_step_workers`; the sprites park evenly and lie): a line-level sprite with hysteresis (moves after a couple of chunks land elsewhere, never per chunk), so the first hire visibly works the whole line and a roamer marks the bottleneck; `stations` checks updated

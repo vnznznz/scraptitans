@@ -63,7 +63,7 @@ static func setup(b: Button, kind: Flyers.Kind, row := false, lead_text := false
 	b.theme_type_variation = &"PriceRow" if row else &"PriceButton"
 
 
-static func show(b: Button, value: String, affordable: bool, lead := "", share := -1.0) -> void:
+static func show(b: Button, value: String, affordable: bool, lead := "", share := -1.0, lead_color := Color.WHITE) -> void:
 	var box: HBoxContainer = b.get_node("Price")
 	var fill: ColorRect = b.get_node("Fill")
 	fill.visible = not affordable and share >= 0.0
@@ -82,7 +82,7 @@ static func show(b: Button, value: String, affordable: bool, lead := "", share :
 		lead_label.visible = not lead.is_empty()
 		lead_label.add_theme_color_override("font_color", color)
 	if lead_icon:
-		lead_icon.modulate = Color.WHITE if affordable else DIM
+		lead_icon.modulate = lead_color * (Color.WHITE if affordable else DIM)
 		lead_icon.visible = lead_label == null or lead.is_empty()
 	var mode := b.get_draw_mode()
 	box.position.y = 1.0 if mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED else 0.0

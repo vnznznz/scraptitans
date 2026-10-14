@@ -18,7 +18,12 @@ const MAGENTA := Color("b55088")
 const CYAN := Color("2ce8f5")
 const GREEN := Color("63c74d")
 const LINES: Array[Color] = [CYAN, PINK, YELLOW, GREEN, MAGENTA]
+const TIERS: Array[Color] = [RUST, STEEL, STEEL_L, CYAN, GOLD, GREEN]
 
 
 static func line(i: int) -> Color:
 	return LINES[mini(i, LINES.size() - 1)]
+
+
+static func tier(i: int) -> Color:
+	return TIERS[clampi(i, 0, TIERS.size() - 1)]

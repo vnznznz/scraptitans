@@ -1248,6 +1248,7 @@ def nuke_fx():
 
 MACHINE = (80, 56)
 TIERS = 6
+TIER_ACCENT = [RUST, STEEL, STEEL_L, CYAN, GOLD, GREEN]
 TIER_RAMPS = [style[0] for style in FRAME_STYLE]
 CORE_RAMPS = TIER_RAMPS[:5] + [R_RED]
 PLATE_RAMPS = [R_STEEL, R_RUST, R_STEEL, R_CERAMIC, R_TAN, R_IRON]
@@ -1442,6 +1443,7 @@ def line():
             for t in range(TIERS):
                 img, d = new(w, h)
                 draw(d, f, t)
+                rect(d, 2, 9, w - 3, 10, TIER_ACCENT[t])
                 sheet.paste(img, (t * w, 0))
             save(sheet, f"line/machine_{kind}_{f}.png")
 

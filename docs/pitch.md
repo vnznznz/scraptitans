@@ -93,6 +93,7 @@ A fixed **UPGRADES** button opens a purchase menu: **one list, sorted by price**
 - **Holding a crew button keeps hiring** (the first repeat after 0.4 s, then every 0.15 s), so a full crew is one hold instead of twelve taps.
 - **X1 / MAX toggle** beside UPGRADES, from the moment two hires are affordable at once: on MAX one tap on a crew button hires as many as the credits and the slots allow, and the button reads the count and the total. Saved with the settings.
 - **An unaffordable hire or fit fills from the left** with what the player has over its price, so the next buy shows how far off it is.
+- **A colour per tier** (rust, iron, steel, blue, gold, atomic green): on the machine's accent band, the station's name, the fit arrow and the part's name in the menu, so a line reads its tiers at a glance.
 - **Tiers:** unlock the next tier of each station type (global). The **Atomic Missile** is the last unlock and is visible, locked, from the start.
 - **Crew per station:** more workers per station on every line.
 - **Faster crews, Lighter work:** shorter chunk interval, lighter work bars (all stations).
