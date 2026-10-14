@@ -16,6 +16,8 @@ const GROUND := Pal.SLATE_D
 const GROUND_LIGHT := Pal.SLATE
 const WORKER_DX := 7.0
 const SQUASH_TIME := 0.12
+const CRATE_BAR := Rect2(6, 1, 0, 20)
+const CRATE_ICON := preload("res://art/ui/crate_s.png")
 const MAGNET_PULL := Color(2, 2, 2)
 
 var _yard: Control
@@ -36,6 +38,9 @@ var _squash_at := -1.0
 var _clock := 0.0
 var _collapsed := false
 var _hire_hold := Hold.new()
+var _crate: Label
+var _crate_fill: ColorRect
+var _crate_left := -1.0
 
 
 func _ready() -> void:
@@ -93,6 +98,32 @@ func _ready() -> void:
 	add_child(_hire)
 	_chunks_seen = GameState.yard_chunks
 	_bar_k = Reveal.step(0.0, GameState.shown("yard_crew"), INF)
+	var crate_box := Panel.new()
+	crate_box.name = "CrateBar"
+	crate_box.mouse_filter = MOUSE_FILTER_IGNORE
+	crate_box.visible = false
+	add_child(crate_box)
+	_crate_fill = ColorRect.new()
+	_crate_fill.name = "Fill"
+	_crate_fill.color = Pal.SLATE
+	_crate_fill.mouse_filter = MOUSE_FILTER_IGNORE
+	crate_box.add_child(_crate_fill)
+	var crate_icon := TextureRect.new()
+	crate_icon.texture = CRATE_ICON
+	crate_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	crate_icon.custom_minimum_size = Vector2(12, 20)
+	crate_icon.position = Vector2(4, 0)
+	crate_icon.mouse_filter = MOUSE_FILTER_IGNORE
+	crate_box.add_child(crate_icon)
+	_crate = Label.new()
+	_crate.name = "NextCrate"
+	_crate.add_theme_font_override("font", preload("res://fonts/silkscreen_condensed.tres"))
+	_crate.add_theme_color_override("font_color", Pal.CREAM)
+	_crate.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_crate.custom_minimum_size = Vector2(0, CRATE_BAR.size.y)
+	_crate.position = Vector2(20, 0)
+	_crate.mouse_filter = MOUSE_FILTER_IGNORE
+	crate_box.add_child(_crate)
 	resized.connect(_layout)
 	_layout()
 
@@ -115,6 +146,20 @@ func collapse() -> void:
 	queue_redraw()
 
 
+func _update_crate() -> void:
+	var box := get_node("CrateBar") as Control
+	box.visible = GameState.crate_shown() and not GameState.crate_due
+	if not box.visible:
+		return
+	var left := GameState.crate_left()
+	if absf(left - _crate_left) >= 1.0:
+		_crate_left = left
+		_crate.text = "NEXT CRATE %s" % Fmt.span(left)
+	var done := 1.0 - left / GameState.crate_wait()
+	_crate_fill.size = Vector2(roundf((box.size.x - 2.0) * clampf(done, 0.0, 1.0)), box.size.y - 2.0)
+	_crate_fill.position = Vector2.ONE
+
+
 func _layout() -> void:
 	_top = roundf(LineView.CREW_H * Reveal.eased(_bar_k))
 	var bar_y := _top - LineView.CREW_H
@@ -124,6 +169,9 @@ func _layout() -> void:
 	_crew.size = Vector2(maxf(size.x - LineView.HIRE_W - 6.0, 0.0), LineView.CREW_H - 2.0)
 	_hire.position = Vector2(size.x - LineView.HIRE_W + 1.0, bar_y + 1.0)
 	_hire.size = Vector2(LineView.HIRE_W, LineView.CREW_H - 1.0)
+	var box := get_node("CrateBar") as Control
+	box.position = Vector2(CRATE_BAR.position.x, _top + CRATE_BAR.position.y)
+	box.size = Vector2(size.x - 2.0 * CRATE_BAR.position.x, CRATE_BAR.size.y)
 	clip_contents = Reveal.moving(_bar_k)
 	queue_redraw()
 
@@ -139,6 +187,7 @@ func _process(delta: float) -> void:
 	_clock += delta
 	if _collapsed:
 		return
+	_update_crate()
 	var magnet := mini(ceili(GameState.level("tap") / MAGNET_LEVELS), MAGNET_TEX.size())
 	_magnet.visible = magnet > 0
 	if magnet > 0:

@@ -95,7 +95,7 @@ func _process(_delta: float) -> void:
 	if GameState.away_t <= 0.0 or GameState.run_over:
 		visible = false
 		return
-	_time.text = "THE CREWS WORKED %s%s" % [span(GameState.away_t), " (MAX)" if GameState.away_t >= Data.econ("away_max") else ""]
+	_time.text = "THE CREWS WORKED %s%s" % [Fmt.span(GameState.away_t), " (MAX)" if GameState.away_t >= Data.econ("away_max") else ""]
 	for kind: Flyers.Kind in _rows:
 		_rows[kind].visible = amount(kind) > 0.0
 		_values[kind].text = "+" + Fmt.num(amount(kind))
@@ -103,13 +103,6 @@ func _process(_delta: float) -> void:
 	_panel.set_anchors_and_offsets_preset(PRESET_CENTER)
 	if not visible:
 		_open()
-
-
-static func span(seconds: float) -> String:
-	var minutes := maxi(1, floori(seconds / 60.0))
-	if minutes < 60:
-		return "%d MIN" % minutes
-	return "%d H" % (minutes / 60) if minutes % 60 == 0 else "%d H %d MIN" % [minutes / 60, minutes % 60]
 
 
 func amount(kind: Flyers.Kind) -> float:

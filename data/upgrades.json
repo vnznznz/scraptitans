@@ -20,6 +20,7 @@
 			"desc": "Mechs on the field get their pay raises sooner."},
 		{"id": "deploy_fee", "name": "Higher fees", "stat": "deploy_fee_mult", "delta": 0.5, "max_level": 14, "base_cost": 80, "unit": "x", "effect": "FEE %s » %s",
 			"desc": "Every mech pays a bigger fee when it leaves the line."},
+		{"id": "crate", "name": "Supply line", "stat": "crate_hours", "delta": -4, "max_level": 3, "base_cost": 100, "cost_growth": 25, "unit": "h", "effect": "EVERY %s » %s", "desc": "Calls in a supply crate on a schedule and puts its countdown over the pile. Each level brings the next crate sooner."},
 		{"id": "salvage", "name": "Salvage", "stat": "salvage", "delta": 0.04, "max_level": 15, "base_cost": 150, "unit": "%", "effect": "REFUND %s » %s",
 			"desc": "Wrecked mechs give back part of their scrap."},
 		{"id": "lean", "name": "Cheaper parts", "stat": "scrap_mult", "delta": -0.06, "max_level": 8, "base_cost": 25000, "cost_growth": 2.0, "unit": "%", "effect": "COST %s » %s",

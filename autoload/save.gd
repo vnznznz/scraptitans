@@ -13,7 +13,7 @@ var _requested := false
 func _ready() -> void:
 	var settings := load_settings()
 	GameState.max_buy = settings.get("max_buy", false)
-	GameState.crate_day = settings.get("crate_day", "")
+	GameState.crate_at = float(settings.get("crate_at", 0.0))
 	GameState.crate_streak = int(settings.get("crate_streak", 0))
 	if not load_game():
 		GameState.new_game()
@@ -68,6 +68,8 @@ func load_game() -> bool:
 		return false
 	GameState.from_dict(d)
 	var rates: Array = d.get("away_rates", [])
+	if rates.size() == 3:
+		GameState.saved_rates = [float(rates[0]), float(rates[1]), float(rates[2])]
 	if d.has("saved_at") and rates.size() == 3:
 		GameState.add_away(Time.get_unix_time_from_system() - float(d.saved_at), rates[0], rates[1], rates[2])
 	return true

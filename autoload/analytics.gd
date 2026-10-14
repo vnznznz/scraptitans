@@ -17,7 +17,9 @@ func _ready() -> void:
 		set_process_input(false)
 		return
 	session_id = "%08x" % randi()
-	GameState.mech_deployed.connect(func(_m: MechState) -> void: event("first_mech"))
+	GameState.mech_deployed.connect(func(_m: MechState) -> void:
+		if GameState.run_time > 0.0:
+			event("first_mech"))
 	GameState.wave_cleared.connect(func(_b: float) -> void:
 		if GameState.wave == 1:
 			event("wave1"))

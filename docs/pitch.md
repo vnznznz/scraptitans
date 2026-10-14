@@ -82,7 +82,7 @@ Idle/clicker for CrazyGames. Scrap in, combat mechs out. Pixel art, **everything
 - **Cost curve for credit purchases:** `cost = base * 1.4^level`; lines ×8 per line.
 - **Tier upgrades cost a fixed scrap amount** per tier (rising per tier, not per line). Cheap enough to feel good, expensive enough that pausing a line matters.
 - Run length target: 30–60 min active play.
-- **Daily supply crate:** the first visit on a new day (from the second day on) opens a crate worth 10 minutes of the factory's current output in scrap and credits, ×1.25 for every day in a row up to seven. The away card says `COME BACK TOMORROW FOR A SUPPLY CRATE`.
+- **Supply crate:** a crate lands every 28 hours (from the first visit on), worth 10 minutes of the factory's output in scrap and credits, ×1.25 for every crate collected in a row up to seven. The **Supply line** upgrade (100 credits) puts a countdown over the pile, and its two further levels bring the crate every 24, 20 and 16 hours. The away card says `COME BACK TOMORROW FOR A SUPPLY CRATE`.
 - **While you were away:** the game stands still while its tab is hidden, the device sleeps or the game is closed. Coming back after a minute or more, a card pays for that time (at most 8 h) a quarter of what the factory made per second before: credits, and scrap after what the lines use. An absence of up to 40 minutes is paid in full; past that the credits stop at ten minutes of the factory's output, and one absence never pays for half the missile that ends the war. The scrap is not capped. A factory that uses more scrap than it gets still pays a quarter of its scrap income, and never less than a pile tap every 2 s, so there is always scrap to collect. Nothing before the first mech.
 
 ## Upgrade menu (credits)

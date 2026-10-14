@@ -38,6 +38,13 @@ static func mult(x: float) -> String:
 	return "X" + (str(int(v)) if is_equal_approx(v, roundf(v)) else str(v))
 
 
+static func span(seconds: float) -> String:
+	var minutes := maxi(1, floori(seconds / 60.0))
+	if minutes < 60:
+		return "%d MIN" % minutes
+	return "%d H" % (minutes / 60) if minutes % 60 == 0 else "%d H %d MIN" % [minutes / 60, minutes % 60]
+
+
 static func clock(seconds: float) -> String:
 	var s := ceili(seconds)
 	return "%d:%02d" % [s / 60, s % 60]

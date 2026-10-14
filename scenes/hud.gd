@@ -62,6 +62,7 @@ func _ready() -> void:
 	_show_wars()
 	GameState.mech_deployed.connect(_on_deployed)
 	GameState.purchased.connect(_on_purchased)
+	GameState.wave_cleared.connect(func(_b: float) -> void: _rate_watch = 0.0)
 	_late = [_icons[Flyers.Kind.CREDITS], _credits, _credits_rate, _mech_icon, _mechs, _mechs_rate]
 	_late_k = Reveal.step(0.0, GameState.revealed(), INF)
 	_fade_late()

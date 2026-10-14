@@ -2031,6 +2031,14 @@ def ui():
             sbox(d, 3, 27, 28, 31, R_GOLD)
         save(img, f"ui/crate_{k}.png")
 
+    img, d = new(12, 12)
+    sbox(d, 0, 3, 11, 11, R_BROWN)
+    rect(d, 4, 4, 5, 10, BROWN_K)
+    hazard(d, 1, 6, 10, 8)
+    sbox(d, 0, 0, 11, 3, R_GOLD)
+    rect(d, 1, 1, 10, 1, YELLOW)
+    save(img, "ui/crate_s.png")
+
     img, d = new(8, 12)
     rect(d, 3, 0, 4, 0, PINK)
     rect(d, 3, 1, 4, 2, RED)

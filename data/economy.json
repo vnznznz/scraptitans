@@ -14,6 +14,7 @@
 	"away_taps": 0.5,
 	"away_ad_mult": 2,
 	"crate_minutes": 10,
+	"crate_hours": 28,
 	"crate_streak_mult": 1.25,
 	"crate_streak_max": 7,
 	"gate_approach": 20,

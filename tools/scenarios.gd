@@ -3865,7 +3865,7 @@ func away() -> void:
 			"scrap and credits on the card (%s, %s)" % [card._values[Flyers.Kind.SCRAP].text, card._values[Flyers.Kind.CREDITS].text])
 	t.check(ad.is_visible_in_tree() and ad.text == "X%d" % mult and collect.get_global_rect().end.x + 4.0 == ad.get_global_rect().position.x, "video ads on: COLLECT and the video button side by side")
 	await t.shot("away_card_ad")
-	t.check(AwayCard.span(59.0) == "1 MIN" and AwayCard.span(3540.0) == "59 MIN" and AwayCard.span(3600.0) == "1 H" and AwayCard.span(7500.0) == "2 H 5 MIN", "time reads in minutes, then hours")
+	t.check(Fmt.span(59.0) == "1 MIN" and Fmt.span(3540.0) == "59 MIN" and Fmt.span(3600.0) == "1 H" and Fmt.span(7500.0) == "2 H 5 MIN", "time reads in minutes, then hours")
 
 	var scrap := GameState.scrap
 	var credits := GameState.credits
@@ -3916,35 +3916,65 @@ func crate() -> void:
 	var card: CrateCard = main.get_node("CrateCard")
 	var panel: Control = card.get_node("Card")
 	var collect: Button = card.find_child("Collect", true, false)
+	var yard: Scrapyard = t.node("Scrapyard")
+	var bar: Control = yard.get_node("CrateBar")
 	var minutes := Data.econ("crate_minutes")
 	var step := Data.econ("crate_streak_mult")
 	var cap := int(Data.econ("crate_streak_max"))
-	GameState.crate_day = ""
+	var now := Time.get_unix_time_from_system()
+	GameState.crate_at = 0.0
 	GameState.crate_streak = 0
 	GameState.mechs_built = 0
 	GameState.check_crate()
-	t.check(not GameState.crate_due and GameState.crate_day.is_empty(), "nothing before the first mech")
+	t.check(not GameState.crate_due and GameState.crate_at == 0.0, "nothing before the first mech")
 	_reveal_all()
 	GameState.check_crate()
-	t.check(not GameState.crate_due and GameState.crate_day == GameState.today(), "the first visit starts the count without a crate")
+	t.check(not GameState.crate_due and GameState.crate_at > 0.0, "the first visit starts the clock without a crate")
 	GameState.check_crate()
-	t.check(not GameState.crate_due, "same day again: still no crate")
+	t.check(not GameState.crate_due, "and it does not fire again right away")
+	t.check(is_equal_approx(GameState.crate_wait(), Data.econ("crate_hours") * 3600.0) and not GameState.crate_shown(),
+			"locked: a crate every %d h and no countdown in the yard" % Data.econ("crate_hours"))
+	await t.frames(2)
+	t.check(not bar.visible, "no countdown bar before the Supply line upgrade")
+	GameState.credits = 1e6
+	GameState.buy_upgrade("crate")
+	await t.frames(2)
+	var hours := GameState.stat("crate_hours")
+	var label: Label = bar.get_node("NextCrate")
+	t.check(GameState.crate_shown() and bar.visible and hours == Data.econ("crate_hours") - 4.0,
+			"one level: the countdown shows and the wait drops to %d h" % hours)
+	t.check(label.text.begins_with("NEXT CRATE") and label.text.ends_with(Fmt.span(GameState.crate_left())),
+			"it names the time left (%s)" % label.text)
+	var fill: ColorRect = bar.get_node("Fill")
+	var early := fill.size.x
+	GameState.crate_at = now - GameState.crate_wait() * 0.75
+	await t.frames(2)
+	t.check(fill.size.x > early and fill.size.x < bar.size.x, "the bar fills as the wait runs down (%d of %d)" % [fill.size.x, bar.size.x])
+	await t.shot("crate_bar")
+	for k in 2:
+		GameState.buy_upgrade("crate")
+	t.check(GameState.stat("crate_hours") == Data.econ("crate_hours") - 12.0 and GameState.upgrade_maxed("crate"),
+			"two more levels, %d h at the cap" % GameState.stat("crate_hours"))
 
 	GameState._credits_history.assign([20.0])
 	GameState._scrap_history.assign([5.0])
 	GameState._scrap_gain_history.assign([8.0])
 	var drops := int(Sound.plays.get(&"crate_drop", 0))
 	var opens := int(Sound.plays.get(&"crate_open", 0))
-	GameState.crate_day = GameState.yesterday()
+	GameState.crate_at = now - GameState.crate_wait()
 	GameState.check_crate()
 	await t.frames(2)
 	await t.wait(0.4)
 	t.check(int(Sound.plays.get(&"crate_drop", 0)) == drops + 1 and int(Sound.plays.get(&"crate_open", 0)) == opens + 1, "the crate lands and the lid comes off, once each")
 	var amounts := GameState.crate_amounts()
-	t.check(GameState.crate_due and card.visible and GameState.crate_streak_next() == 1,
-			"a new day after playing: the crate card opens on day 1")
+	t.check(GameState.crate_due and card.visible and GameState.crate_streak_next() == 1 and not bar.visible,
+			"the wait is over: the card opens on day 1 and the countdown goes")
 	t.check(is_equal_approx(amounts[Flyers.Kind.CREDITS], 20.0 * minutes * 60.0) and is_equal_approx(amounts[Flyers.Kind.SCRAP], 5.0 * minutes * 60.0),
 			"%d min of the factory's output (%.0f scrap, %.0f credits)" % [minutes, amounts[Flyers.Kind.SCRAP], amounts[Flyers.Kind.CREDITS]])
+	GameState._credits_history.assign([1.0])
+	await t.frames(2)
+	t.check(is_equal_approx(GameState.crate_amounts()[Flyers.Kind.CREDITS], amounts[Flyers.Kind.CREDITS]),
+			"what the crate holds is fixed when it drops, whatever the factory does after")
 	var screen := (main as Control).get_global_rect()
 	t.check(panel.size.x == 288.0 and screen.encloses(panel.get_global_rect()) and absf(panel.get_global_rect().get_center().y - screen.get_center().y) <= 1.0,
 			"card 288 wide, in the middle of the screen (%s)" % panel.get_global_rect())
@@ -3955,24 +3985,27 @@ func crate() -> void:
 	var credits := GameState.credits
 	await t.click(collect)
 	t.check(is_equal_approx(GameState.scrap, scrap + amounts[Flyers.Kind.SCRAP]) and is_equal_approx(GameState.credits, credits + amounts[Flyers.Kind.CREDITS])
-			and not card.visible and not GameState.crate_due and GameState.crate_day == GameState.today() and GameState.crate_streak == 1,
-			"COLLECT pays, closes and counts the day")
-	t.check(int(Save.load_settings().get("crate_streak", -1)) == 1 and Save.load_settings().get("crate_day") == GameState.today(), "the streak is saved with the settings, not the run")
+			and not card.visible and not GameState.crate_due and GameState.crate_streak == 1 and GameState.crate_left() > GameState.crate_wait() - 5.0,
+			"COLLECT pays, closes and starts the next wait")
+	t.check(int(Save.load_settings().get("crate_streak", -1)) == 1 and absf(float(Save.load_settings().get("crate_at", 0.0)) - GameState.crate_at) < 1.0,
+			"the streak and the clock are saved with the settings, not the run")
+	await t.frames(2)
+	t.check(bar.visible, "the countdown is back")
 	GameState.check_crate()
 	await t.frames(2)
-	t.check(not GameState.crate_due and not card.visible, "no second crate the same day")
+	t.check(not GameState.crate_due and not card.visible, "no second crate before the next wait is over")
 
-	GameState.crate_day = GameState.yesterday()
+	GameState.crate_at = Time.get_unix_time_from_system() - GameState.crate_wait()
 	GameState.check_crate()
 	await t.frames(2)
-	t.check(GameState.crate_streak_next() == 2 and is_equal_approx(GameState.crate_amounts()[Flyers.Kind.CREDITS], 20.0 * minutes * 60.0 * step)
+	t.check(GameState.crate_streak_next() == 2 and is_equal_approx(GameState.crate_amounts()[Flyers.Kind.CREDITS], 1.0 * minutes * 60.0 * step)
 			and (card.find_child("Streak", true, false) as Label).text.ends_with(Fmt.mult(step)),
-			"a day in a row: %s and the day counted (%s)" % [Fmt.mult(step), (card.find_child("Streak", true, false) as Label).text])
+			"back in time: %s and the day counted (%s)" % [Fmt.mult(step), (card.find_child("Streak", true, false) as Label).text])
 	await t.shot("crate_streak")
 	GameState.crate_streak = cap
 	t.check(GameState.crate_streak_next() == cap, "the streak stops at %d days" % cap)
-	GameState.crate_day = "2020-01-01"
-	t.check(GameState.crate_streak_next() == 1, "a day missed: back to day 1")
+	GameState.crate_at = Time.get_unix_time_from_system() - 3.0 * GameState.crate_wait()
+	t.check(GameState.crate_streak_next() == 1, "a wait missed twice over: back to day 1")
 
 	GameState.add_away(600.0, 10.0, 5.0, 8.0)
 	await t.frames(2)
@@ -3991,9 +4024,9 @@ func crate() -> void:
 	var card_texts := (t.get_tree().current_scene as Control).find_children("*", "Label", true, false).filter(func(l: Label) -> bool:
 		return l.text == CrateCard.TOMORROW and l.is_visible_in_tree())
 	t.check(card_texts.is_empty(), "nothing else in the game mentions tomorrow's crate %s" % [card_texts.map(func(l: Label) -> String: return str(l.get_parent().name))])
-	GameState.crate_day = ""
+	GameState.crate_at = 0.0
 	GameState.crate_streak = 0
-	Save.store_settings({"crate_day": "", "crate_streak": 0})
+	Save.store_settings({"crate_at": 0.0, "crate_streak": 0})
 
 
 func gate() -> void:

@@ -531,7 +531,7 @@ First minute:
 
 Losing and coming back:
 - [ ] The gate is breached instead of falling — built, then reverted in review: the gate falls and ends the war as in M22 (`THE GATE HAS FALLEN`, TRY AGAIN). Kept from the attempt: the smashed shutter art, which now shows on a fallen gate
-- [x] Daily supply crate: the first visit on a new local day (from the second day on, after the first mech) opens a crate card: 10 min of the factory's current output in credits and scrap, ×1.25 per day in a row up to 7 days; COLLECT like the away card. `COME BACK TOMORROW FOR A SUPPLY CRATE` on the away card only (review: it was on the nuke card and the mission plate too, which was saying it everywhere)
+- [x] Supply crate: a crate every `crate_hours` (28 locked) after the first mech, worth 10 min of the factory's current output in credits and scrap, ×1.25 per crate in a row up to 7; COLLECT like the away card. Review turned the local-day rule into a clock and added the Supply line upgrade (100 credits, then two dear levels: 24 / 20 / 16 h) whose countdown over the pile is what tells a first session a crate is coming; `COME BACK TOMORROW FOR A SUPPLY CRATE` on the away card only
 - [x] Away: `away_max` 1 h → 8 h; credits capped at ten minutes of the factory's output and never half the missile's price (M23 QA note: one capped hour paid for the missile; the first try, 3× the cheapest purchase out of reach, was far too little early); `tune` and the idler `qa` profile again
 
 Buying:
