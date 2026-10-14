@@ -555,7 +555,8 @@ Sound and art:
 
 Rest:
 - [x] Build `0.2.0-m24` (`build/crazygames` and `build/web`), m22 saves load (a save mid-attack gets a whole gate; new keys default); docs: pitch (start, gate, away, crate, buying, late fits), `tech.md`, `crazygames.md`
-- [ ] Upload `build/crazygames`; a row in [feedback.md](feedback.md) 4–5 days later, read on the daily charts from the release marker and in the funnel
+- [x] Upload `build/crazygames` (the user, 2026-10-14: `0.2.0-m24+179.c40625e`)
+- [ ] A row in [feedback.md](feedback.md) 4–5 days later, read on the daily charts from the release marker and in the funnel
 - [ ] Covers a few days after the build, as their own Art tab step (no build, so the cover's CTR and conversion effect reads apart from the build's marker): landscape and portrait (CTR in their bottom 20 % on both), one big mech in a fight, readable at thumbnail size, `tools/gen_covers.py`; videos and screenshots again with the cold open (`tools/make_videos.py`)
 
 Test (browser):
